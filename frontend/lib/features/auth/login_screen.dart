@@ -81,13 +81,13 @@ class _LoginScreenState extends State<LoginScreen> {
                                 Wrap(
                                   spacing: 12,
                                   runSpacing: 12,
-                                  children: const [
+                                children: const [
                                     _Chip(text: 'JWT Security'),
                                     _Chip(text: 'Cashier POS'),
                                     _Chip(text: 'ANPR Assisted'),
-                                    _Chip(text: 'Render Backend'),
-                                  ],
-                                ),
+                                    _Chip(text: 'Railway Backend'),
+                                ],
+                              ),
                               ],
                             ),
                           ),
@@ -174,4 +174,3 @@ class _Chip extends StatelessWidget {
     );
   }
 }
-

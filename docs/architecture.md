@@ -2,7 +2,7 @@
 
 ```mermaid
 flowchart TB
-  Flutter[Flutter POS / Tablet / Web] --> API[Django REST API on Render]
+  Flutter[Flutter POS / Tablet / Web] --> API[Django REST API on Railway]
   API --> DB[(PostgreSQL)]
   API --> OCR[OpenCV + Tesseract OCR]
   API --> Audit[Audit Log]
@@ -36,4 +36,3 @@ flowchart TB
 6. Exit calculates the fee with the session's historical pricing snapshot.
 7. Cashier confirms payment.
 8. Session closes, the slot is released, and the audit log is written.
-

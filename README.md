@@ -6,20 +6,20 @@ Production-ready smart parking and POS scaffold with:
 - Django REST API backend
 - PostgreSQL schema and pricing history
 - Camera-assisted ANPR flow with OpenCV + Tesseract on the server
-- Render deployment for the backend
+- Railway deployment for the backend
 - Netlify deployment for the Flutter web dashboard
 
 ## Repository Layout
 
 ```text
 .
-├── apps/                 # Django domain apps
-├── project/              # Django project settings and URLs
-├── frontend/            # Flutter app
-├── docs/                # Architecture, schema, API, deployment notes
-├── requirements.txt
-├── render.yaml
-└── .env.example
+- apps/           Django domain apps
+- project/        Django project settings and URLs
+- frontend/       Flutter app
+- docs/           Architecture, schema, API, deployment notes
+- requirements.txt
+- railway.json
+- .env.example
 ```
 
 ## Core Modules
@@ -54,9 +54,9 @@ See [docs/api.md](docs/api.md) for the full route map.
 
 ## Deployment
 
-- Backend: Render, using `gunicorn project.wsgi:application`
+- Backend: Railway, using `railway.json` and `gunicorn project.wsgi:application`
 - Web dashboard: Netlify, using Flutter web build output
-- Database: Render PostgreSQL or another managed PostgreSQL instance. SQLite is only a local-development fallback and should not be used for deployment.
+- Database: Railway PostgreSQL or another managed PostgreSQL instance. SQLite is only a local-development fallback and should not be used for deployment.
 
 See [docs/deployment.md](docs/deployment.md).
 
@@ -77,6 +77,7 @@ If `API_BASE_URL` is missing in a release build, the app shows a deployment warn
 
 - Use HTTPS everywhere
 - Keep `SECRET_KEY` and `DATABASE_URL` out of source control
+- Railway's public domain is included automatically when present; add any custom frontend origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`
 - Rebuild `collectstatic` on deploy
 - Generate Django migrations before schema changes go live
 - Keep Tesseract installed on the runtime image or a separate OCR service

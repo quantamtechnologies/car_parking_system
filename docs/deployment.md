@@ -4,7 +4,7 @@
 
 Backend:
 
-- Python 3.11 or newer
+- Python 3.12.x
 - `pip` and a virtual environment tool
 - PostgreSQL for production
 - Tesseract OCR installed in the runtime image or provided by a sidecar service
@@ -20,20 +20,13 @@ Project dependencies:
 - Backend Python packages from `requirements.txt`
 - Frontend Dart packages from `frontend/pubspec.yaml`
 
-## Backend on Render
+## Backend on Railway
 
-Required commands:
+Railway can deploy the Django backend directly from the repository root. The root [`railway.json`](../railway.json) file tells Railway to use Railpack, run migrations and `collectstatic` before each deploy, and start Gunicorn.
 
-```bash
-pip install -r requirements.txt
-gunicorn project.wsgi:application
-```
+This repo pins Python to 3.12 in [`.python-version`](../.python-version) so Railway does not drift onto Python 3.13 and break packages that do not yet ship compatible wheels.
 
-Recommended pre-deploy command:
-
-```bash
-python manage.py migrate --run-syncdb --noinput && python manage.py collectstatic --noinput
-```
+You do not need a separate build script for the backend unless you want to override the defaults in the Railway dashboard.
 
 ### Backend Environment Variables
 
@@ -53,6 +46,11 @@ Recommended for production:
 - `SECURE_SSL_REDIRECT=True`
 - `STATIC_URL=/static/`
 - `MEDIA_URL=/media/`
+
+Railway-specific note:
+
+- Railway injects `RAILWAY_PUBLIC_DOMAIN` for each service, and the backend automatically adds that host and origin when it is present.
+- If your frontend stays on Netlify or another host, add that production origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` too.
 
 Optional object storage:
 
@@ -74,7 +72,7 @@ Build:
 
 ```bash
 cd frontend
-flutter build web --release --dart-define=API_BASE_URL=https://your-render-backend.onrender.com/api
+flutter build web --release --dart-define=API_BASE_URL=https://your-backend.up.railway.app/api
 ```
 
 The browser client uses `shared_preferences` for session and offline state, so it does not need a local SQLite database. The API base URL must be supplied at build time for a production web deploy.

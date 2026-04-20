@@ -15,6 +15,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
+    RAILWAY_PUBLIC_DOMAIN=(str, ""),
     DATABASE_SSL_REQUIRE=(bool, False),
     SECURE_SSL_REDIRECT=(bool, False),
     DJANGO_TIME_ZONE=(str, "Africa/Johannesburg"),
@@ -24,9 +25,30 @@ environ.Env.read_env(BASE_DIR / ".env")
 
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env.bool("DEBUG")
-ALLOWED_HOSTS = env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"])
-CSRF_TRUSTED_ORIGINS = env.list("CSRF_TRUSTED_ORIGINS", default=[])
-CORS_ALLOWED_ORIGINS = env.list("CORS_ALLOWED_ORIGINS", default=[])
+RAILWAY_PUBLIC_DOMAIN = env("RAILWAY_PUBLIC_DOMAIN", default="").strip()
+
+
+def _merge_unique(*groups: list[str]) -> list[str]:
+    merged: list[str] = []
+    for group in groups:
+        for value in group:
+            if value and value not in merged:
+                merged.append(value)
+    return merged
+
+
+ALLOWED_HOSTS = _merge_unique(
+    env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"]),
+    [RAILWAY_PUBLIC_DOMAIN] if RAILWAY_PUBLIC_DOMAIN else [],
+)
+CSRF_TRUSTED_ORIGINS = _merge_unique(
+    env.list("CSRF_TRUSTED_ORIGINS", default=[]),
+    [f"https://{RAILWAY_PUBLIC_DOMAIN}"] if RAILWAY_PUBLIC_DOMAIN else [],
+)
+CORS_ALLOWED_ORIGINS = _merge_unique(
+    env.list("CORS_ALLOWED_ORIGINS", default=[]),
+    [f"https://{RAILWAY_PUBLIC_DOMAIN}"] if RAILWAY_PUBLIC_DOMAIN else [],
+)
 
 INSTALLED_APPS = [
     "django.contrib.admin",
