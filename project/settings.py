@@ -16,6 +16,7 @@ env = environ.Env(
     CORS_ALLOWED_ORIGINS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
     RAILWAY_PUBLIC_DOMAIN=(str, ""),
+    RAILWAY_PRIVATE_DOMAIN=(str, ""),
     DATABASE_SSL_REQUIRE=(bool, False),
     SECURE_SSL_REDIRECT=(bool, False),
     DJANGO_TIME_ZONE=(str, "Africa/Johannesburg"),
@@ -26,6 +27,7 @@ environ.Env.read_env(BASE_DIR / ".env")
 SECRET_KEY = env("SECRET_KEY")
 DEBUG = env.bool("DEBUG")
 RAILWAY_PUBLIC_DOMAIN = env("RAILWAY_PUBLIC_DOMAIN", default="").strip()
+RAILWAY_PRIVATE_DOMAIN = env("RAILWAY_PRIVATE_DOMAIN", default="").strip()
 
 
 def _merge_unique(*groups: list[str]) -> list[str]:
@@ -40,6 +42,8 @@ def _merge_unique(*groups: list[str]) -> list[str]:
 ALLOWED_HOSTS = _merge_unique(
     env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"]),
     [RAILWAY_PUBLIC_DOMAIN] if RAILWAY_PUBLIC_DOMAIN else [],
+    [RAILWAY_PRIVATE_DOMAIN] if RAILWAY_PRIVATE_DOMAIN else [],
+    ["healthcheck.railway.app"],
 )
 CSRF_TRUSTED_ORIGINS = _merge_unique(
     env.list("CSRF_TRUSTED_ORIGINS", default=[]),

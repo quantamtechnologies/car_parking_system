@@ -23,6 +23,12 @@ class ProjectUrlTests(SimpleTestCase):
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
 
+    def test_health_endpoint_accepts_railway_healthcheck_host(self):
+        response = self.client.get("/health/", HTTP_HOST="healthcheck.railway.app")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.json(), {"status": "ok"})
+
     def test_legacy_api_health_alias_still_works(self):
         response = self.client.get("/api/health/")
 
