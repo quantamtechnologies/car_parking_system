@@ -1,0 +1,12 @@
+{
+  "name": "Smart Parking POS",
+  "short_name": "Parking POS",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#EEF6FF",
+  "theme_color": "#0F4CFF",
+  "description": "Smart car parking management POS and admin dashboard.",
+  "orientation": "portrait-primary",
+  "prefer_related_applications": false
+}
+

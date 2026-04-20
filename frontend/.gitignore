@@ -1,0 +1,11 @@
+.dart_tool/
+.idea/
+.vscode/
+.packages
+.pub/
+build/
+coverage/
+*.iml
+*.log
+pubspec.lock
+

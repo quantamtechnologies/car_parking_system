@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta content="IE=Edge" http-equiv="X-UA-Compatible">
+  <meta name="description" content="Smart Parking POS">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#0F4CFF">
+  <link rel="manifest" href="manifest.json">
+  <title>Smart Parking POS</title>
+  <style>
+    :root {
+      color-scheme: light;
+      --primary: #0f4cff;
+      --primary-soft: #45c9ff;
+      --ink: #0a1f44;
+      --muted: rgba(10, 31, 68, 0.76);
+      --panel: rgba(255, 255, 255, 0.76);
+      --panel-border: rgba(255, 255, 255, 0.7);
+      --shadow: 0 30px 80px rgba(10, 31, 68, 0.16);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      min-height: 100%;
+    }
+
+    body {
+      min-height: 100vh;
+      min-height: 100dvh;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 16% 18%, rgba(69, 201, 255, 0.24), transparent 22%),
+        radial-gradient(circle at 82% 12%, rgba(15, 76, 255, 0.18), transparent 18%),
+        radial-gradient(circle at 78% 78%, rgba(15, 76, 255, 0.14), transparent 20%),
+        linear-gradient(180deg, #eef6ff 0%, #f8fbff 100%);
+      color: var(--ink);
+      font-family: "Manrope", "Segoe UI", Arial, sans-serif;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background:
+        linear-gradient(115deg, transparent 0 15%, rgba(15, 76, 255, 0.05) 15% 16%, transparent 16% 100%),
+        repeating-linear-gradient(
+          90deg,
+          transparent 0 78px,
+          rgba(15, 76, 255, 0.04) 78px 80px
+        );
+      opacity: 0.7;
+      pointer-events: none;
+    }
+
+    .scene {
+      position: relative;
+      min-height: 100vh;
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      isolation: isolate;
+    }
+
+    .halo {
+      position: absolute;
+      inset: auto auto 14% 12%;
+      width: 220px;
+      height: 220px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(69, 201, 255, 0.3), rgba(69, 201, 255, 0) 68%);
+      filter: blur(12px);
+      animation: float 8s ease-in-out infinite;
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .card {
+      position: relative;
+      width: min(100%, 760px);
+      padding: clamp(24px, 4vw, 40px);
+      border-radius: 32px;
+      border: 1px solid var(--panel-border);
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 255, 255, 0.72));
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(18px);
+      -webkit-backdrop-filter: blur(18px);
+      overflow: hidden;
+    }
+
+    .card::before {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      background: radial-gradient(circle at top right, rgba(69, 201, 255, 0.22), transparent 34%);
+      pointer-events: none;
+    }
+
+    .brand {
+      position: relative;
+      display: flex;
+      align-items: flex-start;
+      gap: 18px;
+      z-index: 1;
+    }
+
+    .badge {
+      flex: 0 0 auto;
+      width: 72px;
+      height: 72px;
+      border-radius: 24px;
+      display: grid;
+      place-items: center;
+      color: #fff;
+      background: linear-gradient(135deg, var(--primary), var(--primary-soft));
+      box-shadow: 0 18px 34px rgba(15, 76, 255, 0.28);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .badge::after {
+      content: "";
+      position: absolute;
+      inset: 10%;
+      border-radius: 18px;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .eyebrow {
+      margin: 0 0 8px;
+      color: var(--primary);
+      font-size: 12px;
+      font-weight: 800;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    h1 {
+      margin: 0;
+      color: var(--ink);
+      font-size: clamp(32px, 5vw, 52px);
+      line-height: 1.02;
+      letter-spacing: -0.05em;
+      font-weight: 900;
+    }
+
+    .subtitle {
+      position: relative;
+      z-index: 1;
+      margin: 16px 0 0;
+      max-width: 52ch;
+      color: var(--muted);
+      font-size: 16px;
+      line-height: 1.65;
+    }
+
+    .chips {
+      position: relative;
+      z-index: 1;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 22px;
+    }
+
+    .chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(15, 76, 255, 0.11);
+      background: rgba(255, 255, 255, 0.82);
+      color: rgba(10, 31, 68, 0.92);
+      font-size: 13px;
+      font-weight: 800;
+      box-shadow: 0 10px 20px rgba(10, 31, 68, 0.04);
+    }
+
+    .chip::before {
+      content: "";
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--primary), var(--primary-soft));
+      box-shadow: 0 0 0 4px rgba(15, 76, 255, 0.08);
+    }
+
+    .status {
+      position: relative;
+      z-index: 1;
+      margin-top: 26px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 18px 20px;
+      border-radius: 24px;
+      border: 1px solid rgba(15, 76, 255, 0.08);
+      background: rgba(10, 31, 68, 0.04);
+    }
+
+    .status-copy {
+      color: rgba(10, 31, 68, 0.9);
+      font-size: 14px;
+      font-weight: 800;
+      letter-spacing: -0.01em;
+    }
+
+    .status-subcopy {
+      margin-top: 4px;
+      color: rgba(10, 31, 68, 0.65);
+      font-size: 13px;
+      line-height: 1.5;
+    }
+
+    .loader {
+      flex: 0 0 200px;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(15, 76, 255, 0.1);
+      overflow: hidden;
+      position: relative;
+    }
+
+    .loader::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      width: 45%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, rgba(15, 76, 255, 0), var(--primary), var(--primary-soft), rgba(15, 76, 255, 0));
+      animation: sweep 1.25s linear infinite;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 18px;
+      padding: 0 6px;
+      color: rgba(10, 31, 68, 0.55);
+      font-size: 12px;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .parking-lot {
+      position: absolute;
+      right: 28px;
+      bottom: 28px;
+      display: grid;
+      grid-template-columns: repeat(4, 14px);
+      gap: 8px;
+      opacity: 0.65;
+      z-index: 0;
+    }
+
+    .slot {
+      width: 14px;
+      height: 44px;
+      border-radius: 999px;
+      background: rgba(15, 76, 255, 0.12);
+      border: 1px solid rgba(15, 76, 255, 0.14);
+    }
+
+    .slot.active {
+      background: linear-gradient(180deg, var(--primary), var(--primary-soft));
+      box-shadow: 0 8px 18px rgba(15, 76, 255, 0.25);
+      animation: pulse 1.8s ease-in-out infinite;
+    }
+
+    @keyframes sweep {
+      0% {
+        transform: translateX(-120%);
+      }
+      100% {
+        transform: translateX(260%);
+      }
+    }
+
+    @keyframes pulse {
+      0%,
+      100% {
+        transform: translateY(0);
+        opacity: 0.82;
+      }
+      50% {
+        transform: translateY(-4px);
+        opacity: 1;
+      }
+    }
+
+    @keyframes float {
+      0%,
+      100% {
+        transform: translate3d(0, 0, 0);
+      }
+      50% {
+        transform: translate3d(0, -14px, 0);
+      }
+    }
+
+    @media (max-width: 640px) {
+      .scene {
+        padding: 16px;
+      }
+
+      .card {
+        border-radius: 28px;
+      }
+
+      .brand {
+        flex-direction: column;
+      }
+
+      .status {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .loader {
+        width: 100%;
+        flex-basis: auto;
+      }
+
+      .footer {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="scene" aria-label="Smart Parking POS loading screen">
+    <div class="halo" aria-hidden="true"></div>
+    <section class="card" aria-live="polite" aria-busy="true">
+      <div class="brand">
+        <div class="badge" aria-hidden="true">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" role="presentation">
+            <path d="M7 4.5h7.25A4.75 4.75 0 0 1 19 9.25v.5A4.75 4.75 0 0 1 14.25 14.5H11V19.5H7V4.5Z" fill="white" fill-opacity="0.94"/>
+            <path d="M11 8.1h2.7a1.6 1.6 0 1 1 0 3.2H11V8.1Z" fill="#0F4CFF"/>
+          </svg>
+        </div>
+        <div>
+          <p class="eyebrow">Smart Parking POS</p>
+          <h1>Preparing the live gate dashboard</h1>
+        </div>
+      </div>
+
+      <p class="subtitle">
+        Syncing cashier sessions, loading pricing rules, and bringing the entry and exit workflow online.
+      </p>
+
+      <div class="chips" aria-label="Loading features">
+        <span class="chip">ANPR assisted</span>
+        <span class="chip">Cashier POS</span>
+        <span class="chip">Shift control</span>
+        <span class="chip">Realtime reports</span>
+      </div>
+
+      <div class="status">
+        <div>
+          <div class="status-copy">Connecting to the parking operations stack</div>
+          <div class="status-subcopy">This usually takes just a few seconds.</div>
+        </div>
+        <div class="loader" aria-hidden="true"></div>
+      </div>
+
+      <div class="parking-lot" aria-hidden="true">
+        <span class="slot"></span>
+        <span class="slot active"></span>
+        <span class="slot"></span>
+        <span class="slot"></span>
+        <span class="slot"></span>
+        <span class="slot"></span>
+        <span class="slot active"></span>
+        <span class="slot"></span>
+      </div>
+    </section>
+
+    <div class="footer" aria-hidden="true">
+      <span>Secure parking workflows</span>
+      <span>Blue Harbor UI</span>
+    </div>
+  </main>
+
+  <script src="flutter_bootstrap.js" defer></script>
+</body>
+</html>
