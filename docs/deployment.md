@@ -51,6 +51,7 @@ Railway-specific note:
 
 - Railway injects `RAILWAY_PUBLIC_DOMAIN` for each service, and the backend automatically adds that host and origin when it is present.
 - Railway healthchecks originate from `healthcheck.railway.app`, and the backend allows that host automatically so deploys can pass the readiness check.
+- The `/health/` and `/api/health/` endpoints are exempt from SSL redirects so Railway can still get a `200` even if `SECURE_SSL_REDIRECT=True`.
 - If your frontend stays on Netlify or another host, add that production origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` too.
 
 Optional object storage:
