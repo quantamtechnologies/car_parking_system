@@ -4,8 +4,8 @@
     "builder": "RAILPACK"
   },
   "deploy": {
-    "preDeployCommand": "python manage.py migrate --run-syncdb --noinput",
+    "preDeployCommand": "python manage.py migrate --run-syncdb --noinput --verbosity 0",
     "healthcheckPath": "/health/",
-    "startCommand": "python manage.py collectstatic --noinput && gunicorn project.wsgi:application --bind 0.0.0.0:$PORT"
+    "startCommand": "mkdir -p staticfiles && python manage.py collectstatic --noinput --verbosity 0 && gunicorn project.wsgi:application --bind 0.0.0.0:$PORT --log-level warning"
   }
 }
