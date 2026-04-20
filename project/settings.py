@@ -17,6 +17,10 @@ env = environ.Env(
     CSRF_TRUSTED_ORIGINS=(list, []),
     RAILWAY_PUBLIC_DOMAIN=(str, ""),
     RAILWAY_PRIVATE_DOMAIN=(str, ""),
+    AUTO_CREATE_DEFAULT_SUPERUSER=(bool, True),
+    DEFAULT_SUPERUSER_USERNAME=(str, "admin"),
+    DEFAULT_SUPERUSER_PASSWORD=(str, "admin12345"),
+    DEFAULT_SUPERUSER_EMAIL=(str, "admin@example.com"),
     DATABASE_SSL_REQUIRE=(bool, False),
     SECURE_SSL_REDIRECT=(bool, False),
     DJANGO_TIME_ZONE=(str, "Africa/Johannesburg"),
@@ -28,6 +32,10 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env.bool("DEBUG")
 RAILWAY_PUBLIC_DOMAIN = env("RAILWAY_PUBLIC_DOMAIN", default="").strip()
 RAILWAY_PRIVATE_DOMAIN = env("RAILWAY_PRIVATE_DOMAIN", default="").strip()
+AUTO_CREATE_DEFAULT_SUPERUSER = env.bool("AUTO_CREATE_DEFAULT_SUPERUSER")
+DEFAULT_SUPERUSER_USERNAME = env("DEFAULT_SUPERUSER_USERNAME", default="admin").strip()
+DEFAULT_SUPERUSER_PASSWORD = env("DEFAULT_SUPERUSER_PASSWORD", default="admin12345")
+DEFAULT_SUPERUSER_EMAIL = env("DEFAULT_SUPERUSER_EMAIL", default="admin@example.com").strip()
 
 
 def _merge_unique(*groups: list[str]) -> list[str]:

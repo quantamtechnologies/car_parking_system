@@ -79,7 +79,7 @@ If `API_BASE_URL` is missing in a release build, the app shows a deployment warn
 - Keep `SECRET_KEY` and `DATABASE_URL` out of source control
 - Railway's public domain is included automatically when present; add any custom frontend origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`
 - `collectstatic` runs at container startup so Railway serves the admin and API static assets from the live runtime container
-- Create the initial admin with `python manage.py bootstrap_superuser` and `DJANGO_SUPERUSER_*` environment variables
+- The default admin account is bootstrapped automatically on startup using `AUTO_CREATE_DEFAULT_SUPERUSER` and the `DEFAULT_SUPERUSER_*` environment variables
 - Generate Django migrations before schema changes go live
 - Keep Tesseract installed on the runtime image or a separate OCR service
 - Use S3-compatible object storage for ANPR media if you do not want uploads on the local filesystem

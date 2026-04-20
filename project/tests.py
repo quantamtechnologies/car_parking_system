@@ -4,6 +4,8 @@ from django.contrib.auth import get_user_model
 from django.core.management import call_command, CommandError
 from django.test import SimpleTestCase, TestCase, override_settings
 
+from apps.accounts.startup import ensure_default_superuser
+
 
 class ProjectUrlTests(SimpleTestCase):
     def test_root_returns_plain_text_status(self):
@@ -76,3 +78,31 @@ class BootstrapSuperuserTests(TestCase):
                 username="admin",
                 password="NewPass123!",
             )
+
+
+class DefaultSuperuserStartupTests(TestCase):
+    @override_settings(
+        AUTO_CREATE_DEFAULT_SUPERUSER=True,
+        DEFAULT_SUPERUSER_USERNAME="admin",
+        DEFAULT_SUPERUSER_PASSWORD="admin12345",
+        DEFAULT_SUPERUSER_EMAIL="admin@example.com",
+    )
+    def test_ensure_default_superuser_creates_missing_admin_once(self):
+        first_call = ensure_default_superuser()
+        second_call = ensure_default_superuser()
+
+        user_model = get_user_model()
+        user = user_model.objects.get(username="admin")
+
+        self.assertTrue(first_call)
+        self.assertFalse(second_call)
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertEqual(user.role, user_model.Role.ADMIN)
+        self.assertTrue(user.check_password("admin12345"))
+        self.assertEqual(user_model.objects.filter(username="admin").count(), 1)
+
+    @override_settings(AUTO_CREATE_DEFAULT_SUPERUSER=False)
+    def test_ensure_default_superuser_can_be_disabled(self):
+        self.assertFalse(ensure_default_superuser())
+        self.assertFalse(get_user_model().objects.filter(username="admin").exists())

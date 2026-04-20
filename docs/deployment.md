@@ -39,6 +39,10 @@ Required:
 - `DJANGO_TIME_ZONE`
 - `CORS_ALLOWED_ORIGINS`
 - `CSRF_TRUSTED_ORIGINS`
+- `AUTO_CREATE_DEFAULT_SUPERUSER=True`
+- `DEFAULT_SUPERUSER_USERNAME=admin`
+- `DEFAULT_SUPERUSER_PASSWORD=admin12345`
+- `DEFAULT_SUPERUSER_EMAIL=admin@example.com`
 
 Recommended for production:
 
@@ -47,9 +51,9 @@ Recommended for production:
 - `STATIC_URL=/static/`
 - `MEDIA_URL=/media/`
 
-### Create The First Admin
+### Manual Bootstrap
 
-Use the bootstrap command to create the initial admin account without an interactive prompt:
+If you want to create or reset the admin account manually, use the bootstrap command without an interactive prompt:
 
 ```bash
 DJANGO_SUPERUSER_USERNAME=admin \
@@ -67,6 +71,7 @@ Railway-specific note:
 - The `/health/` and `/api/health/` endpoints are exempt from SSL redirects so Railway can still get a `200` even if `SECURE_SSL_REDIRECT=True`.
 - `collectstatic` runs in the runtime startup command with minimal verbosity so the live container has the generated admin assets before Gunicorn serves requests.
 - Gunicorn runs at warning level to avoid filling the logs with routine startup chatter.
+- The app attempts to create the default admin during WSGI/ASGI startup, but it only does so once and skips cleanly if the account already exists.
 - If your frontend stays on Netlify or another host, add that production origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` too.
 
 Optional object storage:
