@@ -1,5 +1,8 @@
-from django.test import SimpleTestCase
-from django.test import override_settings
+from io import StringIO
+
+from django.contrib.auth import get_user_model
+from django.core.management import call_command, CommandError
+from django.test import SimpleTestCase, TestCase, override_settings
 
 
 class ProjectUrlTests(SimpleTestCase):
@@ -42,3 +45,34 @@ class ProjectUrlTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+
+class BootstrapSuperuserTests(TestCase):
+    def test_bootstrap_superuser_creates_admin_account(self):
+        stdout = StringIO()
+
+        call_command(
+            "bootstrap_superuser",
+            username="admin",
+            email="admin@example.com",
+            password="StrongPass123!",
+            stdout=stdout,
+        )
+
+        user = get_user_model().objects.get(username="admin")
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertEqual(user.role, get_user_model().Role.ADMIN)
+        self.assertTrue(user.check_password("StrongPass123!"))
+        self.assertIn("Created superuser 'admin'.", stdout.getvalue())
+
+    def test_bootstrap_superuser_rejects_existing_user_without_force(self):
+        user_model = get_user_model()
+        user_model.objects.create_user(username="admin", password="OldPass123!", role=user_model.Role.CASHIER)
+
+        with self.assertRaises(CommandError):
+            call_command(
+                "bootstrap_superuser",
+                username="admin",
+                password="NewPass123!",
+            )

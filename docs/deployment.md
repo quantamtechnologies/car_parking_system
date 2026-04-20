@@ -47,6 +47,19 @@ Recommended for production:
 - `STATIC_URL=/static/`
 - `MEDIA_URL=/media/`
 
+### Create The First Admin
+
+Use the bootstrap command to create the initial admin account without an interactive prompt:
+
+```bash
+DJANGO_SUPERUSER_USERNAME=admin \
+DJANGO_SUPERUSER_EMAIL=admin@example.com \
+DJANGO_SUPERUSER_PASSWORD=change-this-password \
+python manage.py bootstrap_superuser
+```
+
+If the username already exists, pass `--force` to reset that account.
+
 Railway-specific note:
 
 - Railway injects `RAILWAY_PUBLIC_DOMAIN` for each service, and the backend automatically adds that host and origin when it is present.
