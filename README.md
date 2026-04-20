@@ -78,7 +78,7 @@ If `API_BASE_URL` is missing in a release build, the app shows a deployment warn
 - Use HTTPS everywhere
 - Keep `SECRET_KEY` and `DATABASE_URL` out of source control
 - Railway's public domain is included automatically when present; add any custom frontend origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`
-- Rebuild `collectstatic` on deploy
+- `collectstatic` runs at container startup so Railway serves the admin and API static assets from the live runtime container
 - Generate Django migrations before schema changes go live
 - Keep Tesseract installed on the runtime image or a separate OCR service
 - Use S3-compatible object storage for ANPR media if you do not want uploads on the local filesystem
