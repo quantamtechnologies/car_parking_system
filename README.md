@@ -54,7 +54,7 @@ See [docs/api.md](docs/api.md) for the full route map.
 
 ## Deployment
 
-- Backend: Railway, using `railway.json` and `gunicorn project.wsgi:application`
+- Backend: Railway, using the root `Dockerfile`, `railway.json`, and `gunicorn project.wsgi:application`
 - Web dashboard: Netlify, using Flutter web build output
 - Database: Railway PostgreSQL or another managed PostgreSQL instance. SQLite is only a local-development fallback and should not be used for deployment.
 
@@ -79,6 +79,7 @@ If `API_BASE_URL` is missing in a release build, the app shows a deployment warn
 - Keep `SECRET_KEY` and `DATABASE_URL` out of source control
 - Railway's public domain is included automatically when present; add any custom frontend origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`
 - `collectstatic` runs at container startup so Railway serves the admin and API static assets from the live runtime container
+- Railway uses the root Dockerfile automatically, which avoids the Railpack secret-resolution issue seen in the build logs
 - Netlify uses `frontend/netlify.toml` and `frontend/scripts/netlify-build.sh` to install Flutter stable during the build
 - The default admin account is bootstrapped automatically on startup using `AUTO_CREATE_DEFAULT_SUPERUSER` and the `DEFAULT_SUPERUSER_*` environment variables
 - Generate Django migrations before schema changes go live
