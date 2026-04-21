@@ -7,12 +7,14 @@ class GradientActionButton extends StatelessWidget {
     required this.onPressed,
     this.icon,
     this.isBusy = false,
+    this.minHeight = 58,
   });
 
   final String label;
   final VoidCallback? onPressed;
   final IconData? icon;
   final bool isBusy;
+  final double minHeight;
 
   @override
   Widget build(BuildContext context) {
@@ -32,7 +34,7 @@ class GradientActionButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            minimumSize: const Size.fromHeight(58),
+            minimumSize: Size.fromHeight(minHeight),
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
           ),
           onPressed: enabled ? onPressed : null,
@@ -225,4 +227,3 @@ class QuickActionCard extends StatelessWidget {
     );
   }
 }
-
