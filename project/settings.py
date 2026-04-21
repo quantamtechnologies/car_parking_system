@@ -5,6 +5,7 @@ from pathlib import Path
 
 import dj_database_url
 import environ
+from corsheaders.defaults import default_headers, default_methods
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
@@ -15,6 +16,7 @@ env = environ.Env(
     ALLOWED_HOSTS=(list, ["localhost", "127.0.0.1"]),
     CORS_ALLOWED_ORIGINS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
+    NETLIFY_FRONTEND_ORIGIN=(str, "https://smart-car-packing-systems.netlify.app"),
     RAILWAY_PUBLIC_DOMAIN=(str, ""),
     RAILWAY_PRIVATE_DOMAIN=(str, ""),
     AUTO_CREATE_DEFAULT_SUPERUSER=(bool, True),
@@ -32,6 +34,7 @@ SECRET_KEY = env("SECRET_KEY")
 DEBUG = env.bool("DEBUG")
 RAILWAY_PUBLIC_DOMAIN = env("RAILWAY_PUBLIC_DOMAIN", default="").strip()
 RAILWAY_PRIVATE_DOMAIN = env("RAILWAY_PRIVATE_DOMAIN", default="").strip()
+NETLIFY_FRONTEND_ORIGIN = env("NETLIFY_FRONTEND_ORIGIN").strip()
 AUTO_CREATE_DEFAULT_SUPERUSER = env.bool("AUTO_CREATE_DEFAULT_SUPERUSER")
 DEFAULT_SUPERUSER_USERNAME = env("DEFAULT_SUPERUSER_USERNAME", default="admin").strip()
 DEFAULT_SUPERUSER_PASSWORD = env("DEFAULT_SUPERUSER_PASSWORD", default="admin12345")
@@ -56,10 +59,12 @@ ALLOWED_HOSTS = _merge_unique(
 CSRF_TRUSTED_ORIGINS = _merge_unique(
     env.list("CSRF_TRUSTED_ORIGINS", default=[]),
     [f"https://{RAILWAY_PUBLIC_DOMAIN}"] if RAILWAY_PUBLIC_DOMAIN else [],
+    [NETLIFY_FRONTEND_ORIGIN] if NETLIFY_FRONTEND_ORIGIN else [],
 )
 CORS_ALLOWED_ORIGINS = _merge_unique(
     env.list("CORS_ALLOWED_ORIGINS", default=[]),
     [f"https://{RAILWAY_PUBLIC_DOMAIN}"] if RAILWAY_PUBLIC_DOMAIN else [],
+    [NETLIFY_FRONTEND_ORIGIN] if NETLIFY_FRONTEND_ORIGIN else [],
 )
 
 INSTALLED_APPS = [
@@ -86,8 +91,8 @@ INSTALLED_APPS = [
 ]
 
 MIDDLEWARE = [
-    "corsheaders.middleware.CorsMiddleware",
     "django.middleware.security.SecurityMiddleware",
+    "corsheaders.middleware.CorsMiddleware",
     "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
@@ -208,6 +213,9 @@ SIMPLE_JWT = {
 }
 
 CORS_ALLOW_CREDENTIALS = True
+CORS_ALLOW_HEADERS = list(default_headers)
+CORS_ALLOW_METHODS = list(default_methods)
+CORS_URLS_REGEX = r"^/api/.*$"
 SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
 SECURE_SSL_REDIRECT = env.bool("SECURE_SSL_REDIRECT")
 SECURE_REDIRECT_EXEMPT = [r"^health/$", r"^api/health/$"]
