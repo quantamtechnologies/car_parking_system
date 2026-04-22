@@ -31,8 +31,18 @@ class _ReportsScreenState extends State<ReportsScreen> {
 
   Future<void> _ask() async {
     if (_query.text.trim().isEmpty) return;
-    final response = await context.read<SmartParkingApi>().chatbot(_query.text.trim());
-    setState(() => _chatResponse = response);
+    try {
+      final response = await context.read<SmartParkingApi>().chatbot(_query.text.trim());
+      setState(() => _chatResponse = response);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Assistant failed: $e')));
+    }
+  }
+
+  Future<void> _reload() async {
+    setState(() => _future = context.read<SmartParkingApi>().dashboard());
+    await _future;
   }
 
   @override
@@ -43,13 +53,45 @@ class _ReportsScreenState extends State<ReportsScreen> {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
         }
+        if (snapshot.hasError) {
+          return ListView(
+            padding: const EdgeInsets.all(18),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Unable to load reports: ${snapshot.error}'),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: GradientActionButton(
+                          label: 'Try again',
+                          icon: Icons.refresh_rounded,
+                          onPressed: _reload,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
         final metrics = snapshot.data!;
         return ListView(
           padding: const EdgeInsets.all(18),
           children: [
-            const SectionHeader(
+            SectionHeader(
               title: 'Reports and analytics',
               subtitle: 'Daily volume, revenue, peak hours, and staff performance.',
+              trailing: TextButton.icon(
+                onPressed: _reload,
+                icon: const Icon(Icons.refresh_rounded),
+                label: const Text('Refresh'),
+              ),
             ),
             const SizedBox(height: 18),
             Wrap(
@@ -97,10 +139,13 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       decoration: const InputDecoration(labelText: 'Ask a question, like "How many cars today?"'),
                     ),
                     const SizedBox(height: 12),
-                    GradientActionButton(
-                      label: 'Ask',
-                      icon: Icons.smart_toy_rounded,
-                      onPressed: _ask,
+                    SizedBox(
+                      width: double.infinity,
+                      child: GradientActionButton(
+                        label: 'Ask',
+                        icon: Icons.smart_toy_rounded,
+                        onPressed: _ask,
+                      ),
                     ),
                     if (_chatResponse != null) ...[
                       const SizedBox(height: 12),
@@ -143,4 +188,3 @@ class _InfoPill extends StatelessWidget {
     );
   }
 }
-

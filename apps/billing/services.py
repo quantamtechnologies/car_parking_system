@@ -77,6 +77,13 @@ def confirm_cash_payment(
     if session.status != ParkingSession.Status.PENDING_PAYMENT and not override:
         raise ValidationError({"session": "Session must be pending payment before confirmation."})
 
+    if cash_shift is not None:
+        cash_shift = CashShift.objects.select_for_update().select_related("cashier").get(pk=cash_shift.pk)
+        if cash_shift.status != CashShift.Status.OPEN:
+            raise ValidationError({"cash_shift_id": "Cash shift must be open."})
+        if not (getattr(cashier, "is_superuser", False) or cash_shift.cashier_id == cashier.id):
+            raise ValidationError({"cash_shift_id": "Cash shift must belong to the current cashier."})
+
     if not session.total_fee or session.total_fee == Decimal("0.00"):
         breakdown = calculate_fee_breakdown(session)
         session.total_fee = breakdown["total_fee"]

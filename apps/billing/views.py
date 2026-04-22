@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from rest_framework import mixins, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
@@ -18,7 +18,7 @@ from apps.billing.serializers import (
 )
 from apps.audit.services import record_audit_event
 from apps.billing.services import close_cash_shift, confirm_cash_payment, get_active_pricing_policy, open_cash_shift
-from apps.common.permissions import CanEditPricing, IsAdminOrCashier, IsAdminOrCashierOrSecurity, IsAdminRole, IsCashierRole
+from apps.common.permissions import CanEditPricing, IsAdminOrCashier, IsAdminOrCashierOrSecurity
 from apps.parking.models import ParkingSession
 
 

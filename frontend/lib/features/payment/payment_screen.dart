@@ -45,12 +45,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   Future<void> _confirm() async {
     if (_sessionId.text.trim().isEmpty) return;
+    final sessionId = int.tryParse(_sessionId.text.trim());
+    if (sessionId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid session ID.')));
+      return;
+    }
+    final cashShiftText = _cashShiftId.text.trim();
+    final cashShiftId = cashShiftText.isEmpty ? null : int.tryParse(cashShiftText);
+    if (cashShiftText.isNotEmpty && cashShiftId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid cash shift ID.')));
+      return;
+    }
+
     setState(() => _busy = true);
     try {
       final receipt = await context.read<SmartParkingApi>().confirmCashPayment({
-        'session_id': int.parse(_sessionId.text.trim()),
+        'session_id': sessionId,
         'amount_tendered': double.tryParse(_amountTendered.text.trim()) ?? 0,
-        if (_cashShiftId.text.trim().isNotEmpty) 'cash_shift_id': int.parse(_cashShiftId.text.trim()),
+        if (cashShiftId != null) 'cash_shift_id': cashShiftId,
         'notes': _notes.text.trim(),
         'override': _override,
         'override_reason': _override ? _notes.text.trim() : '',
@@ -63,9 +75,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment failed: $e')));
       await context.read<AuthController>().queueIfOffline('payment', {
-        'session_id': _sessionId.text.trim(),
+        'session_id': sessionId,
         'amount_tendered': _amountTendered.text.trim(),
-        'cash_shift_id': _cashShiftId.text.trim(),
+        if (cashShiftId != null) 'cash_shift_id': cashShiftId,
         'notes': _notes.text.trim(),
         'override': _override,
       });
@@ -102,16 +114,24 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   Text('Amount due: ${money(fee ?? 0)}'),
                   const SizedBox(height: 10),
                 ],
-                TextField(controller: _sessionId, decoration: const InputDecoration(labelText: 'Session ID')),
+                TextField(
+                  controller: _sessionId,
+                  decoration: const InputDecoration(labelText: 'Session ID'),
+                  keyboardType: TextInputType.number,
+                ),
                 const SizedBox(height: 12),
                 TextField(
                   controller: _amountTendered,
                   decoration: const InputDecoration(labelText: 'Cash received'),
-                  keyboardType: TextInputType.number,
+                  keyboardType: const TextInputType.numberWithOptions(decimal: true),
                   onChanged: (_) => setState(() {}),
                 ),
                 const SizedBox(height: 12),
-                TextField(controller: _cashShiftId, decoration: const InputDecoration(labelText: 'Cash shift ID (optional)'), keyboardType: TextInputType.number),
+                TextField(
+                  controller: _cashShiftId,
+                  decoration: const InputDecoration(labelText: 'Cash shift ID (optional)'),
+                  keyboardType: TextInputType.number,
+                ),
                 const SizedBox(height: 12),
                 TextField(controller: _notes, decoration: const InputDecoration(labelText: 'Reason / notes')),
                 const SizedBox(height: 10),
@@ -123,11 +143,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                     subtitle: const Text('Allow exit without collecting cash'),
                   ),
                 const SizedBox(height: 10),
-                GradientActionButton(
-                  label: 'Confirm payment',
-                  icon: Icons.check_circle_rounded,
-                  isBusy: _busy,
-                  onPressed: _busy ? null : _confirm,
+                SizedBox(
+                  width: double.infinity,
+                  child: GradientActionButton(
+                    label: 'Confirm payment',
+                    icon: Icons.check_circle_rounded,
+                    isBusy: _busy,
+                    onPressed: _busy ? null : _confirm,
+                  ),
                 ),
               ],
             ),

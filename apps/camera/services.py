@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from contextlib import suppress
 import os
 import re
 import tempfile
@@ -32,17 +33,13 @@ def _materialize_image(image_source) -> tuple[str, str | None]:
         return image_source, None
 
     if hasattr(image_source, "path"):
-        try:
+        with suppress(Exception):
             return image_source.path, None
-        except Exception:
-            pass
 
     if hasattr(image_source, "read"):
         data = image_source.read()
-        try:
+        with suppress(Exception):
             image_source.seek(0)
-        except Exception:
-            pass
     elif isinstance(image_source, (bytes, bytearray)):
         data = bytes(image_source)
     else:
@@ -59,7 +56,6 @@ def run_anpr(image_source) -> dict:
     temp_path = None
     try:
         import cv2
-        import numpy as np
         import pytesseract
     except Exception as exc:  # pragma: no cover - import fallback
         return {
@@ -99,7 +95,5 @@ def run_anpr(image_source) -> dict:
         }
     finally:
         if temp_path and os.path.exists(temp_path):
-            try:
+            with suppress(Exception):
                 os.unlink(temp_path)
-            except Exception:
-                pass

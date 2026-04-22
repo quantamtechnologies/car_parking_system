@@ -222,13 +222,12 @@ def close_session_after_payment(*, session: ParkingSession, actor, payment_amoun
 
 def get_dashboard_snapshot():
     active_sessions = active_session_queryset().filter(status__in=[ParkingSession.Status.ACTIVE, ParkingSession.Status.PENDING_PAYMENT])
+    occupied_slots = ParkingSlot.objects.filter(status=ParkingSlot.SlotStatus.OCCUPIED).count()
+    available_slots = ParkingSlot.objects.filter(status=ParkingSlot.SlotStatus.AVAILABLE).count()
+    total_slots = ParkingSlot.objects.exclude(status=ParkingSlot.SlotStatus.OUT_OF_SERVICE).count()
     return {
         "active_sessions": active_sessions.count(),
-        "occupied_slots": ParkingSlot.objects.filter(status=ParkingSlot.SlotStatus.OCCUPIED).count(),
-        "available_slots": ParkingSlot.objects.filter(status=ParkingSlot.SlotStatus.AVAILABLE).count(),
-        "occupancy_rate": round(
-            (ParkingSlot.objects.filter(status=ParkingSlot.SlotStatus.OCCUPIED).count() / max(ParkingSlot.objects.exclude(status=ParkingSlot.SlotStatus.OUT_OF_SERVICE).count(), 1))
-            * 100,
-            2,
-        ),
+        "occupied_slots": occupied_slots,
+        "available_slots": available_slots,
+        "occupancy_rate": round((occupied_slots / max(total_slots, 1)) * 100, 2),
     }

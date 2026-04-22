@@ -1,15 +1,13 @@
 from __future__ import annotations
 
-from django.db.models import Count, Sum
 from django.utils import timezone
-from rest_framework import mixins, status, viewsets
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 
-from apps.accounts.models import User
-from apps.common.permissions import IsAdminOrCashierOrSecurity, IsAdminRole, IsCashierRole, IsSecurityRole
+from apps.common.permissions import IsAdminOrCashierOrSecurity, IsAdminRole
 from apps.common.utils import normalize_plate
 from apps.parking.models import ParkingSession, ParkingSlot, ParkingZone, Vehicle
 from apps.parking.serializers import (
@@ -24,7 +22,6 @@ from apps.parking.serializers import (
 )
 from apps.parking.services import (
     active_session_queryset,
-    close_session_after_payment,
     get_active_session_for_plate,
     get_dashboard_snapshot,
     prepare_exit_session,

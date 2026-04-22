@@ -6,7 +6,6 @@ import '../../core/controllers/auth_controller.dart';
 import '../../core/models.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
-import '../camera/camera_screen.dart';
 
 class EntryScreen extends StatefulWidget {
   const EntryScreen({super.key});
@@ -106,6 +105,51 @@ class _EntryScreenState extends State<EntryScreen> {
     }
   }
 
+  Widget _buildPlateField() {
+    return TextField(
+      controller: _plate,
+      decoration: InputDecoration(
+        labelText: 'Plate number',
+        suffixIcon: IconButton(
+          icon: const Icon(Icons.camera_alt_rounded),
+          onPressed: _scanPlate,
+        ),
+      ),
+      textCapitalization: TextCapitalization.characters,
+    );
+  }
+
+  Widget _buildOwnerField() {
+    return TextField(
+      controller: _owner,
+      decoration: const InputDecoration(labelText: 'Owner name (optional)'),
+    );
+  }
+
+  Widget _buildPhoneField() {
+    return TextField(
+      controller: _phone,
+      decoration: const InputDecoration(labelText: 'Phone (optional)'),
+      keyboardType: TextInputType.phone,
+    );
+  }
+
+  Widget _buildVehicleTypeField() {
+    return DropdownButtonFormField<String>(
+      value: _vehicleType,
+      decoration: const InputDecoration(labelText: 'Vehicle type'),
+      items: const [
+        DropdownMenuItem(value: 'CAR', child: Text('Car')),
+        DropdownMenuItem(value: 'SUV', child: Text('SUV')),
+        DropdownMenuItem(value: 'VAN', child: Text('Van')),
+        DropdownMenuItem(value: 'TRUCK', child: Text('Truck')),
+        DropdownMenuItem(value: 'BIKE', child: Text('Bike')),
+        DropdownMenuItem(value: 'OTHER', child: Text('Other')),
+      ],
+      onChanged: (value) => setState(() => _vehicleType = value ?? 'CAR'),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return ListView(
@@ -119,69 +163,80 @@ class _EntryScreenState extends State<EntryScreen> {
         Card(
           child: Padding(
             padding: const EdgeInsets.all(18),
-            child: Column(
-              children: [
-                TextField(
-                  controller: _plate,
-                  decoration: InputDecoration(
-                    labelText: 'Plate number',
-                    suffixIcon: IconButton(
-                      icon: const Icon(Icons.camera_alt_rounded),
-                      onPressed: _scanPlate,
-                    ),
-                  ),
-                  textCapitalization: TextCapitalization.characters,
-                ),
-                const SizedBox(height: 14),
-                Row(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 920;
+                final columnWidth = wide ? (constraints.maxWidth - 24) / 3 : constraints.maxWidth;
+
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    Expanded(
-                      child: DropdownButtonFormField<String>(
-                        value: _vehicleType,
-                        decoration: const InputDecoration(labelText: 'Vehicle type'),
-                        items: const [
-                          DropdownMenuItem(value: 'CAR', child: Text('Car')),
-                          DropdownMenuItem(value: 'SUV', child: Text('SUV')),
-                          DropdownMenuItem(value: 'VAN', child: Text('Van')),
-                          DropdownMenuItem(value: 'TRUCK', child: Text('Truck')),
-                          DropdownMenuItem(value: 'BIKE', child: Text('Bike')),
-                          DropdownMenuItem(value: 'OTHER', child: Text('Other')),
+                    _buildPlateField(),
+                    const SizedBox(height: 14),
+                    Wrap(
+                      spacing: 12,
+                      runSpacing: 12,
+                      children: [
+                        SizedBox(width: columnWidth, child: _buildVehicleTypeField()),
+                        SizedBox(width: columnWidth, child: _buildOwnerField()),
+                        SizedBox(width: columnWidth, child: _buildPhoneField()),
+                      ],
+                    ),
+                    if (_scanSummary != null) ...[
+                      const SizedBox(height: 12),
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: StatusBadge(label: _scanSummary!, color: const Color(0xFF0F4CFF)),
+                      ),
+                    ],
+                    const SizedBox(height: 18),
+                    if (wide)
+                      Row(
+                        children: [
+                          Expanded(
+                            child: GradientActionButton(
+                              label: 'Start entry',
+                              icon: Icons.play_arrow_rounded,
+                              isBusy: _submitting,
+                              onPressed: _submitting ? null : _submitEntry,
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () => context.go('/'),
+                              icon: const Icon(Icons.dashboard_rounded),
+                              label: const Text('Back to dashboard'),
+                            ),
+                          ),
                         ],
-                        onChanged: (value) => setState(() => _vehicleType = value ?? 'CAR'),
+                      )
+                    else
+                      Column(
+                        children: [
+                          SizedBox(
+                            width: double.infinity,
+                            child: GradientActionButton(
+                              label: 'Start entry',
+                              icon: Icons.play_arrow_rounded,
+                              isBusy: _submitting,
+                              onPressed: _submitting ? null : _submitEntry,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          SizedBox(
+                            width: double.infinity,
+                            child: OutlinedButton.icon(
+                              onPressed: () => context.go('/'),
+                              icon: const Icon(Icons.dashboard_rounded),
+                              label: const Text('Back to dashboard'),
+                            ),
+                          ),
+                        ],
                       ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(child: TextField(controller: _owner, decoration: const InputDecoration(labelText: 'Owner name (optional)'))),
-                    const SizedBox(width: 12),
-                    Expanded(child: TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Phone (optional)'))),
                   ],
-                ),
-                if (_scanSummary != null) ...[
-                  const SizedBox(height: 12),
-                  Align(alignment: Alignment.centerLeft, child: StatusBadge(label: _scanSummary!, color: const Color(0xFF0F4CFF))),
-                ],
-                const SizedBox(height: 18),
-                Row(
-                  children: [
-                    Expanded(
-                      child: GradientActionButton(
-                        label: 'Start entry',
-                        icon: Icons.play_arrow_rounded,
-                        isBusy: _submitting,
-                        onPressed: _submitting ? null : _submitEntry,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton.icon(
-                        onPressed: () => context.go('/'),
-                        icon: const Icon(Icons.dashboard_rounded),
-                        label: const Text('Back to dashboard'),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
+                );
+              },
             ),
           ),
         ),
@@ -190,28 +245,39 @@ class _EntryScreenState extends State<EntryScreen> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Vehicle not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 6),
-                  Text('Quick-register this vehicle in less than 10 seconds.', style: TextStyle(color: Colors.black.withOpacity(0.65))),
-                  const SizedBox(height: 12),
-                  Row(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final wide = constraints.maxWidth >= 720;
+                  final fieldWidth = wide ? (constraints.maxWidth - 12) / 2 : constraints.maxWidth;
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Expanded(child: TextField(controller: _owner, decoration: const InputDecoration(labelText: 'Owner name (optional)'))),
-                      const SizedBox(width: 12),
-                      Expanded(child: TextField(controller: _phone, decoration: const InputDecoration(labelText: 'Phone (optional)'))),
+                      const Text('Vehicle not found', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                      const SizedBox(height: 6),
+                      Text('Quick-register this vehicle in less than 10 seconds.', style: TextStyle(color: Colors.black.withOpacity(0.65))),
+                      const SizedBox(height: 12),
+                      Wrap(
+                        spacing: 12,
+                        runSpacing: 12,
+                        children: [
+                          SizedBox(width: fieldWidth, child: _buildOwnerField()),
+                          SizedBox(width: fieldWidth, child: _buildPhoneField()),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: GradientActionButton(
+                          label: 'Quick register',
+                          icon: Icons.person_add_alt_1_rounded,
+                          isBusy: _submitting,
+                          onPressed: _submitting ? null : _registerMissingVehicle,
+                        ),
+                      ),
                     ],
-                  ),
-                  const SizedBox(height: 12),
-                  GradientActionButton(
-                    label: 'Quick register',
-                    icon: Icons.person_add_alt_1_rounded,
-                    isBusy: _submitting,
-                    onPressed: _submitting ? null : _registerMissingVehicle,
-                  ),
-                ],
+                  );
+                },
               ),
             ),
           ),

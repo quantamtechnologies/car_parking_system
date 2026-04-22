@@ -83,6 +83,7 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final foreground = gradient == null ? const Color(0xFF0A1F44) : Colors.white;
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
@@ -103,21 +104,21 @@ class MetricCard extends StatelessWidget {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.18),
+                    color: gradient == null ? const Color(0xFFEAF3FF) : Colors.white.withOpacity(0.18),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(icon, color: Colors.white, size: 22),
+                  child: Icon(icon, color: gradient == null ? const Color(0xFF0F4CFF) : Colors.white, size: 22),
                 ),
               const Spacer(),
             ],
           ),
           const Spacer(),
-          Text(value, style: const TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: Colors.white)),
+          Text(value, style: TextStyle(fontSize: 30, fontWeight: FontWeight.w800, color: foreground)),
           const SizedBox(height: 8),
-          Text(title, style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: Colors.white)),
+          Text(title, style: TextStyle(fontSize: 14, fontWeight: FontWeight.w700, color: foreground)),
           if (subtitle != null) ...[
             const SizedBox(height: 4),
-            Text(subtitle!, style: TextStyle(fontSize: 12, color: Colors.white.withOpacity(0.9))),
+            Text(subtitle!, style: TextStyle(fontSize: 12, color: foreground.withOpacity(0.9))),
           ],
         ],
       ),
@@ -139,22 +140,38 @@ class SectionHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.of(context).size.width < 600;
+    final header = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
+        if (subtitle != null) ...[
+          const SizedBox(height: 4),
+          Text(subtitle!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
+        ],
+      ],
+    );
+
+    if (trailing == null) {
+      return header;
+    }
+
+    if (compact) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          header,
+          const SizedBox(height: 12),
+          trailing!,
+        ],
+      );
+    }
+
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-              if (subtitle != null) ...[
-                const SizedBox(height: 4),
-                Text(subtitle!, style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
-              ],
-            ],
-          ),
-        ),
-        if (trailing != null) trailing!,
+        Expanded(child: header),
+        trailing!,
       ],
     );
   }

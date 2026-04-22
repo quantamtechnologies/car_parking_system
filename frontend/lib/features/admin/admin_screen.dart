@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
@@ -50,9 +52,39 @@ class _AdminScreenState extends State<AdminScreen> {
     _grace.text = policy.gracePeriodMinutes.toString();
     _penalty.text = policy.overduePenalty.toStringAsFixed(2);
     _dailyCap.text = policy.dailyMaxCap?.toStringAsFixed(2) ?? '';
-    _specialRules.text = policy.specialRules.isEmpty ? '{}' : policy.specialRules.toString();
+    _specialRules.text = policy.specialRules.isEmpty ? '{}' : jsonEncode(policy.specialRules);
     _active = policy.isActive;
     _loadedPolicyId = policy.id;
+  }
+
+  Map<String, dynamic> _parseSpecialRules(String raw) {
+    final trimmed = raw.trim();
+    if (trimmed.isEmpty) {
+      return const {};
+    }
+
+    try {
+      final decoded = jsonDecode(trimmed);
+      if (decoded is Map) {
+        return Map<String, dynamic>.from(decoded as Map);
+      }
+    } catch (_) {
+      // Fall through to a safe wrapper that preserves the operator's input.
+    }
+
+    return {'raw': trimmed};
+  }
+
+  Widget _numberField(
+    TextEditingController controller,
+    String label, {
+    bool decimal = false,
+  }) {
+    return TextField(
+      controller: controller,
+      decoration: InputDecoration(labelText: label),
+      keyboardType: TextInputType.numberWithOptions(decimal: decimal),
+    );
   }
 
   Future<void> _save() async {
@@ -63,9 +95,7 @@ class _AdminScreenState extends State<AdminScreen> {
       'grace_period_minutes': int.tryParse(_grace.text) ?? 0,
       'overdue_penalty': double.tryParse(_penalty.text) ?? 0,
       'daily_max_cap': _dailyCap.text.trim().isEmpty ? null : double.tryParse(_dailyCap.text),
-      'special_rules': {
-        'raw': _specialRules.text.trim(),
-      },
+      'special_rules': _parseSpecialRules(_specialRules.text),
       'is_active': _active,
     });
     if (!mounted) return;
@@ -84,8 +114,42 @@ class _AdminScreenState extends State<AdminScreen> {
         if (snapshot.connectionState != ConnectionState.done) {
           return const Center(child: CircularProgressIndicator());
         }
+        if (snapshot.hasError) {
+          return ListView(
+            padding: const EdgeInsets.all(18),
+            children: [
+              Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(18),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Unable to load pricing: ${snapshot.error}'),
+                      const SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        child: GradientActionButton(
+                          label: 'Try again',
+                          icon: Icons.refresh_rounded,
+                          onPressed: () {
+                            setState(() {
+                              _loadedPolicyId = null;
+                              _pricingFuture = context.read<SmartParkingApi>().currentPricing();
+                            });
+                          },
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
         final policy = snapshot.data!;
         _populate(policy);
+
         return ListView(
           padding: const EdgeInsets.all(18),
           children: [
@@ -97,42 +161,59 @@ class _AdminScreenState extends State<AdminScreen> {
             Card(
               child: Padding(
                 padding: const EdgeInsets.all(18),
-                child: Column(
-                  children: [
-                    TextField(controller: _name, decoration: const InputDecoration(labelText: 'Policy name')),
-                    const SizedBox(height: 12),
-                    Row(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final wide = constraints.maxWidth >= 860;
+                    final halfWidth = wide ? (constraints.maxWidth - 12) / 2 : constraints.maxWidth;
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Expanded(child: TextField(controller: _baseFee, decoration: const InputDecoration(labelText: 'Base fee'), keyboardType: TextInputType.number)),
-                        const SizedBox(width: 12),
-                        Expanded(child: TextField(controller: _hourlyRate, decoration: const InputDecoration(labelText: 'Hourly rate'), keyboardType: TextInputType.number)),
+                        TextField(controller: _name, decoration: const InputDecoration(labelText: 'Policy name')),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            SizedBox(width: halfWidth, child: _numberField(_baseFee, 'Base fee', decimal: true)),
+                            SizedBox(width: halfWidth, child: _numberField(_hourlyRate, 'Hourly rate', decimal: true)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Wrap(
+                          spacing: 12,
+                          runSpacing: 12,
+                          children: [
+                            SizedBox(width: halfWidth, child: _numberField(_grace, 'Grace period (minutes)')),
+                            SizedBox(width: halfWidth, child: _numberField(_penalty, 'Overdue penalty', decimal: true)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        _numberField(_dailyCap, 'Daily max cap (optional)', decimal: true),
+                        const SizedBox(height: 12),
+                        TextField(
+                          controller: _specialRules,
+                          decoration: const InputDecoration(labelText: 'Special rules JSON'),
+                          maxLines: 4,
+                        ),
+                        const SizedBox(height: 12),
+                        SwitchListTile.adaptive(
+                          value: _active,
+                          onChanged: (value) => setState(() => _active = value),
+                          title: const Text('Activate this policy'),
+                        ),
+                        const SizedBox(height: 12),
+                        SizedBox(
+                          width: double.infinity,
+                          child: GradientActionButton(
+                            label: 'Save pricing',
+                            icon: Icons.save_rounded,
+                            onPressed: _save,
+                          ),
+                        ),
                       ],
-                    ),
-                    const SizedBox(height: 12),
-                    Row(
-                      children: [
-                        Expanded(child: TextField(controller: _grace, decoration: const InputDecoration(labelText: 'Grace period (minutes)'), keyboardType: TextInputType.number)),
-                        const SizedBox(width: 12),
-                        Expanded(child: TextField(controller: _penalty, decoration: const InputDecoration(labelText: 'Overdue penalty'), keyboardType: TextInputType.number)),
-                      ],
-                    ),
-                    const SizedBox(height: 12),
-                    TextField(controller: _dailyCap, decoration: const InputDecoration(labelText: 'Daily max cap (optional)'), keyboardType: TextInputType.number),
-                    const SizedBox(height: 12),
-                    TextField(controller: _specialRules, decoration: const InputDecoration(labelText: 'Special rules JSON / notes'), maxLines: 4),
-                    const SizedBox(height: 12),
-                    SwitchListTile.adaptive(
-                      value: _active,
-                      onChanged: (value) => setState(() => _active = value),
-                      title: const Text('Activate this policy'),
-                    ),
-                    const SizedBox(height: 12),
-                    GradientActionButton(
-                      label: 'Save pricing',
-                      icon: Icons.save_rounded,
-                      onPressed: _save,
-                    ),
-                  ],
+                    );
+                  },
                 ),
               ),
             ),

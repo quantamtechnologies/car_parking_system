@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from collections import defaultdict
 from decimal import Decimal
 from datetime import date, timedelta
 
@@ -40,9 +39,6 @@ def dashboard_metrics(start=None, end=None):
         .annotate(total=Count("id"))
         .order_by("-total", "hour")[:5]
     )
-    hourly = defaultdict(int)
-    for row in peak_hours:
-        hourly[row["hour"]] = row["total"]
     staff_performance = list(
         payments.values("cashier__id", "cashier__username")
         .annotate(total_revenue=Sum("amount_due"), payments=Count("id"))
@@ -68,7 +64,8 @@ def detect_anomalies():
     today = timezone.localdate()
     recent_sessions = ParkingSession.objects.filter(entry_time__date__gte=today - timedelta(days=7))
     today_count = ParkingSession.objects.filter(entry_time__date=today).count()
-    avg_count = recent_sessions.count() / 7 if recent_sessions.exists() else 0
+    recent_count = recent_sessions.count()
+    avg_count = recent_count / 7 if recent_count else 0
     if avg_count and today_count < avg_count * 0.7:
         alerts.append(
             {

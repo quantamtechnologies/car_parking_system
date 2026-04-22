@@ -1,8 +1,5 @@
 from __future__ import annotations
 
-import os
-
-from django.core.files.base import ContentFile
 from rest_framework import status
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
