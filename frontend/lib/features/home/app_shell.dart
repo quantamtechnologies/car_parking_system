@@ -19,15 +19,12 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final auth = context.watch<AuthController>();
-    final role = auth.user?.role ?? '';
     final items = <_NavItem>[
       const _NavItem('/', Icons.dashboard_rounded, 'Dashboard'),
       const _NavItem('/entry', Icons.directions_car_rounded, 'Entry'),
       const _NavItem('/exit', Icons.exit_to_app_rounded, 'Exit'),
       const _NavItem('/payment', Icons.payments_rounded, 'Payment'),
-      const _NavItem('/alerts', Icons.warning_amber_rounded, 'Alerts'),
       const _NavItem('/reports', Icons.bar_chart_rounded, 'Reports'),
-      if (role == 'ADMIN') const _NavItem('/admin', Icons.admin_panel_settings_rounded, 'Admin'),
     ];
     final selectedIndex = items.indexWhere((item) => item.path == currentPath);
 
@@ -231,4 +228,3 @@ class _NavItem {
   final IconData icon;
   final String label;
 }
-

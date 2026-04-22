@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
-import '../../core/controllers/auth_controller.dart';
 import '../../core/models.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
@@ -37,7 +36,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthController>();
     return RefreshIndicator(
       onRefresh: () async {
         setState(() => _future = _load());
@@ -142,9 +140,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               QuickActionCard(title: 'Entry', subtitle: 'Scan or type plate', icon: Icons.directions_car_rounded, onTap: () => context.go('/entry')),
                               QuickActionCard(title: 'Exit', subtitle: 'Prepare payment', icon: Icons.exit_to_app_rounded, onTap: () => context.go('/exit')),
                               QuickActionCard(title: 'Payment', subtitle: 'Confirm cash', icon: Icons.payments_rounded, onTap: () => context.go('/payment')),
-                              QuickActionCard(title: 'Alerts', subtitle: 'Red, yellow, green', icon: Icons.warning_amber_rounded, onTap: () => context.go('/alerts')),
                               QuickActionCard(title: 'Reports', subtitle: 'Daily and weekly', icon: Icons.bar_chart_rounded, onTap: () => context.go('/reports')),
-                              if (auth.isAdmin) QuickActionCard(title: 'Admin', subtitle: 'Pricing and users', icon: Icons.admin_panel_settings_rounded, onTap: () => context.go('/admin')),
                             ],
                           ),
                         ),
