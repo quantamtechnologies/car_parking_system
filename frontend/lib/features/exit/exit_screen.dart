@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/controllers/auth_controller.dart';
 import '../../core/models.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
 import '../camera/camera_screen.dart';
@@ -55,8 +56,12 @@ class _ExitScreenState extends State<ExitScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Exit lookup failed: $e')));
-      await context.read<AuthController>().queueIfOffline('exit', {'plate_number': _plate.text.trim()});
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exit lookup failed: ${apiErrorMessage(e, fallback: 'Unable to prepare the exit right now.')}')),
+      );
+      if (isOfflineDioError(e)) {
+        await context.read<AuthController>().queueIfOffline('exit', {'plate_number': _plate.text.trim()});
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

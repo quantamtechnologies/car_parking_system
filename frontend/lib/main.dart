@@ -25,6 +25,7 @@ Future<void> main() async {
     storage: storage,
     offlineQueue: offlineQueue,
   );
+  apiClient.setSessionExpiredHandler(() => authController.logout(localOnly: true));
   await authController.bootstrap();
 
   runApp(

@@ -5,6 +5,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/controllers/auth_controller.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/widgets.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -35,7 +36,9 @@ class _LoginScreenState extends State<LoginScreen> {
       if (mounted) context.go('/');
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Login failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Login failed: ${apiErrorMessage(e, fallback: 'Check your credentials and try again.')}')),
+      );
     }
   }
 

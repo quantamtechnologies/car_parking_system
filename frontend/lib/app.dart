@@ -4,8 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'core/controllers/auth_controller.dart';
 import 'core/theme.dart';
 import 'features/camera/camera_screen.dart';
-import 'features/admin/admin_screen.dart';
-import 'features/alerts/alerts_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/entry/entry_screen.dart';
@@ -71,9 +69,7 @@ GoRouter buildRouter(AuthController authController) {
               initialSession: state.extra == null ? null : Map<String, dynamic>.from(state.extra as Map),
             ),
           ),
-          GoRoute(path: '/alerts', builder: (context, state) => const AlertsScreen()),
           GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
-          GoRoute(path: '/admin', builder: (context, state) => const AdminScreen()),
         ],
       ),
     ],

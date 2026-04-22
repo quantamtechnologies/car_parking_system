@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
 
@@ -124,7 +125,7 @@ class _AdminScreenState extends State<AdminScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Unable to load pricing: ${snapshot.error}'),
+                      Text('Unable to load pricing: ${apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.')}'),
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,

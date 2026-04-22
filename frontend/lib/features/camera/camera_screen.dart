@@ -5,6 +5,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
 
@@ -55,7 +56,9 @@ class _CameraScreenState extends State<CameraScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('OCR failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('OCR failed: ${apiErrorMessage(e, fallback: 'Unable to scan the plate right now.')}')),
+      );
     } finally {
       if (mounted) setState(() => _loading = false);
     }

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
 
@@ -46,7 +47,7 @@ class _AlertsScreenState extends State<AlertsScreen> {
         builder: (context, snapshot) {
           final alerts = snapshot.data ?? const [];
           final loading = snapshot.connectionState != ConnectionState.done;
-          final errorText = snapshot.hasError ? snapshot.error.toString() : null;
+          final errorText = snapshot.hasError ? apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.') : null;
 
           return ListView(
             physics: const AlwaysScrollableScrollPhysics(),

@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/controllers/auth_controller.dart';
 import '../../core/models.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
 
@@ -77,13 +78,17 @@ class _EntryScreenState extends State<EntryScreen> {
       _phone.clear();
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Entry failed: $e')));
-      await context.read<AuthController>().queueIfOffline('entry', {
-        'plate_number': _plate.text.trim(),
-        'vehicle_type': _vehicleType,
-        'owner_name': _owner.text.trim(),
-        'phone_number': _phone.text.trim(),
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Entry failed: ${apiErrorMessage(e, fallback: 'Unable to start the session right now.')}')),
+      );
+      if (isOfflineDioError(e)) {
+        await context.read<AuthController>().queueIfOffline('entry', {
+          'plate_number': _plate.text.trim(),
+          'vehicle_type': _vehicleType,
+          'owner_name': _owner.text.trim(),
+          'phone_number': _phone.text.trim(),
+        });
+      }
     } finally {
       if (mounted) setState(() => _submitting = false);
     }

@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
 
@@ -51,7 +52,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             return ListView(
               children: [
                 const SizedBox(height: 140),
-                Center(child: Text('Unable to load dashboard: ${snapshot.error}')),
+                Center(child: Text('Unable to load dashboard: ${apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.')}')),
               ],
             );
           }

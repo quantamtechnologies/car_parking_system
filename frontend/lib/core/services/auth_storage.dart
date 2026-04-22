@@ -19,9 +19,8 @@ class AuthStorage {
     required UserProfile user,
     required int sessionId,
   }) async {
+    await saveTokens(accessToken: accessToken, refreshToken: refreshToken);
     final prefs = await _prefsFuture;
-    await prefs.setString(_accessTokenKey, accessToken);
-    await prefs.setString(_refreshTokenKey, refreshToken);
     await prefs.setString(_userKey, jsonEncode({
       'id': user.id,
       'username': user.username,
@@ -33,6 +32,15 @@ class AuthStorage {
       'employee_code': user.employeeCode,
     }));
     await prefs.setString(_sessionIdKey, sessionId.toString());
+  }
+
+  Future<void> saveTokens({
+    required String accessToken,
+    required String refreshToken,
+  }) async {
+    final prefs = await _prefsFuture;
+    await prefs.setString(_accessTokenKey, accessToken);
+    await prefs.setString(_refreshTokenKey, refreshToken);
   }
 
   Future<String?> readAccessToken() async => (await _prefsFuture).getString(_accessTokenKey);

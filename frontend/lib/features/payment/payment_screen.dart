@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 
 import '../../core/controllers/auth_controller.dart';
 import '../../core/models.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
 
@@ -73,14 +74,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
       }
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Payment failed: $e')));
-      await context.read<AuthController>().queueIfOffline('payment', {
-        'session_id': sessionId,
-        'amount_tendered': _amountTendered.text.trim(),
-        if (cashShiftId != null) 'cash_shift_id': cashShiftId,
-        'notes': _notes.text.trim(),
-        'override': _override,
-      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Payment failed: ${apiErrorMessage(e, fallback: 'Unable to confirm payment right now.')}')),
+      );
+      if (isOfflineDioError(e)) {
+        await context.read<AuthController>().queueIfOffline('payment', {
+          'session_id': sessionId,
+          'amount_tendered': _amountTendered.text.trim(),
+          if (cashShiftId != null) 'cash_shift_id': cashShiftId,
+          'notes': _notes.text.trim(),
+          'override': _override,
+        });
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }

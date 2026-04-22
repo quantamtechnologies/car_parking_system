@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/services/api_client.dart';
 import '../../core/widgets.dart';
 
@@ -36,7 +37,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
       setState(() => _chatResponse = response);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Assistant failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Assistant failed: ${apiErrorMessage(e, fallback: 'The assistant is unavailable right now.')}')),
+      );
     }
   }
 
@@ -63,7 +66,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('Unable to load reports: ${snapshot.error}'),
+                      Text('Unable to load reports: ${apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.')}'),
                       const SizedBox(height: 12),
                       SizedBox(
                         width: double.infinity,

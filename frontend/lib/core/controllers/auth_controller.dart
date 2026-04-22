@@ -33,6 +33,23 @@ class AuthController extends ChangeNotifier {
     accessToken = await _storage.readAccessToken();
     refreshToken = await _storage.readRefreshToken();
     sessionId = await _storage.readSessionId();
+    if ((accessToken == null || accessToken!.isEmpty) && (refreshToken?.isNotEmpty ?? false)) {
+      try {
+        final refreshed = await _apiClient.refreshSession();
+        if (refreshed) {
+          accessToken = await _storage.readAccessToken();
+          refreshToken = await _storage.readRefreshToken();
+        } else {
+          await _storage.clear();
+          user = null;
+          accessToken = null;
+          refreshToken = null;
+          sessionId = null;
+        }
+      } catch (_) {
+        // If recovery fails, the existing session state is still safe to clear below.
+      }
+    }
     initialized = true;
     notifyListeners();
     if (isAuthenticated && user == null) {
@@ -78,8 +95,12 @@ class AuthController extends ChangeNotifier {
     loading = true;
     notifyListeners();
     try {
-      if (!localOnly && refreshToken != null) {
-        await _apiClient.logout(refresh: refreshToken, sessionId: sessionId);
+      if (!localOnly) {
+        final latestRefreshToken = await _storage.readRefreshToken();
+        final tokenToUse = latestRefreshToken ?? refreshToken;
+        if (tokenToUse != null) {
+          await _apiClient.logout(refresh: tokenToUse, sessionId: sessionId);
+        }
       }
     } finally {
       accessToken = null;
