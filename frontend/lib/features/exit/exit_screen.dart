@@ -479,8 +479,8 @@ class _ExitScreenState extends State<ExitScreen> {
               ),
             ),
           ),
-        ),
       ],
+        ),
     );
   }
 
