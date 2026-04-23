@@ -1,10 +1,12 @@
 from io import StringIO
 
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command, CommandError
 from django.test import SimpleTestCase, TestCase, override_settings
 
 from apps.accounts.startup import ensure_default_superuser
+import project.settings as project_settings
 
 
 class ProjectUrlTests(SimpleTestCase):
@@ -47,6 +49,22 @@ class ProjectUrlTests(SimpleTestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json(), {"status": "ok"})
+
+
+class SecretKeyValidationTests(SimpleTestCase):
+    def test_short_explicit_secret_is_allowed_in_production(self):
+        self.assertEqual(
+            project_settings._validate_secret_key("short-secret", debug=False),
+            "short-secret",
+        )
+
+    def test_missing_secret_is_rejected_in_production(self):
+        with self.assertRaises(ImproperlyConfigured):
+            project_settings._validate_secret_key("", debug=False)
+
+    def test_default_development_secret_is_rejected_in_production(self):
+        with self.assertRaises(ImproperlyConfigured):
+            project_settings._validate_secret_key("unsafe-development-key", debug=False)
 
 
 class BootstrapSuperuserTests(TestCase):

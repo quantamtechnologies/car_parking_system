@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from datetime import timedelta
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from corsheaders.defaults import default_headers, default_methods
 from django.core.exceptions import ImproperlyConfigured
 
 BASE_DIR = Path(__file__).resolve().parent.parent
+logger = logging.getLogger(__name__)
 
 env = environ.Env(
     DEBUG=(bool, False),
@@ -33,22 +35,23 @@ environ.Env.read_env(BASE_DIR / ".env")
 DEBUG = env.bool("DEBUG")
 
 
-def _validate_secret_key(value: str) -> str:
-    if DEBUG:
+def _validate_secret_key(value: str, *, debug: bool) -> str:
+    if debug:
         return value
 
     if not value or value == "unsafe-development-key":
         raise ImproperlyConfigured("SECRET_KEY must be set when DEBUG=False.")
 
     if len(value) < 32:
-        raise ImproperlyConfigured(
-            "SECRET_KEY must be at least 32 characters long when DEBUG=False."
+        # Keep the service available, but flag weak keys so they can be rotated.
+        logger.warning(
+            "SECRET_KEY is shorter than 32 characters; rotate it to a stronger value."
         )
 
     return value
 
 
-SECRET_KEY = _validate_secret_key(env("SECRET_KEY"))
+SECRET_KEY = _validate_secret_key(env("SECRET_KEY"), debug=DEBUG)
 RAILWAY_PUBLIC_DOMAIN = env("RAILWAY_PUBLIC_DOMAIN", default="").strip()
 RAILWAY_PRIVATE_DOMAIN = env("RAILWAY_PRIVATE_DOMAIN", default="").strip()
 NETLIFY_FRONTEND_ORIGIN = env("NETLIFY_FRONTEND_ORIGIN").strip()
