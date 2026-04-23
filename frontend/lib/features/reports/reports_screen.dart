@@ -184,7 +184,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               title: 'Average Revenue / Day',
                               value: money(averageRevenue),
                               subtitle: '7-day average',
-                              icon: Icons.stack_rounded,
+                              icon: Icons.bar_chart_rounded,
                               gradient: const LinearGradient(colors: [Color(0xFF2A1F66), Color(0xFF4A35E8)]),
                             ),
                           ],

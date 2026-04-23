@@ -145,7 +145,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               title: 'Average Revenue (Weekly)',
                               value: money(averageRevenue),
                               subtitle: 'Last 7 days',
-                              icon: Icons.stack_rounded,
+                              icon: Icons.bar_chart_rounded,
                               gradient: const LinearGradient(colors: [Color(0xFF2A1F66), Color(0xFF4A35E8)]),
                             ),
                           ],
