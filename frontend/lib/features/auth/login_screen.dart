@@ -33,11 +33,13 @@ class _LoginScreenState extends State<LoginScreen> {
     final auth = context.read<AuthController>();
     try {
       await auth.login(_username.text.trim(), _password.text);
-      if (mounted) context.go('/');
+      if (mounted) context.go(auth.isAdmin ? '/admin' : '/');
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Login failed: ${apiErrorMessage(e, fallback: 'Check your credentials and try again.')}')),
+        SnackBar(
+            content: Text(
+                'Login failed: ${apiErrorMessage(e, fallback: 'Check your credentials and try again.')}')),
       );
     }
   }
@@ -58,23 +60,27 @@ class _LoginScreenState extends State<LoginScreen> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final isWide = constraints.maxWidth >= 900;
-              final isCompact = constraints.maxWidth < 700 || constraints.maxHeight < 760;
+              final isCompact =
+                  constraints.maxWidth < 700 || constraints.maxHeight < 760;
               final padding = EdgeInsets.symmetric(
                 horizontal: isWide ? 20 : 16,
                 vertical: isCompact ? 12 : 20,
               );
 
               return SingleChildScrollView(
-                keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+                keyboardDismissBehavior:
+                    ScrollViewKeyboardDismissBehavior.onDrag,
                 padding: padding,
                 child: ConstrainedBox(
                   constraints: BoxConstraints(
-                    minHeight: math.max(0.0, constraints.maxHeight - padding.vertical),
+                    minHeight:
+                        math.max(0.0, constraints.maxHeight - padding.vertical),
                   ),
                   child: Align(
                     alignment: isWide ? Alignment.center : Alignment.topCenter,
                     child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: isWide ? 1120 : 560),
+                      constraints:
+                          BoxConstraints(maxWidth: isWide ? 1120 : 560),
                       child: isWide
                           ? _buildWideLayout(context, auth)
                           : _buildCompactLayout(context, auth),
@@ -100,16 +106,19 @@ class _LoginScreenState extends State<LoginScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const Icon(Icons.local_parking_rounded, color: Colors.white, size: 58),
+                const Icon(Icons.local_parking_rounded,
+                    color: Colors.white, size: 58),
                 const SizedBox(height: 20),
                 Text(
                   'Smart Parking POS',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
+                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                      color: Colors.white, fontWeight: FontWeight.w900),
                 ),
                 const SizedBox(height: 16),
                 Text(
                   'Production-ready parking, billing, OCR-assisted entry, and shift cash control in one touch-first interface.',
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(color: Colors.white.withOpacity(0.9), height: 1.4),
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white.withOpacity(0.9), height: 1.4),
                 ),
                 const SizedBox(height: 24),
                 Wrap(
@@ -150,16 +159,19 @@ class _LoginScreenState extends State<LoginScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Icon(Icons.local_parking_rounded, color: Colors.white, size: 40),
+              const Icon(Icons.local_parking_rounded,
+                  color: Colors.white, size: 40),
               const SizedBox(height: 10),
               Text(
                 'Smart Parking POS',
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(color: Colors.white, fontWeight: FontWeight.w900),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    color: Colors.white, fontWeight: FontWeight.w900),
               ),
               const SizedBox(height: 8),
               Text(
                 'Production-ready parking, billing, OCR-assisted entry, and shift cash control.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white.withOpacity(0.9), height: 1.35),
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: Colors.white.withOpacity(0.9), height: 1.35),
               ),
             ],
           ),
@@ -168,7 +180,8 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
-  Widget _buildLoginCard(BuildContext context, AuthController auth, {required bool compact}) {
+  Widget _buildLoginCard(BuildContext context, AuthController auth,
+      {required bool compact}) {
     final cardPadding = compact ? 20.0 : 28.0;
     final cardRadius = compact ? 28.0 : 30.0;
     final buttonHeight = compact ? 52.0 : 58.0;
@@ -180,7 +193,10 @@ class _LoginScreenState extends State<LoginScreen> {
         decoration: BoxDecoration(
           color: Colors.white.withOpacity(0.95),
           borderRadius: BorderRadius.circular(cardRadius),
-          boxShadow: const [BoxShadow(color: Color(0x330A1F44), blurRadius: 36, offset: Offset(0, 18))],
+          boxShadow: const [
+            BoxShadow(
+                color: Color(0x330A1F44), blurRadius: 36, offset: Offset(0, 18))
+          ],
         ),
         child: Form(
           key: _formKey,
@@ -198,13 +214,18 @@ class _LoginScreenState extends State<LoginScreen> {
               const SizedBox(height: 8),
               Text(
                 'Use your staff credentials to open the POS.',
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54),
+                style: Theme.of(context)
+                    .textTheme
+                    .bodyMedium
+                    ?.copyWith(color: Colors.black54),
               ),
               SizedBox(height: compact ? 18 : 24),
               TextFormField(
                 controller: _username,
                 decoration: const InputDecoration(labelText: 'Username'),
-                validator: (value) => value == null || value.trim().isEmpty ? 'Enter your username' : null,
+                validator: (value) => value == null || value.trim().isEmpty
+                    ? 'Enter your username'
+                    : null,
               ),
               SizedBox(height: compact ? 12 : 16),
               TextFormField(
@@ -214,10 +235,13 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelText: 'Password',
                   suffixIcon: IconButton(
                     onPressed: () => setState(() => _obscure = !_obscure),
-                    icon: Icon(_obscure ? Icons.visibility : Icons.visibility_off),
+                    icon: Icon(
+                        _obscure ? Icons.visibility : Icons.visibility_off),
                   ),
                 ),
-                validator: (value) => value == null || value.isEmpty ? 'Enter your password' : null,
+                validator: (value) => value == null || value.isEmpty
+                    ? 'Enter your password'
+                    : null,
               ),
               SizedBox(height: compact ? 18 : 24),
               GradientActionButton(
@@ -248,7 +272,9 @@ class _Chip extends StatelessWidget {
         borderRadius: BorderRadius.circular(999),
         border: Border.all(color: Colors.white.withOpacity(0.18)),
       ),
-      child: Text(text, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+      child: Text(text,
+          style: const TextStyle(
+              color: Colors.white, fontWeight: FontWeight.w700)),
     );
   }
 }

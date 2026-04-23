@@ -5,6 +5,7 @@ import 'core/controllers/auth_controller.dart';
 import 'core/theme.dart';
 import 'features/camera/camera_screen.dart';
 import 'features/auth/login_screen.dart';
+import 'features/admin/admin_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/entry/entry_screen.dart';
 import 'features/exit/exit_screen.dart';
@@ -24,6 +25,11 @@ GoRouter buildRouter(AuthController authController) {
         return '/login';
       }
       if (authController.isAuthenticated && loggingIn) {
+        return authController.isAdmin ? '/admin' : '/';
+      }
+      if (authController.isAuthenticated &&
+          state.matchedLocation == '/admin' &&
+          !authController.isAdmin) {
         return '/';
       }
       return null;
@@ -36,7 +42,8 @@ GoRouter buildRouter(AuthController authController) {
       GoRoute(
         path: '/camera-entry',
         builder: (context, state) {
-          final extra = Map<String, dynamic>.from(state.extra as Map? ?? const {});
+          final extra =
+              Map<String, dynamic>.from(state.extra as Map? ?? const {});
           return CameraScreen(
             source: extra['source']?.toString() ?? 'ENTRY',
             initialPlate: extra['plate']?.toString() ?? '',
@@ -46,7 +53,8 @@ GoRouter buildRouter(AuthController authController) {
       GoRoute(
         path: '/camera-exit',
         builder: (context, state) {
-          final extra = Map<String, dynamic>.from(state.extra as Map? ?? const {});
+          final extra =
+              Map<String, dynamic>.from(state.extra as Map? ?? const {});
           return CameraScreen(
             source: extra['source']?.toString() ?? 'EXIT',
             initialPlate: extra['plate']?.toString() ?? '',
@@ -59,17 +67,28 @@ GoRouter buildRouter(AuthController authController) {
           child: child,
         ),
         routes: [
-          GoRoute(path: '/', builder: (context, state) => const DashboardScreen()),
-          GoRoute(path: '/dashboard', builder: (context, state) => const DashboardScreen()),
-          GoRoute(path: '/entry', builder: (context, state) => const EntryScreen()),
-          GoRoute(path: '/exit', builder: (context, state) => const ExitScreen()),
+          GoRoute(
+              path: '/', builder: (context, state) => const DashboardScreen()),
+          GoRoute(
+              path: '/dashboard',
+              builder: (context, state) => const DashboardScreen()),
+          GoRoute(
+              path: '/entry', builder: (context, state) => const EntryScreen()),
+          GoRoute(
+              path: '/exit', builder: (context, state) => const ExitScreen()),
           GoRoute(
             path: '/payment',
             builder: (context, state) => PaymentScreen(
-              initialSession: state.extra == null ? null : Map<String, dynamic>.from(state.extra as Map),
+              initialSession: state.extra == null
+                  ? null
+                  : Map<String, dynamic>.from(state.extra as Map),
             ),
           ),
-          GoRoute(path: '/reports', builder: (context, state) => const ReportsScreen()),
+          GoRoute(
+              path: '/reports',
+              builder: (context, state) => const ReportsScreen()),
+          GoRoute(
+              path: '/admin', builder: (context, state) => const AdminScreen()),
         ],
       ),
     ],
@@ -95,7 +114,9 @@ class SmartParkingApp extends StatelessWidget {
       routerConfig: router,
       builder: (context, child) {
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(textScaleFactor: MediaQuery.of(context).textScaleFactor.clamp(1.0, 1.08)),
+          data: MediaQuery.of(context).copyWith(
+              textScaleFactor:
+                  MediaQuery.of(context).textScaleFactor.clamp(1.0, 1.08)),
           child: child ?? const SizedBox.shrink(),
         );
       },

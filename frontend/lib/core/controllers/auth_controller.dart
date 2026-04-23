@@ -26,14 +26,15 @@ class AuthController extends ChangeNotifier {
   int? sessionId;
 
   bool get isAuthenticated => accessToken != null && accessToken!.isNotEmpty;
-  bool get isAdmin => user?.role == 'ADMIN';
+  bool get isAdmin => user?.isAdmin == true;
 
   Future<void> bootstrap() async {
     user = await _storage.readUser();
     accessToken = await _storage.readAccessToken();
     refreshToken = await _storage.readRefreshToken();
     sessionId = await _storage.readSessionId();
-    if ((accessToken == null || accessToken!.isEmpty) && (refreshToken?.isNotEmpty ?? false)) {
+    if ((accessToken == null || accessToken!.isEmpty) &&
+        (refreshToken?.isNotEmpty ?? false)) {
       try {
         final refreshed = await _apiClient.refreshSession();
         if (refreshed) {
@@ -75,9 +76,15 @@ class AuthController extends ChangeNotifier {
       final data = await _apiClient.login(username, password);
       accessToken = data['access']?.toString();
       refreshToken = data['refresh']?.toString();
-      sessionId = data['session_id'] is int ? data['session_id'] as int : int.tryParse(data['session_id']?.toString() ?? '');
-      user = UserProfile.fromJson(Map<String, dynamic>.from(data['user'] as Map));
-      if (accessToken != null && refreshToken != null && user != null && sessionId != null) {
+      sessionId = data['session_id'] is int
+          ? data['session_id'] as int
+          : int.tryParse(data['session_id']?.toString() ?? '');
+      user =
+          UserProfile.fromJson(Map<String, dynamic>.from(data['user'] as Map));
+      if (accessToken != null &&
+          refreshToken != null &&
+          user != null &&
+          sessionId != null) {
         await _storage.saveSession(
           accessToken: accessToken!,
           refreshToken: refreshToken!,

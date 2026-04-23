@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/models.dart';
-import '../../core/services/api_errors.dart';
 import '../../core/services/api_client.dart';
+import '../../core/services/api_errors.dart';
 import '../../core/widgets.dart';
 
 class ReportsScreen extends StatefulWidget {
@@ -14,180 +15,204 @@ class ReportsScreen extends StatefulWidget {
 }
 
 class _ReportsScreenState extends State<ReportsScreen> {
-  late Future<DashboardMetrics> _future;
-  final _query = TextEditingController();
-  Map<String, dynamic>? _chatResponse;
+  late Future<_ReportsBundle> _future;
 
   @override
   void initState() {
     super.initState();
-    _future = context.read<SmartParkingApi>().dashboard();
+    _future = _load();
   }
 
-  @override
-  void dispose() {
-    _query.dispose();
-    super.dispose();
-  }
+  Future<_ReportsBundle> _load() async {
+    final api = context.read<SmartParkingApi>();
+    final today = DateTime.now();
+    final todayKey = DateFormat('yyyy-MM-dd').format(today);
+    final weekStartKey = DateFormat('yyyy-MM-dd').format(today.subtract(const Duration(days: 6)));
+    final results = await Future.wait([
+      api.dashboard(start: todayKey, end: todayKey),
+      api.dashboard(start: weekStartKey, end: todayKey),
+    ]);
 
-  Future<void> _ask() async {
-    if (_query.text.trim().isEmpty) return;
-    try {
-      final response = await context.read<SmartParkingApi>().chatbot(_query.text.trim());
-      setState(() => _chatResponse = response);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Assistant failed: ${apiErrorMessage(e, fallback: 'The assistant is unavailable right now.')}')),
-      );
-    }
+    return _ReportsBundle(
+      today: results[0],
+      week: results[1],
+    );
   }
 
   Future<void> _reload() async {
-    setState(() => _future = context.read<SmartParkingApi>().dashboard());
+    setState(() => _future = _load());
     await _future;
   }
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<DashboardMetrics>(
-      future: _future,
-      builder: (context, snapshot) {
-        if (snapshot.connectionState != ConnectionState.done) {
-          return const Center(child: CircularProgressIndicator());
-        }
-        if (snapshot.hasError) {
-          return ListView(
-            padding: const EdgeInsets.all(18),
-            children: [
-              Card(
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Unable to load reports: ${apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.')}'),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: GradientActionButton(
-                          label: 'Try again',
-                          icon: Icons.refresh_rounded,
-                          onPressed: _reload,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          );
-        }
-        final metrics = snapshot.data!;
-        return ListView(
-          padding: const EdgeInsets.all(18),
-          children: [
-            SectionHeader(
-              title: 'Reports and analytics',
-              subtitle: 'Daily volume, revenue, peak hours, and staff performance.',
-              trailing: TextButton.icon(
-                onPressed: _reload,
-                icon: const Icon(Icons.refresh_rounded),
-                label: const Text('Refresh'),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Wrap(
-              spacing: 12,
-              runSpacing: 12,
-              children: [
-                _InfoPill(label: 'Cars today', value: metrics.carsPerDay.toString()),
-                _InfoPill(label: 'Revenue', value: money(metrics.revenuePerDay)),
-                _InfoPill(label: 'Occupancy', value: '${metrics.occupancyRate.toStringAsFixed(1)}%'),
-              ],
-            ),
-            const SizedBox(height: 18),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
+    return RefreshIndicator(
+      onRefresh: _reload,
+      child: FutureBuilder<_ReportsBundle>(
+        future: _future,
+        builder: (context, snapshot) {
+          if (snapshot.connectionState != ConnectionState.done) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          if (snapshot.hasError) {
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.all(18),
+              child: SurfaceCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('Peak hours', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 12),
-                    for (final hour in metrics.peakHours)
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 8),
-                        child: LinearProgressIndicator(
-                          value: (hour['total'] is num ? (hour['total'] as num).toDouble() : 0) / (metrics.carsPerDay == 0 ? 1 : metrics.carsPerDay),
-                          minHeight: 10,
-                          borderRadius: BorderRadius.circular(99),
-                        ),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 18),
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Chatbot assistant', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 12),
-                    TextField(
-                      controller: _query,
-                      decoration: const InputDecoration(labelText: 'Ask a question, like "How many cars today?"'),
+                    const Text('Unable to load reports', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                    const SizedBox(height: 8),
+                    Text(
+                      apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
+                      style: const TextStyle(color: Color(0xFF667085), height: 1.45),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: GradientActionButton(
-                        label: 'Ask',
-                        icon: Icons.smart_toy_rounded,
-                        onPressed: _ask,
+                        label: 'Try again',
+                        icon: Icons.refresh_rounded,
+                        onPressed: _reload,
                       ),
                     ),
-                    if (_chatResponse != null) ...[
-                      const SizedBox(height: 12),
-                      Text('Intent: ${_chatResponse!['intent']}'),
-                      Text('Value: ${_chatResponse!['value'] ?? _chatResponse!['message'] ?? ''}'),
-                    ],
+                  ],
+                ),
+              ),
+            );
+          }
+
+          final data = snapshot.data!;
+          final today = data.today;
+          final week = data.week;
+          final averageRevenue = week.revenuePerDay / 7;
+          final peakBars = today.peakHours
+              .map(
+                (point) => ChartBarData(
+                  label: _hourLabel(point['hour']),
+                  value: (point['total'] is num ? (point['total'] as num).toDouble() : 0),
+                  subLabel: '${point['total'] ?? 0} cars',
+                ),
+              )
+              .toList()
+            ..sort((a, b) => a.label.compareTo(b.label));
+
+          return SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.fromLTRB(18, 18, 18, 26),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 1320),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SurfaceCard(
+                      radius: 28,
+                      padding: const EdgeInsets.all(18),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Cars over time',
+                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                                            fontWeight: FontWeight.w800,
+                                            letterSpacing: -0.3,
+                                          ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    const Text(
+                                      'Today’s traffic by hour, displayed in a compact and readable chart.',
+                                      style: TextStyle(color: Color(0xFF667085), height: 1.35),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              StatusBadge(label: '${today.carsPerDay} today', color: const Color(0xFF4A35E8)),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          MiniBarChart(points: peakBars),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 18),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final columns = constraints.maxWidth >= 1100
+                            ? 4
+                            : constraints.maxWidth >= 760
+                                ? 2
+                                : 1;
+                        return GridView.count(
+                          crossAxisCount: columns,
+                          crossAxisSpacing: 14,
+                          mainAxisSpacing: 14,
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          childAspectRatio: columns == 1 ? 2.6 : 1.8,
+                          children: [
+                            MetricCard(
+                              title: 'Total Revenue',
+                              value: money(week.revenuePerDay),
+                              subtitle: 'Last 7 days',
+                              icon: Icons.payments_rounded,
+                              gradient: const LinearGradient(colors: [Color(0xFF1E2A52), Color(0xFF4A35E8)]),
+                            ),
+                            MetricCard(
+                              title: 'Total Cars',
+                              value: week.carsPerDay.toString(),
+                              subtitle: 'Last 7 days',
+                              icon: Icons.directions_car_rounded,
+                              gradient: const LinearGradient(colors: [Color(0xFF4A35E8), Color(0xFF2EC7FF)]),
+                            ),
+                            MetricCard(
+                              title: 'Average Cars / Day',
+                              value: week.averageCarsPerDay.toStringAsFixed(1),
+                              subtitle: '7-day average',
+                              icon: Icons.insights_rounded,
+                              gradient: const LinearGradient(colors: [Color(0xFF11162C), Color(0xFF2EC7FF)]),
+                            ),
+                            MetricCard(
+                              title: 'Average Revenue / Day',
+                              value: money(averageRevenue),
+                              subtitle: '7-day average',
+                              icon: Icons.stack_rounded,
+                              gradient: const LinearGradient(colors: [Color(0xFF2A1F66), Color(0xFF4A35E8)]),
+                            ),
+                          ],
+                        );
+                      },
+                    ),
                   ],
                 ),
               ),
             ),
-          ],
-        );
-      },
+          );
+        },
+      ),
     );
   }
 }
 
-class _InfoPill extends StatelessWidget {
-  const _InfoPill({required this.label, required this.value});
-  final String label;
-  final String value;
+class _ReportsBundle {
+  _ReportsBundle({
+    required this.today,
+    required this.week,
+  });
 
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: const Color(0xFFE4EEFF)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: const TextStyle(color: Colors.black54, fontWeight: FontWeight.w700)),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-        ],
-      ),
-    );
-  }
+  final DashboardMetrics today;
+  final DashboardMetrics week;
+}
+
+String _hourLabel(dynamic hour) {
+  final value = hour is num ? hour.toInt() : int.tryParse(hour?.toString() ?? '') ?? 0;
+  return '${value.toString().padLeft(2, '0')}h';
 }

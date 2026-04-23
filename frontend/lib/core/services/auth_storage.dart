@@ -5,7 +5,10 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models.dart';
 
 class AuthStorage {
-  AuthStorage({SharedPreferences? preferences}) : _prefsFuture = preferences != null ? Future.value(preferences) : SharedPreferences.getInstance();
+  AuthStorage({SharedPreferences? preferences})
+      : _prefsFuture = preferences != null
+            ? Future.value(preferences)
+            : SharedPreferences.getInstance();
 
   final Future<SharedPreferences> _prefsFuture;
   static const _accessTokenKey = 'smart_parking_access_token';
@@ -21,16 +24,19 @@ class AuthStorage {
   }) async {
     await saveTokens(accessToken: accessToken, refreshToken: refreshToken);
     final prefs = await _prefsFuture;
-    await prefs.setString(_userKey, jsonEncode({
-      'id': user.id,
-      'username': user.username,
-      'role': user.role,
-      'first_name': user.firstName,
-      'last_name': user.lastName,
-      'email': user.email,
-      'phone_number': user.phoneNumber,
-      'employee_code': user.employeeCode,
-    }));
+    await prefs.setString(
+        _userKey,
+        jsonEncode({
+          'id': user.id,
+          'username': user.username,
+          'role': user.role,
+          'is_superuser': user.isSuperuser,
+          'first_name': user.firstName,
+          'last_name': user.lastName,
+          'email': user.email,
+          'phone_number': user.phoneNumber,
+          'employee_code': user.employeeCode,
+        }));
     await prefs.setString(_sessionIdKey, sessionId.toString());
   }
 
@@ -43,9 +49,11 @@ class AuthStorage {
     await prefs.setString(_refreshTokenKey, refreshToken);
   }
 
-  Future<String?> readAccessToken() async => (await _prefsFuture).getString(_accessTokenKey);
+  Future<String?> readAccessToken() async =>
+      (await _prefsFuture).getString(_accessTokenKey);
 
-  Future<String?> readRefreshToken() async => (await _prefsFuture).getString(_refreshTokenKey);
+  Future<String?> readRefreshToken() async =>
+      (await _prefsFuture).getString(_refreshTokenKey);
 
   Future<int?> readSessionId() async {
     final value = (await _prefsFuture).getString(_sessionIdKey);
@@ -55,7 +63,8 @@ class AuthStorage {
   Future<UserProfile?> readUser() async {
     final value = (await _prefsFuture).getString(_userKey);
     if (value == null || value.isEmpty) return null;
-    return UserProfile.fromJson(Map<String, dynamic>.from(jsonDecode(value) as Map));
+    return UserProfile.fromJson(
+        Map<String, dynamic>.from(jsonDecode(value) as Map));
   }
 
   Future<void> clear() async {

@@ -1,8 +1,12 @@
 import 'package:intl/intl.dart';
 
-String _asString(dynamic value, [String fallback = '']) => value?.toString() ?? fallback;
-int _asInt(dynamic value, [int fallback = 0]) => value is int ? value : int.tryParse(value?.toString() ?? '') ?? fallback;
-double _asDouble(dynamic value, [double fallback = 0]) => value is double ? value : double.tryParse(value?.toString() ?? '') ?? fallback;
+String _asString(dynamic value, [String fallback = '']) =>
+    value?.toString() ?? fallback;
+int _asInt(dynamic value, [int fallback = 0]) =>
+    value is int ? value : int.tryParse(value?.toString() ?? '') ?? fallback;
+double _asDouble(dynamic value, [double fallback = 0]) => value is double
+    ? value
+    : double.tryParse(value?.toString() ?? '') ?? fallback;
 List<String> _asStringList(dynamic value) {
   if (value is List) {
     return value.map((e) => e.toString()).toList();
@@ -20,6 +24,7 @@ class UserProfile {
     this.email = '',
     this.phoneNumber = '',
     this.employeeCode = '',
+    this.isSuperuser = false,
   });
 
   final int id;
@@ -30,6 +35,7 @@ class UserProfile {
   final String email;
   final String phoneNumber;
   final String employeeCode;
+  final bool isSuperuser;
 
   factory UserProfile.fromJson(Map<String, dynamic> json) => UserProfile(
         id: _asInt(json['id']),
@@ -40,10 +46,22 @@ class UserProfile {
         email: _asString(json['email']),
         phoneNumber: _asString(json['phone_number']),
         employeeCode: _asString(json['employee_code']),
+        isSuperuser: json['is_superuser'] == true,
       );
 
-  String get displayName => [firstName, lastName].where((part) => part.trim().isNotEmpty).join(' ').trim().isNotEmpty
-      ? [firstName, lastName].where((part) => part.trim().isNotEmpty).join(' ').trim()
+  bool get isAdmin => isSuperuser || role.trim().toUpperCase() == 'ADMIN';
+
+  String get displayRole => isAdmin ? 'ADMIN' : role.trim();
+
+  String get displayName => [firstName, lastName]
+          .where((part) => part.trim().isNotEmpty)
+          .join(' ')
+          .trim()
+          .isNotEmpty
+      ? [firstName, lastName]
+          .where((part) => part.trim().isNotEmpty)
+          .join(' ')
+          .trim()
       : username;
 }
 
@@ -118,6 +136,65 @@ class ParkingSessionSummary {
   }
 }
 
+String vehicleTypeLabel(String value) {
+  switch (value.toUpperCase()) {
+    case 'SUV':
+      return 'SUV';
+    case 'VAN':
+      return 'Van';
+    case 'TRUCK':
+      return 'Truck';
+    case 'BIKE':
+      return 'Motorbike';
+    case 'OTHER':
+      return 'Other';
+    case 'CAR':
+    default:
+      return 'Car';
+  }
+}
+
+class VehicleRecord {
+  const VehicleRecord({
+    required this.id,
+    required this.plateNumber,
+    required this.vehicleType,
+    required this.ownerName,
+    required this.phoneNumber,
+    required this.isActive,
+    required this.createdAt,
+    required this.updatedAt,
+  });
+
+  final int id;
+  final String plateNumber;
+  final String vehicleType;
+  final String ownerName;
+  final String phoneNumber;
+  final bool isActive;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
+
+  factory VehicleRecord.fromJson(Map<String, dynamic> json) => VehicleRecord(
+        id: _asInt(json['id']),
+        plateNumber: _asString(json['plate_number']),
+        vehicleType: _asString(json['vehicle_type'], 'CAR'),
+        ownerName: _asString(json['owner_name']),
+        phoneNumber: _asString(json['phone_number']),
+        isActive: json['is_active'] == true,
+        createdAt: DateTime.tryParse(_asString(json['created_at'])),
+        updatedAt: DateTime.tryParse(_asString(json['updated_at'])),
+      );
+
+  String get displayVehicleType => vehicleTypeLabel(vehicleType);
+
+  String get ownerDisplay =>
+      ownerName.trim().isEmpty ? 'No owner name added' : ownerName;
+
+  String get phoneDisplay =>
+      phoneNumber.trim().isEmpty ? 'No phone number added' : phoneNumber;
+}
+
 class DashboardMetrics {
   const DashboardMetrics({
     required this.carsPerDay,
@@ -143,7 +220,8 @@ class DashboardMetrics {
   final List<Map<String, dynamic>> peakHours;
   final List<Map<String, dynamic>> staffPerformance;
 
-  factory DashboardMetrics.fromJson(Map<String, dynamic> json) => DashboardMetrics(
+  factory DashboardMetrics.fromJson(Map<String, dynamic> json) =>
+      DashboardMetrics(
         carsPerDay: _asInt(json['cars_per_day']),
         revenuePerDay: _asDouble(json['revenue_per_day']),
         averageCarsPerDay: _asDouble(json['average_cars_per_day']),
@@ -151,9 +229,15 @@ class DashboardMetrics {
         activeSessions: _asInt(json['active_sessions']),
         pendingPayments: _asInt(json['pending_payments']),
         openCashShifts: _asInt(json['open_cash_shifts']),
-        alerts: (json['alerts'] as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
-        peakHours: (json['peak_hours'] as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
-        staffPerformance: (json['staff_performance'] as List? ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList(),
+        alerts: (json['alerts'] as List? ?? const [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList(),
+        peakHours: (json['peak_hours'] as List? ?? const [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList(),
+        staffPerformance: (json['staff_performance'] as List? ?? const [])
+            .map((e) => Map<String, dynamic>.from(e as Map))
+            .toList(),
       );
 }
 
@@ -215,15 +299,19 @@ class PricingPolicyDto {
   final bool isActive;
   final int version;
 
-  factory PricingPolicyDto.fromJson(Map<String, dynamic> json) => PricingPolicyDto(
+  factory PricingPolicyDto.fromJson(Map<String, dynamic> json) =>
+      PricingPolicyDto(
         id: _asInt(json['id']),
         name: _asString(json['name']),
         baseFee: _asDouble(json['base_fee']),
         hourlyRate: _asDouble(json['hourly_rate']),
         gracePeriodMinutes: _asInt(json['grace_period_minutes']),
         overduePenalty: _asDouble(json['overdue_penalty']),
-        dailyMaxCap: json['daily_max_cap'] == null ? null : _asDouble(json['daily_max_cap']),
-        specialRules: Map<String, dynamic>.from(json['special_rules'] as Map? ?? const {}),
+        dailyMaxCap: json['daily_max_cap'] == null
+            ? null
+            : _asDouble(json['daily_max_cap']),
+        specialRules: Map<String, dynamic>.from(
+            json['special_rules'] as Map? ?? const {}),
         isActive: json['is_active'] == true,
         version: _asInt(json['version']),
       );
@@ -260,4 +348,3 @@ class PaymentReceipt {
 }
 
 String money(double value) => NumberFormat.currency(symbol: 'R').format(value);
-

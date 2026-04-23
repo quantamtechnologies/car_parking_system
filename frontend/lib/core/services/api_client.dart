@@ -196,6 +196,22 @@ class SmartParkingApi {
     return _asMap(response.data);
   }
 
+  Future<List<VehicleRecord>> vehicles({String ordering = '-created_at'}) async {
+    final response = await _send(
+      () => _dio.get(
+        '/parking/vehicles/',
+        queryParameters: {
+          'ordering': ordering,
+        },
+      ),
+    );
+    final data = response.data;
+    final results = data is Map<String, dynamic> && data['results'] is List ? data['results'] as List : data as List;
+    return results
+        .map((item) => VehicleRecord.fromJson(Map<String, dynamic>.from(item as Map)))
+        .toList();
+  }
+
   Future<List<ParkingSessionSummary>> activeSessions() async {
     final response = await _send(() => _dio.get('/parking/sessions/active/'));
     final data = response.data as List;

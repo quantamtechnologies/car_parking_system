@@ -26,62 +26,144 @@ class AppShell extends StatelessWidget {
       const _NavItem('/payment', Icons.payments_rounded, 'Payment'),
       const _NavItem('/reports', Icons.bar_chart_rounded, 'Reports'),
     ];
-    final selectedIndex = items.indexWhere((item) => item.path == currentPath);
+    if (auth.isAdmin) {
+      items.add(const _NavItem(
+          '/admin', Icons.admin_panel_settings_rounded, 'Admin'));
+    }
+    final normalizedPath = _normalizePath(currentPath);
+    final selectedIndex =
+        items.indexWhere((item) => item.path == normalizedPath);
+    final wide = MediaQuery.of(context).size.width >= 1040;
 
     return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            colors: [Color(0xFFF4F8FF), Color(0xFFECF4FF)],
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-          ),
-        ),
-        child: SafeArea(
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 960;
-              return Row(
-                children: [
-                  if (wide) _Sidebar(items: items, selectedIndex: selectedIndex, user: auth.user, onNavigate: (path) => context.go(path)),
-                  Expanded(
-                    child: Column(
-                      children: [
-                        _TopBar(
-                          user: auth.user,
-                          onLogout: () => context.read<AuthController>().logout(),
-                        ),
-                        Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: wide ? 24 : 14, vertical: 8),
-                            child: ClipRRect(
+      backgroundColor: const Color(0xFFF3F6FB),
+      body: Stack(
+        children: [
+          const _Backdrop(),
+          SafeArea(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final content = Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      _ShellHeader(
+                        title: _pageTitle(normalizedPath),
+                        subtitle: _pageSubtitle(normalizedPath),
+                        user: auth.user,
+                        onLogout: () => context.read<AuthController>().logout(),
+                        compact: !wide,
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: EdgeInsets.fromLTRB(
+                              wide ? 0 : 12, 0, wide ? 18 : 12, wide ? 18 : 12),
+                          child: Container(
+                            clipBehavior: Clip.antiAlias,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withOpacity(0.72),
                               borderRadius: BorderRadius.circular(30),
-                              child: Container(
-                                color: Colors.white.withOpacity(0.64),
-                                child: child,
-                              ),
+                              border: Border.all(
+                                  color: Colors.white.withOpacity(0.72)),
+                              boxShadow: const [
+                                BoxShadow(
+                                    color: Color(0x160B1630),
+                                    blurRadius: 30,
+                                    offset: Offset(0, 18)),
+                              ],
                             ),
+                            child: child,
                           ),
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
-                ],
-              );
-            },
+                );
+
+                if (wide) {
+                  return Row(
+                    children: [
+                      _Sidebar(
+                        items: items,
+                        selectedIndex: selectedIndex,
+                        user: auth.user,
+                        onNavigate: (path) => context.go(path),
+                        onLogout: () => context.read<AuthController>().logout(),
+                      ),
+                      content,
+                    ],
+                  );
+                }
+
+                return Column(
+                  children: [
+                    content,
+                  ],
+                );
+              },
+            ),
           ),
-        ),
+        ],
       ),
-      bottomNavigationBar: MediaQuery.of(context).size.width < 960
-          ? NavigationBar(
+      bottomNavigationBar: wide
+          ? null
+          : NavigationBar(
               selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
               onDestinationSelected: (index) => context.go(items[index].path),
               destinations: [
                 for (final item in items)
-                  NavigationDestination(icon: Icon(item.icon), label: item.label),
+                  NavigationDestination(
+                      icon: Icon(item.icon), label: item.label),
               ],
-            )
-          : null,
+            ),
+    );
+  }
+}
+
+class _Backdrop extends StatelessWidget {
+  const _Backdrop();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned(
+            top: -120,
+            right: -60,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF4A35E8).withOpacity(0.16),
+                    Colors.transparent
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            left: -100,
+            bottom: 140,
+            child: Container(
+              width: 260,
+              height: 260,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    const Color(0xFF2EC7FF).withOpacity(0.14),
+                    Colors.transparent
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -92,66 +174,108 @@ class _Sidebar extends StatelessWidget {
     required this.selectedIndex,
     required this.user,
     required this.onNavigate,
+    required this.onLogout,
   });
 
   final List<_NavItem> items;
   final int selectedIndex;
   final UserProfile? user;
   final ValueChanged<String> onNavigate;
+  final VoidCallback onLogout;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 260,
+      width: 286,
       margin: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: const Color(0xFF0A1F44),
-        borderRadius: BorderRadius.circular(30),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0A1028), Color(0xFF111840), Color(0xFF151C50)],
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+        ),
+        borderRadius: BorderRadius.circular(32),
         boxShadow: const [
-          BoxShadow(color: Color(0x1F0A1F44), blurRadius: 30, offset: Offset(0, 18)),
+          BoxShadow(
+              color: Color(0x280B1630), blurRadius: 34, offset: Offset(0, 20)),
         ],
       ),
       child: Column(
         children: [
-          const SizedBox(height: 24),
+          const SizedBox(height: 26),
           Container(
-            width: 72,
-            height: 72,
+            width: 74,
+            height: 74,
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
-              gradient: LinearGradient(colors: [Color(0xFF0F4CFF), Color(0xFF4DD4FF)]),
+              gradient: LinearGradient(
+                  colors: [Color(0xFF4A35E8), Color(0xFF2EC7FF)]),
             ),
-            child: const Icon(Icons.local_parking_rounded, color: Colors.white, size: 38),
+            child: const Icon(Icons.local_parking_rounded,
+                color: Colors.white, size: 38),
           ),
           const SizedBox(height: 14),
-          const Text('Smart Parking', style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.w800)),
+          const Text(
+            'Smart Parking',
+            style: TextStyle(
+                color: Colors.white, fontSize: 21, fontWeight: FontWeight.w900),
+          ),
           const SizedBox(height: 6),
-          Text(user?.displayName ?? 'POS Interface', style: TextStyle(color: Colors.white.withOpacity(0.8))),
-          const SizedBox(height: 20),
+          Text(
+            'Premium control panel',
+            style:
+                TextStyle(color: Colors.white.withOpacity(0.74), fontSize: 13),
+          ),
+          const SizedBox(height: 24),
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(12),
+            child: ListView.separated(
+              padding: const EdgeInsets.symmetric(horizontal: 14),
               itemCount: items.length,
+              separatorBuilder: (_, __) => const SizedBox(height: 10),
               itemBuilder: (context, index) {
                 final item = items[index];
                 final selected = index == selectedIndex;
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
+                return Material(
+                  color: Colors.transparent,
                   child: InkWell(
                     borderRadius: BorderRadius.circular(18),
                     onTap: () => onNavigate(item.path),
-                    child: Container(
+                    child: AnimatedContainer(
+                      duration: const Duration(milliseconds: 180),
+                      curve: Curves.easeOutCubic,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16, vertical: 14),
                       decoration: BoxDecoration(
-                        color: selected ? Colors.white.withOpacity(0.16) : Colors.transparent,
+                        color: selected
+                            ? Colors.white.withOpacity(0.16)
+                            : Colors.white.withOpacity(0.04),
                         borderRadius: BorderRadius.circular(18),
+                        border: Border.all(
+                            color: selected
+                                ? Colors.white.withOpacity(0.18)
+                                : Colors.white.withOpacity(0.06)),
                       ),
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                       child: Row(
                         children: [
-                          Icon(item.icon, color: Colors.white, size: 22),
+                          Icon(
+                            item.icon,
+                            color: selected
+                                ? Colors.white
+                                : Colors.white.withOpacity(0.74),
+                            size: 22,
+                          ),
                           const SizedBox(width: 12),
                           Expanded(
-                            child: Text(item.label, style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700)),
+                            child: Text(
+                              item.label,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: selected
+                                    ? FontWeight.w800
+                                    : FontWeight.w700,
+                                fontSize: 14.5,
+                              ),
+                            ),
                           ),
                         ],
                       ),
@@ -163,10 +287,39 @@ class _Sidebar extends StatelessWidget {
           ),
           Padding(
             padding: const EdgeInsets.all(16),
-            child: GradientActionButton(
-              label: 'Sign out',
-              icon: Icons.logout_rounded,
-              onPressed: () => context.read<AuthController>().logout(),
+            child: SurfaceCard(
+              radius: 24,
+              padding: const EdgeInsets.all(14),
+              color: Colors.white.withOpacity(0.08),
+              borderColor: Colors.white.withOpacity(0.08),
+              shadow: const [],
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    user?.displayName ?? 'Operator',
+                    style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    user?.displayRole ?? 'STAFF',
+                    style: TextStyle(
+                        color: Colors.white.withOpacity(0.72), fontSize: 12.5),
+                  ),
+                  const SizedBox(height: 14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: GradientActionButton(
+                      label: 'Sign out',
+                      icon: Icons.logout_rounded,
+                      onPressed: onLogout,
+                    ),
+                  ),
+                ],
+              ),
             ),
           ),
         ],
@@ -175,42 +328,101 @@ class _Sidebar extends StatelessWidget {
   }
 }
 
-class _TopBar extends StatelessWidget {
-  const _TopBar({required this.user, required this.onLogout});
+class _ShellHeader extends StatelessWidget {
+  const _ShellHeader({
+    required this.title,
+    required this.subtitle,
+    required this.user,
+    required this.onLogout,
+    required this.compact,
+  });
 
+  final String title;
+  final String subtitle;
   final UserProfile? user;
   final VoidCallback onLogout;
+  final bool compact;
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 8),
+      padding: EdgeInsets.fromLTRB(
+          compact ? 12 : 18, compact ? 12 : 16, compact ? 12 : 18, 12),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text('Welcome back,', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.black54)),
-              Text(user?.displayName ?? 'Operator', style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)),
-            ],
-          ),
-          const Spacer(),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(999),
-              boxShadow: const [BoxShadow(color: Color(0x11000000), blurRadius: 16, offset: Offset(0, 6))],
-            ),
-            child: Row(
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Icon(Icons.badge_rounded, size: 18, color: Color(0xFF0F4CFF)),
-                const SizedBox(width: 8),
-                Text(user?.role ?? 'STAFF', style: const TextStyle(fontWeight: FontWeight.w800)),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        letterSpacing: -0.6,
+                      ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  subtitle,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFF667085),
+                        height: 1.45,
+                      ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          SurfaceCard(
+            radius: 22,
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            color: Colors.white,
+            borderColor: const Color(0xFFE5ECF5),
+            shadow: const [
+              BoxShadow(
+                  color: Color(0x0F0B1630),
+                  blurRadius: 18,
+                  offset: Offset(0, 8)),
+            ],
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF0F4FF),
+                    borderRadius: BorderRadius.circular(13),
+                  ),
+                  child: const Icon(Icons.badge_rounded,
+                      color: Color(0xFF4A35E8), size: 20),
+                ),
+                const SizedBox(width: 10),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      user?.displayName ?? 'Operator',
+                      style: const TextStyle(
+                          fontWeight: FontWeight.w800, fontSize: 13.5),
+                    ),
+                    Text(
+                      user?.displayRole ?? 'STAFF',
+                      style: const TextStyle(
+                          color: Color(0xFF667085),
+                          fontSize: 11.5,
+                          fontWeight: FontWeight.w600),
+                    ),
+                  ],
+                ),
                 const SizedBox(width: 12),
                 InkWell(
+                  borderRadius: BorderRadius.circular(999),
                   onTap: onLogout,
-                  child: const Icon(Icons.logout_rounded, color: Color(0xFF0F4CFF)),
+                  child: const Icon(Icons.logout_rounded,
+                      color: Color(0xFF4A35E8), size: 20),
                 ),
               ],
             ),
@@ -227,4 +439,45 @@ class _NavItem {
   final String path;
   final IconData icon;
   final String label;
+}
+
+String _normalizePath(String path) {
+  if (path == '/dashboard') return '/';
+  return path;
+}
+
+String _pageTitle(String path) {
+  switch (path) {
+    case '/entry':
+      return 'Entry';
+    case '/exit':
+      return 'Exit';
+    case '/payment':
+      return 'Payment';
+    case '/reports':
+      return 'Reports';
+    case '/admin':
+      return 'Admin';
+    case '/':
+    default:
+      return 'Dashboard';
+  }
+}
+
+String _pageSubtitle(String path) {
+  switch (path) {
+    case '/entry':
+      return 'Capture plates, fill the form, and register the vehicle in a clean split layout.';
+    case '/exit':
+      return 'Select an active vehicle, review the receipt, and move straight to payment.';
+    case '/payment':
+      return 'Confirm the cash payment with a clear status and receipt summary.';
+    case '/reports':
+      return 'See traffic and revenue insights without the usual clutter.';
+    case '/admin':
+      return 'Manage pricing, operational controls, and admin-only tools from one place.';
+    case '/':
+    default:
+      return 'A minimal control room for live gate operations and daily parking metrics.';
+  }
 }
