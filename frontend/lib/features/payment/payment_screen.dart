@@ -6,6 +6,7 @@ import '../../core/controllers/auth_controller.dart';
 import '../../core/models.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_errors.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
 class PaymentScreen extends StatefulWidget {
@@ -106,244 +107,275 @@ class _PaymentScreenState extends State<PaymentScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final user = context.watch<AuthController>().user;
     final session = widget.initialSession;
     final fee = session == null ? null : double.tryParse(session['total_fee'].toString()) ?? 0;
-    final tendered = double.tryParse(_amountTendered.text.trim()) ?? 0;
-    final change = tendered - (fee ?? 0);
     final vehicle = session?['vehicle'] as Map?;
     final paidAmount = _receipt?.amountTendered ?? 0;
 
-    return ListView(
-      padding: const EdgeInsets.all(18),
+    return Scaffold(
+      backgroundColor: ParkingColors.scaffold,
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 122),
       children: [
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final wide = constraints.maxWidth >= 1000;
-            final summary = PaymentStatusCard(
-              statusLabel: _receipt == null ? 'Pending' : 'Paid',
-              amountPaid: paidAmount,
-              amountDue: fee ?? 0,
-              receiptNumber: _receipt?.receiptNumber,
-              method: _receipt?.method,
-            );
-
-            final summaryCard = _buildFieldCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0F4FF),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(Icons.payments_rounded, color: Color(0xFF4A35E8)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Payment overview',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'A simple snapshot of the session before the cash is closed.',
-                              style: TextStyle(color: Color(0xFF667085), height: 1.35),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  summary,
-                  const SizedBox(height: 14),
-                  if (session != null) ...[
-                    _InfoRow(label: 'Session ID', value: session['id'].toString()),
-                    const SizedBox(height: 10),
-                    _InfoRow(label: 'Plate', value: vehicle?['plate_number']?.toString() ?? ''),
-                    const SizedBox(height: 10),
-                    _InfoRow(label: 'Amount due', value: money(fee ?? 0)),
-                  ] else
-                    const Text(
-                      'Enter the session ID manually if the vehicle was not passed from the exit page.',
-                      style: TextStyle(color: Color(0xFF667085), height: 1.4),
-                    ),
-                ],
-              ),
-            );
-
-            final formCard = _buildFieldCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 42,
-                        height: 42,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF0F4FF),
-                          borderRadius: BorderRadius.circular(14),
-                        ),
-                        child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4A35E8)),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Cash payment',
-                              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                            ),
-                            const SizedBox(height: 4),
-                            const Text(
-                              'Keep the form concise and use the override only when necessary.',
-                              style: TextStyle(color: Color(0xFF667085), height: 1.35),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 18),
-                  TextField(
-                    controller: _sessionId,
-                    decoration: const InputDecoration(labelText: 'Session ID'),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _amountTendered,
-                    decoration: const InputDecoration(labelText: 'Cash received'),
-                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                    onChanged: (_) => setState(() {}),
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _cashShiftId,
-                    decoration: const InputDecoration(labelText: 'Cash shift ID (optional)'),
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 12),
-                  TextField(
-                    controller: _notes,
-                    decoration: const InputDecoration(labelText: 'Reason / notes'),
-                    minLines: 1,
-                    maxLines: 3,
-                  ),
-                  const SizedBox(height: 10),
-                  if (context.watch<AuthController>().isAdmin)
-                    SwitchListTile.adaptive(
-                      value: _override,
-                      onChanged: (value) => setState(() => _override = value),
-                      title: const Text('Admin override'),
-                      subtitle: const Text('Allow exit without collecting cash'),
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                  const SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: GradientActionButton(
-                      label: _busy ? 'Confirming payment' : 'Confirm payment',
-                      icon: Icons.check_circle_rounded,
-                      isBusy: _busy,
-                      onPressed: _busy ? null : _confirm,
-                    ),
-                  ),
-                ],
-              ),
-            );
-
-            if (wide) {
-              return Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: summaryCard),
-                  const SizedBox(width: 16),
-                  Expanded(child: formCard),
-                ],
-              );
-            }
-
-            return Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                summaryCard,
-                const SizedBox(height: 16),
-                formCard,
-              ],
-            );
-          },
+        ParkingScreenHeader(
+          title: 'Payment',
+          subtitle: 'Confirm exit cash payments',
+          user: user,
+          onLeadingTap: () => context.go('/'),
+          leadingIcon: Icons.arrow_back_rounded,
+          dark: true,
+          backgroundGradient: ParkingColors.entryHeaderGradient,
+          titleColor: Colors.white,
+          subtitleColor: Colors.white.withOpacity(0.80),
+          leadingBackground: Colors.white.withOpacity(0.14),
+          leadingIconColor: Colors.white,
+          padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+          titleSize: 30,
+          subtitleSize: 16,
+          bottomRadius: 34,
         ),
-        if (_receipt != null) ...[
-          const SizedBox(height: 18),
-          SurfaceCard(
-            radius: 28,
-            padding: const EdgeInsets.all(18),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFF0F4FF),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4A35E8)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
+        Padding(
+          padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 1320),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth >= 1000;
+                      final summary = PaymentStatusCard(
+                        statusLabel: _receipt == null ? 'Pending' : 'Paid',
+                        amountPaid: paidAmount,
+                        amountDue: fee ?? 0,
+                        receiptNumber: _receipt?.receiptNumber,
+                        method: _receipt?.method,
+                      );
+
+                      final summaryCard = _buildFieldCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0F4FF),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(Icons.payments_rounded, color: Color(0xFF4A35E8)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Payment overview',
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'A simple snapshot of the session before the cash is closed.',
+                                        style: TextStyle(color: Color(0xFF667085), height: 1.35),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            summary,
+                            const SizedBox(height: 14),
+                            if (session != null) ...[
+                              _InfoRow(label: 'Session ID', value: session['id'].toString()),
+                              const SizedBox(height: 10),
+                              _InfoRow(label: 'Plate', value: vehicle?['plate_number']?.toString() ?? ''),
+                              const SizedBox(height: 10),
+                              _InfoRow(label: 'Amount due', value: money(fee ?? 0)),
+                            ] else
+                              const Text(
+                                'Enter the session ID manually if the vehicle was not passed from the exit page.',
+                                style: TextStyle(color: Color(0xFF667085), height: 1.4),
+                              ),
+                          ],
+                        ),
+                      );
+
+                      final formCard = _buildFieldCard(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF0F4FF),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4A35E8)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Cash payment',
+                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                                      ),
+                                      const SizedBox(height: 4),
+                                      const Text(
+                                        'Keep the form concise and use the override only when necessary.',
+                                        style: TextStyle(color: Color(0xFF667085), height: 1.35),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 18),
+                            TextField(
+                              controller: _sessionId,
+                              decoration: const InputDecoration(labelText: 'Session ID'),
+                              keyboardType: TextInputType.number,
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _amountTendered,
+                              decoration: const InputDecoration(labelText: 'Cash received'),
+                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                              onChanged: (_) => setState(() {}),
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _cashShiftId,
+                              decoration: const InputDecoration(labelText: 'Cash shift ID (optional)'),
+                              keyboardType: TextInputType.number,
+                            ),
+                            const SizedBox(height: 12),
+                            TextField(
+                              controller: _notes,
+                              decoration: const InputDecoration(labelText: 'Reason / notes'),
+                              minLines: 1,
+                              maxLines: 3,
+                            ),
+                            const SizedBox(height: 10),
+                            if (context.watch<AuthController>().isAdmin)
+                              SwitchListTile.adaptive(
+                                value: _override,
+                                onChanged: (value) => setState(() => _override = value),
+                                title: const Text('Admin override'),
+                                subtitle: const Text('Allow exit without collecting cash'),
+                                contentPadding: EdgeInsets.zero,
+                              ),
+                            const SizedBox(height: 10),
+                            SizedBox(
+                              width: double.infinity,
+                              child: GradientActionButton(
+                                label: _busy ? 'Confirming payment' : 'Confirm payment',
+                                icon: Icons.check_circle_rounded,
+                                isBusy: _busy,
+                                onPressed: _busy ? null : _confirm,
+                              ),
+                            ),
+                          ],
+                        ),
+                      );
+
+                      if (wide) {
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(child: summaryCard),
+                            const SizedBox(width: 16),
+                            Expanded(child: formCard),
+                          ],
+                        );
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          summaryCard,
+                          const SizedBox(height: 16),
+                          formCard,
+                        ],
+                      );
+                    },
+                  ),
+                  if (_receipt != null) ...[
+                    const SizedBox(height: 18),
+                    SurfaceCard(
+                      radius: 28,
+                      padding: const EdgeInsets.all(18),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text('Receipt', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                          const SizedBox(height: 4),
-                          Text(
-                            'Receipt ${_receipt!.receiptNumber}',
-                            style: const TextStyle(color: Color(0xFF667085), height: 1.35),
+                          Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF0F4FF),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4A35E8)),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Receipt', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Receipt ${_receipt!.receiptNumber}',
+                                      style: const TextStyle(color: Color(0xFF667085), height: 1.35),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 16),
+                          _InfoRow(label: 'Amount due', value: money(_receipt!.amountDue)),
+                          const SizedBox(height: 10),
+                          _InfoRow(label: 'Cash received', value: money(_receipt!.amountTendered)),
+                          const SizedBox(height: 10),
+                          _InfoRow(label: 'Change due', value: money(_receipt!.changeDue)),
+                          const SizedBox(height: 10),
+                          _InfoRow(label: 'Method', value: _receipt!.method),
+                          const SizedBox(height: 10),
+                          _InfoRow(
+                            label: 'Status',
+                            value: (_receipt!.status == 'CONFIRMED' || _receipt!.status == 'OVERRIDDEN') ? 'Paid' : 'Pending',
+                          ),
+                          const SizedBox(height: 18),
+                          SizedBox(
+                            width: double.infinity,
+                            child: GradientActionButton(
+                              label: 'Back to dashboard',
+                              icon: Icons.dashboard_rounded,
+                              onPressed: () => context.go('/'),
+                            ),
                           ),
                         ],
                       ),
                     ),
                   ],
-                ),
-                const SizedBox(height: 16),
-                _InfoRow(label: 'Amount due', value: money(_receipt!.amountDue)),
-                const SizedBox(height: 10),
-                _InfoRow(label: 'Cash received', value: money(_receipt!.amountTendered)),
-                const SizedBox(height: 10),
-                _InfoRow(label: 'Change due', value: money(_receipt!.changeDue)),
-                const SizedBox(height: 10),
-                _InfoRow(label: 'Method', value: _receipt!.method),
-                const SizedBox(height: 10),
-                _InfoRow(
-                  label: 'Status',
-                  value: (_receipt!.status == 'CONFIRMED' || _receipt!.status == 'OVERRIDDEN') ? 'Paid' : 'Pending',
-                ),
-                const SizedBox(height: 18),
-                SizedBox(
-                  width: double.infinity,
-                  child: GradientActionButton(
-                    label: 'Back to dashboard',
-                    icon: Icons.dashboard_rounded,
-                    onPressed: () => context.go('/'),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
-        ],
+        ),
       ],
     );
   }

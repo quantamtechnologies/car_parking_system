@@ -1,522 +1,810 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/controllers/auth_controller.dart';
 import '../../core/models.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_errors.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
 class EntryScreen extends StatefulWidget {
-  const EntryScreen({super.key});
+  const EntryScreen({
+    super.key,
+    this.initialPlate = '',
+    this.initialVehicleType = 'CAR',
+  });
+
+  final String initialPlate;
+  final String initialVehicleType;
 
   @override
   State<EntryScreen> createState() => _EntryScreenState();
 }
 
 class _EntryScreenState extends State<EntryScreen> {
-  final _plate = TextEditingController();
-  final _owner = TextEditingController();
-  final _phone = TextEditingController();
-  late Future<_EntryPageData> _future;
-  bool _submitting = false;
-  bool _expandedVehicles = false;
-  bool _quickRegisterVisible = false;
-  Map<String, dynamic>? _prefill;
-  String _vehicleType = 'CAR';
-  String? _scanSummary;
-  int? _entryScanId;
-  String? _selectedPlate;
+  late final TextEditingController _plateController;
+  late String _vehicleType;
+  String _assignedSlot = 'B2 - 24';
+  VehicleRecord? _resolvedVehicle;
+  bool _busy = false;
 
   @override
   void initState() {
     super.initState();
-    _future = _load();
+    _plateController = TextEditingController(
+      text: widget.initialPlate.isNotEmpty ? widget.initialPlate : 'KCD 123A',
+    );
+    _vehicleType = widget.initialVehicleType.isNotEmpty ? widget.initialVehicleType : 'CAR';
+    if (widget.initialPlate.trim().isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _lookupVehicle(redirectToRegistration: true);
+      });
+    }
   }
 
   @override
   void dispose() {
-    _plate.dispose();
-    _owner.dispose();
-    _phone.dispose();
+    _plateController.dispose();
     super.dispose();
   }
 
-  Future<_EntryPageData> _load() async {
-    final api = context.read<SmartParkingApi>();
-    final results = await Future.wait([
-      api.vehicles(),
-      api.activeSessions(),
-    ]);
-
-    final activePlates = results[1]
-        .cast<ParkingSessionSummary>()
-        .map((session) => session.plateNumber)
-        .where((plate) => plate.isNotEmpty)
-        .toSet();
-
-    final vehicles = results[0]
-        .cast<VehicleRecord>()
-        .where((vehicle) => vehicle.isActive)
-        .toList()
-      ..sort((a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
-
-    return _EntryPageData(
-      vehicles: vehicles,
-      activePlates: activePlates,
+  Future<void> _openCamera() async {
+    final result = await context.push<Map<String, dynamic>?>(
+      '/camera-entry',
+      extra: {'source': 'ENTRY', 'plate': _plateController.text},
     );
-  }
-
-  Future<void> _scanPlate() async {
-    final result = await context.push<Map<String, dynamic>?>('/camera-entry', extra: {'source': 'ENTRY', 'plate': _plate.text});
     if (result == null) return;
-    final plate = result['plate']?.toString() ?? '';
-    final scan = result['scan'] as OcrResult?;
+
+    final plate = result['plate']?.toString() ?? result['confirmed_plate']?.toString() ?? '';
+    if (plate.trim().isEmpty) return;
+
     setState(() {
-      _plate.text = plate;
-      _entryScanId = result['scan_id'] as int?;
-      _scanSummary = scan == null ? null : '${scan.detectedPlate.isEmpty ? 'Manual' : scan.detectedPlate} (${scan.confidence.toStringAsFixed(0)}%)';
-      _selectedPlate = plate;
+      _plateController.text = plate.trim();
     });
+    await _lookupVehicle(redirectToRegistration: true);
   }
 
-  void _applyVehicle(VehicleRecord vehicle) {
-    setState(() {
-      _selectedPlate = vehicle.plateNumber;
-      _plate.text = vehicle.plateNumber;
-      _vehicleType = vehicle.vehicleType;
-      _owner.text = vehicle.ownerName;
-      _phone.text = vehicle.phoneNumber;
-      _quickRegisterVisible = false;
-      _prefill = null;
-    });
-  }
+  Future<void> _lookupVehicle({required bool redirectToRegistration}) async {
+    final plate = _plateController.text.trim();
+    if (plate.isEmpty) return;
 
-  Future<void> _submitEntry() async {
-    if (_plate.text.trim().isEmpty) return;
-    setState(() => _submitting = true);
+    final api = context.read<SmartParkingApi>();
     try {
-      final api = context.read<SmartParkingApi>();
-      final response = await api.createEntry({
-        'plate_number': _plate.text.trim(),
-        'vehicle_type': _vehicleType,
-        'owner_name': _owner.text.trim(),
-        'phone_number': _phone.text.trim(),
-        if (_entryScanId != null) 'entry_scan_id': _entryScanId,
-      });
-
-      if (response['needs_registration'] == true) {
-        setState(() {
-          _quickRegisterVisible = true;
-          _prefill = Map<String, dynamic>.from(response['prefill'] as Map);
-          _vehicleType = _prefill?['vehicle_type']?.toString() ?? 'CAR';
-        });
+      final vehicle = await api.vehicleByPlate(plate);
+      if (!mounted) return;
+      if (vehicle == null) {
+        setState(() => _resolvedVehicle = null);
+        if (redirectToRegistration) {
+          context.go(
+            '/entry/register',
+            extra: {
+              'plate': plate,
+              'vehicle_type': _vehicleType,
+            },
+          );
+        }
         return;
       }
 
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Entry session created successfully.')));
       setState(() {
-        _quickRegisterVisible = false;
-        _prefill = null;
-        _scanSummary = null;
-        _entryScanId = null;
-        _selectedPlate = null;
-        _owner.clear();
-        _phone.clear();
+        _resolvedVehicle = vehicle;
+        _vehicleType = vehicle.vehicleType;
       });
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Entry failed: ${apiErrorMessage(e, fallback: 'Unable to start the session right now.')}')),
+        SnackBar(
+          content: Text(
+            'Vehicle lookup failed: ${apiErrorMessage(e, fallback: 'Please try again in a moment.')}',
+          ),
+        ),
+      );
+    }
+  }
+
+  Future<void> _startSession() async {
+    final plate = _plateController.text.trim();
+    if (plate.isEmpty) return;
+
+    setState(() => _busy = true);
+    try {
+      if (_resolvedVehicle == null) {
+        final lookup = await context.read<SmartParkingApi>().vehicleByPlate(plate);
+        if (lookup == null) {
+          if (!mounted) return;
+          context.go(
+            '/entry/register',
+            extra: {
+              'plate': plate,
+              'vehicle_type': _vehicleType,
+            },
+          );
+          return;
+        }
+        _resolvedVehicle = lookup;
+        _vehicleType = lookup.vehicleType;
+      }
+
+      final response = await context.read<SmartParkingApi>().createEntry({
+        'plate_number': plate,
+        'vehicle_type': _vehicleType,
+      });
+
+      if (!mounted) return;
+
+      if (response['needs_registration'] == true) {
+        context.go(
+          '/entry/register',
+          extra: {
+            'plate': plate,
+            'vehicle_type': _vehicleType,
+          },
+        );
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Parking session started successfully.')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Entry failed: ${apiErrorMessage(e, fallback: 'Unable to start the session right now.')}',
+          ),
+        ),
       );
       if (isOfflineDioError(e)) {
         await context.read<AuthController>().queueIfOffline('entry', {
-          'plate_number': _plate.text.trim(),
+          'plate_number': plate,
           'vehicle_type': _vehicleType,
-          'owner_name': _owner.text.trim(),
-          'phone_number': _phone.text.trim(),
         });
       }
     } finally {
-      if (mounted) setState(() => _submitting = false);
+      if (mounted) setState(() => _busy = false);
     }
-  }
-
-  Future<void> _registerMissingVehicle() async {
-    setState(() => _submitting = true);
-    try {
-      await context.read<SmartParkingApi>().quickRegister({
-        'plate_number': _prefill?['plate_number'] ?? _plate.text.trim(),
-        'vehicle_type': _vehicleType,
-        'owner_name': _owner.text.trim(),
-        'phone_number': _phone.text.trim(),
-      });
-      setState(() => _quickRegisterVisible = false);
-      await _submitEntry();
-    } finally {
-      if (mounted) setState(() => _submitting = false);
-    }
-  }
-
-  Widget _buildPlateField() {
-    return TextField(
-      controller: _plate,
-      decoration: InputDecoration(
-        labelText: 'Number plate',
-        hintText: 'Enter or scan the plate',
-        suffixIcon: IconButton(
-          icon: const Icon(Icons.camera_alt_rounded),
-          onPressed: _scanPlate,
-          tooltip: 'Open camera scanner',
-        ),
-      ),
-      textCapitalization: TextCapitalization.characters,
-    );
-  }
-
-  Widget _buildVehicleTypeField() {
-    return DropdownButtonFormField<String>(
-      value: _vehicleType,
-      decoration: const InputDecoration(labelText: 'Vehicle type'),
-      items: const [
-        DropdownMenuItem(value: 'CAR', child: Text('Car')),
-        DropdownMenuItem(value: 'SUV', child: Text('SUV')),
-        DropdownMenuItem(value: 'VAN', child: Text('Van')),
-        DropdownMenuItem(value: 'TRUCK', child: Text('Truck')),
-        DropdownMenuItem(value: 'BIKE', child: Text('Motorbike')),
-        DropdownMenuItem(value: 'OTHER', child: Text('Other')),
-      ],
-      onChanged: (value) => setState(() => _vehicleType = value ?? 'CAR'),
-    );
-  }
-
-  Widget _buildOwnerField() {
-    return TextField(
-      controller: _owner,
-      decoration: const InputDecoration(
-        labelText: 'Owner name',
-        hintText: 'Who is this vehicle registered to?',
-      ),
-      textInputAction: TextInputAction.next,
-    );
-  }
-
-  Widget _buildPhoneField() {
-    return TextField(
-      controller: _phone,
-      decoration: const InputDecoration(
-        labelText: 'Phone number',
-        hintText: 'Optional contact number',
-      ),
-      keyboardType: TextInputType.phone,
-    );
   }
 
   @override
   Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        setState(() => _future = _load());
-        await _future;
-      },
-      child: FutureBuilder<_EntryPageData>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
+    final user = context.watch<AuthController>().user;
+    final now = DateTime.now();
+    final dateLabel = DateFormat('d MMM y').format(now);
+    final timeLabel = DateFormat('hh:mm a').format(now);
+    final recordedBy = user?.displayName ?? 'Joel Ndege';
 
-          if (snapshot.hasError) {
-            return SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(18),
-              child: SurfaceCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Unable to load vehicle data', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 8),
-                    Text(
-                      apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
-                      style: const TextStyle(color: Color(0xFF667085), height: 1.45),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: GradientActionButton(
-                        label: 'Try again',
-                        icon: Icons.refresh_rounded,
-                        onPressed: () => setState(() => _future = _load()),
-                      ),
-                    ),
-                  ],
-                ),
+    return Scaffold(
+      backgroundColor: ParkingColors.scaffold,
+      body: SingleChildScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.only(bottom: 122),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            ParkingScreenHeader(
+              title: 'Vehicle Entry',
+              subtitle: 'Record new vehicle entry',
+              user: user,
+              onLeadingTap: () => context.go('/'),
+              leadingIcon: Icons.arrow_back_rounded,
+              dark: true,
+              backgroundGradient: ParkingColors.entryHeaderGradient,
+              titleColor: Colors.white,
+              subtitleColor: Colors.white.withOpacity(0.80),
+              leadingBackground: Colors.white.withOpacity(0.14),
+              leadingIconColor: Colors.white,
+              padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+              titleSize: 30,
+              subtitleSize: 16,
+              bottomRadius: 34,
+            ),
+            Container(
+              decoration: const BoxDecoration(
+                color: ParkingColors.surface,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
               ),
-            );
-          }
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 1040),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        final dense = constraints.maxWidth >= 980;
+                        final stackSelectors = constraints.maxWidth < 720;
 
-          final data = snapshot.data!;
-          final displayVehicles = _expandedVehicles ? data.vehicles : data.vehicles.take(6).toList();
-          final activeVehicleCount = data.vehicles.where((vehicle) => data.activePlates.contains(vehicle.plateNumber)).length;
+                        final cameraCard = CameraPreviewCard(
+                          title: 'Capture License Plate',
+                          subtitle: 'Position the license plate within the frame',
+                          badgeLabel: 'ENTRY',
+                          actionLabel: 'Switch Camera',
+                          onAction: _openCamera,
+                          icon: Icons.photo_camera_rounded,
+                        );
 
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 26),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1320),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    SurfaceCard(
-                      radius: 30,
-                      padding: const EdgeInsets.all(18),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final wide = constraints.maxWidth >= 1000;
-                          final preview = CameraPreviewCard(
-                            title: 'Camera preview',
-                            subtitle: 'Capture the number plate from a clean split view and keep the workflow focused.',
-                            badgeLabel: 'ENTRY',
-                            actionLabel: 'Open camera',
-                            onAction: _scanPlate,
-                          );
-
-                          final form = SurfaceCard(
-                            radius: 28,
-                            padding: const EdgeInsets.all(18),
-                            color: const Color(0xFFF9FBFF),
-                            borderColor: const Color(0xFFE5ECF5),
-                            shadow: const [
-                              BoxShadow(color: Color(0x0D0B1630), blurRadius: 20, offset: Offset(0, 10)),
-                            ],
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                        final plateCard = SurfaceCard(
+                          radius: 28,
+                          padding: const EdgeInsets.all(18),
+                          color: Colors.white,
+                          borderColor: const Color(0xFFE8EDF7),
+                          shadow: const [
+                            BoxShadow(color: Color(0x100B1630), blurRadius: 22, offset: Offset(0, 12)),
+                          ],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'License Plate Number',
+                                style: TextStyle(
+                                  color: ParkingColors.ink,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 14),
+                              Container(
+                                height: 72,
+                                padding: const EdgeInsets.symmetric(horizontal: 14),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: const Color(0xFFDDE4F2)),
+                                ),
+                                child: Row(
                                   children: [
                                     Container(
-                                      width: 42,
-                                      height: 42,
+                                      width: 40,
+                                      height: 26,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFF0F4FF),
-                                        borderRadius: BorderRadius.circular(14),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFFD9E2F0)),
                                       ),
-                                      child: const Icon(Icons.edit_document, color: Color(0xFF4A35E8)),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                      child: Stack(
+                                        fit: StackFit.expand,
                                         children: [
-                                          Text(
-                                            'Vehicle details',
-                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
+                                          Column(
+                                            children: const [
+                                              Expanded(child: ColoredBox(color: Color(0xFF000000))),
+                                              Expanded(child: ColoredBox(color: Color(0xFFD71F2A))),
+                                              Expanded(child: ColoredBox(color: Color(0xFF006A44))),
+                                            ],
                                           ),
-                                          const SizedBox(height: 4),
-                                          const Text(
-                                            'Keep the fields clean and the entry session moving.',
-                                            style: TextStyle(color: Color(0xFF667085), height: 1.35),
+                                          Center(
+                                            child: Container(
+                                              width: 8,
+                                              height: 20,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ),
-                                  ],
-                                ),
-                                const SizedBox(height: 18),
-                                _buildPlateField(),
-                                const SizedBox(height: 14),
-                                _buildVehicleTypeField(),
-                                const SizedBox(height: 14),
-                                _buildOwnerField(),
-                                const SizedBox(height: 14),
-                                _buildPhoneField(),
-                                if (_scanSummary != null) ...[
-                                  const SizedBox(height: 14),
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: StatusBadge(label: _scanSummary!, color: const Color(0xFF4A35E8)),
-                                  ),
-                                ],
-                                const SizedBox(height: 18),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: GradientActionButton(
-                                    label: _submitting ? 'Starting entry' : 'Start entry',
-                                    icon: Icons.play_arrow_rounded,
-                                    isBusy: _submitting,
-                                    onPressed: _submitting ? null : _submitEntry,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-
-                          if (wide) {
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(flex: 5, child: preview),
-                                const SizedBox(width: 16),
-                                Expanded(flex: 5, child: form),
-                              ],
-                            );
-                          }
-
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              preview,
-                              const SizedBox(height: 16),
-                              form,
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    if (_quickRegisterVisible) ...[
-                      const SizedBox(height: 18),
-                      SurfaceCard(
-                        radius: 28,
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFFDEEEE),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: const Icon(Icons.person_add_alt_1_rounded, color: Color(0xFFE45858)),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      const Text(
-                                        'Vehicle not registered yet',
-                                        style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      Text(
-                                        'Register the plate once, then resume the entry flow.',
-                                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF667085)),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            SizedBox(
-                              width: double.infinity,
-                              child: GradientActionButton(
-                                label: 'Quick register vehicle',
-                                icon: Icons.verified_user_rounded,
-                                isBusy: _submitting,
-                                onPressed: _submitting ? null : _registerMissingVehicle,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    SurfaceCard(
-                      radius: 28,
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Vehicle list',
-                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: -0.3,
-                                          ),
+                                    const SizedBox(width: 8),
+                                    const Icon(
+                                      Icons.keyboard_arrow_down_rounded,
+                                      color: Color(0xFF8A93B4),
+                                      size: 24,
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${data.vehicles.length} registered vehicles • ${activeVehicleCount} currently parked',
-                                      style: const TextStyle(color: Color(0xFF667085), height: 1.35),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _plateController,
+                                        textCapitalization: TextCapitalization.characters,
+                                        style: const TextStyle(
+                                          color: ParkingColors.ink,
+                                          fontSize: 22,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.5,
+                                        ),
+                                        decoration: const InputDecoration(
+                                          border: InputBorder.none,
+                                          isDense: true,
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                        onSubmitted: (_) => _lookupVehicle(redirectToRegistration: true),
+                                      ),
+                                    ),
+                                    IconButton(
+                                      onPressed: _openCamera,
+                                      icon: const Icon(
+                                        Icons.qr_code_scanner_rounded,
+                                        color: ParkingColors.primary,
+                                        size: 28,
+                                      ),
+                                      tooltip: 'Scan plate',
                                     ),
                                   ],
                                 ),
-                              ),
-                              TextButton(
-                                onPressed: data.vehicles.length <= 6
-                                    ? null
-                                    : () => setState(() => _expandedVehicles = !_expandedVehicles),
-                                child: Text(_expandedVehicles ? 'Show less' : 'See more'),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 16),
-                          if (displayVehicles.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 28),
-                              child: Center(
-                                child: Text(
-                                  'No vehicles have been registered yet.',
-                                  style: TextStyle(color: Color(0xFF667085)),
+                        );
+
+                        final vehicleCard = SurfaceCard(
+                          radius: 26,
+                          padding: const EdgeInsets.all(18),
+                          color: const Color(0xFFE9EEFF),
+                          borderColor: Colors.transparent,
+                          shadow: const [
+                            BoxShadow(color: Color(0x0F0B1630), blurRadius: 18, offset: Offset(0, 10)),
+                          ],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFDDE5FF),
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    child: const Icon(Icons.directions_car_rounded, color: ParkingColors.primary, size: 28),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Vehicle Type',
+                                          style: TextStyle(
+                                            color: ParkingColors.ink,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Select type',
+                                          style: TextStyle(
+                                            color: Color(0xFF6C7592),
+                                            fontSize: 13.5,
+                                            height: 1.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _SelectionField(
+                                value: vehicleTypeLabel(_vehicleType),
+                                onTap: () async {
+                                  final result = await showModalBottomSheet<String>(
+                                    context: context,
+                                    backgroundColor: Colors.transparent,
+                                    isScrollControlled: true,
+                                    builder: (context) {
+                                      return _TypePicker(
+                                        currentValue: _vehicleType,
+                                      );
+                                    },
+                                  );
+                                  if (result != null && mounted) {
+                                    setState(() => _vehicleType = result);
+                                  }
+                                },
+                                trailing: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF7980A3), size: 30),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        final slotCard = SurfaceCard(
+                          radius: 26,
+                          padding: const EdgeInsets.all(18),
+                          color: const Color(0xFFF5EEFF),
+                          borderColor: Colors.transparent,
+                          shadow: const [
+                            BoxShadow(color: Color(0x0F0B1630), blurRadius: 18, offset: Offset(0, 10)),
+                          ],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 50,
+                                    height: 50,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFFE4D8FF),
+                                      borderRadius: BorderRadius.circular(18),
+                                    ),
+                                    child: const Center(
+                                      child: Text(
+                                        'P',
+                                        style: TextStyle(
+                                          color: Color(0xFF5F36F4),
+                                          fontSize: 24,
+                                          fontWeight: FontWeight.w900,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Assign Slot',
+                                          style: TextStyle(
+                                            color: ParkingColors.ink,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Auto assign slot',
+                                          style: TextStyle(
+                                            color: Color(0xFF6C7592),
+                                            fontSize: 13.5,
+                                            height: 1.2,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              _SelectionField(
+                                value: _assignedSlot,
+                                onTap: () {},
+                                textColor: const Color(0xFF5F36F4),
+                                trailing: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF5F36F4), size: 28),
+                              ),
+                            ],
+                          ),
+                        );
+
+                        final infoCard = SurfaceCard(
+                          radius: 28,
+                          padding: const EdgeInsets.all(18),
+                          color: const Color(0xFFF6F3FF),
+                          borderColor: Colors.transparent,
+                          shadow: const [
+                            BoxShadow(color: Color(0x0F0B1630), blurRadius: 18, offset: Offset(0, 10)),
+                          ],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Entry Information',
+                                style: TextStyle(
+                                  color: ParkingColors.ink,
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
                                 ),
                               ),
-                            )
-                          else
-                            Column(
-                              children: [
-                                for (final vehicle in displayVehicles) ...[
-                                  VehicleRowCard(
-                                    vehicleType: vehicle.displayVehicleType,
-                                    ownerName: vehicle.ownerDisplay,
-                                    phoneNumber: vehicle.phoneDisplay,
-                                    plateNumber: vehicle.plateNumber,
-                                    statusLabel: data.activePlates.contains(vehicle.plateNumber) ? 'Parked' : 'Registered',
-                                    statusColor: data.activePlates.contains(vehicle.plateNumber)
-                                        ? const Color(0xFF22A06B)
-                                        : const Color(0xFF4A35E8),
-                                    selected: _selectedPlate == vehicle.plateNumber,
-                                    onTap: () => _applyVehicle(vehicle),
-                                  ),
-                                  if (vehicle != displayVehicles.last) const SizedBox(height: 12),
+                              const SizedBox(height: 18),
+                              LayoutBuilder(
+                                builder: (context, constraints) {
+                                  final stacked = constraints.maxWidth < 720;
+                                  final cells = [
+                                    _InfoCell(
+                                      icon: Icons.calendar_month_rounded,
+                                      label: 'Entry Date',
+                                      value: dateLabel,
+                                    ),
+                                    _InfoCell(
+                                      icon: Icons.schedule_rounded,
+                                      label: 'Entry Time',
+                                      value: timeLabel,
+                                    ),
+                                    _InfoCell(
+                                      icon: Icons.person_outline_rounded,
+                                      label: 'Recorded By',
+                                      value: recordedBy,
+                                    ),
+                                  ];
+
+                                  if (stacked) {
+                                    return Column(
+                                      children: [
+                                        for (var i = 0; i < cells.length; i++) ...[
+                                          cells[i],
+                                          if (i != cells.length - 1) const SizedBox(height: 12),
+                                        ],
+                                      ],
+                                    );
+                                  }
+
+                                  return Row(
+                                    children: [
+                                      Expanded(child: cells[0]),
+                                      Container(width: 1, height: 54, color: const Color(0xFFD8DAE9)),
+                                      Expanded(child: cells[1]),
+                                      Container(width: 1, height: 54, color: const Color(0xFFD8DAE9)),
+                                      Expanded(child: cells[2]),
+                                    ],
+                                  );
+                                },
+                              ),
+                            ],
+                          ),
+                        );
+
+                        final startButton = SizedBox(
+                          width: double.infinity,
+                          child: GradientActionButton(
+                            label: _busy ? 'Starting Parking Session' : 'Start Parking Session',
+                            icon: Icons.open_in_new_rounded,
+                            isBusy: _busy,
+                            onPressed: _busy ? null : _startSession,
+                          ),
+                        );
+
+                        if (!dense) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              cameraCard,
+                              const SizedBox(height: 18),
+                              plateCard,
+                              const SizedBox(height: 18),
+                              if (stackSelectors)
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    vehicleCard,
+                                    const SizedBox(height: 18),
+                                    slotCard,
+                                  ],
+                                )
+                              else
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Expanded(child: vehicleCard),
+                                    const SizedBox(width: 18),
+                                    Expanded(child: slotCard),
+                                  ],
+                                ),
+                              const SizedBox(height: 18),
+                              infoCard,
+                              const SizedBox(height: 18),
+                              startButton,
+                            ],
+                          );
+                        }
+
+                        return Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Expanded(flex: 6, child: cameraCard),
+                            const SizedBox(width: 18),
+                            Expanded(
+                              flex: 4,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                                children: [
+                                  plateCard,
+                                  const SizedBox(height: 18),
+                                  if (stackSelectors)
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        vehicleCard,
+                                        const SizedBox(height: 18),
+                                        slotCard,
+                                      ],
+                                    )
+                                  else
+                                    Row(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Expanded(child: vehicleCard),
+                                        const SizedBox(width: 18),
+                                        Expanded(child: slotCard),
+                                      ],
+                                    ),
+                                  const SizedBox(height: 18),
+                                  infoCard,
+                                  const SizedBox(height: 18),
+                                  startButton,
                                 ],
-                              ],
+                              ),
                             ),
-                        ],
-                      ),
+                          ],
+                        );
+                      },
                     ),
-                  ],
+                  ),
                 ),
               ),
             ),
-          );
-        },
+          ],
+        ),
       ),
     );
   }
 }
 
-class _EntryPageData {
-  _EntryPageData({
-    required this.vehicles,
-    required this.activePlates,
+class _SelectionField extends StatelessWidget {
+  const _SelectionField({
+    required this.value,
+    required this.onTap,
+    this.trailing,
+    this.textColor = ParkingColors.ink,
   });
 
-  final List<VehicleRecord> vehicles;
-  final Set<String> activePlates;
+  final String value;
+  final VoidCallback onTap;
+  final Widget? trailing;
+  final Color textColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
+        onTap: onTap,
+        child: Container(
+          height: 62,
+          padding: const EdgeInsets.symmetric(horizontal: 16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: const Color(0xFFDDE4F2)),
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  value,
+                  style: TextStyle(
+                    color: textColor,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ),
+              if (trailing != null) trailing!,
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _InfoCell extends StatelessWidget {
+  const _InfoCell({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textAlign = MediaQuery.of(context).size.width < 720 ? TextAlign.left : TextAlign.left;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF5A628A), size: 34),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  textAlign: textAlign,
+                  style: const TextStyle(
+                    color: Color(0xFF586086),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  textAlign: textAlign,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: ParkingColors.ink,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _TypePicker extends StatelessWidget {
+  const _TypePicker({
+    required this.currentValue,
+  });
+
+  final String currentValue;
+
+  @override
+  Widget build(BuildContext context) {
+    final options = const [
+      ('CAR', 'Car', Icons.directions_car_rounded),
+      ('SUV', 'SUV', Icons.sports_motorsports_rounded),
+      ('VAN', 'Van', Icons.airport_shuttle_rounded),
+      ('TRUCK', 'Truck', Icons.local_shipping_rounded),
+      ('BIKE', 'Motorbike', Icons.two_wheeler_rounded),
+      ('OTHER', 'Other', Icons.more_horiz_rounded),
+    ];
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Container(
+        margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(28),
+          boxShadow: const [
+            BoxShadow(color: Color(0x260B1630), blurRadius: 26, offset: Offset(0, 14)),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'Choose Vehicle Type',
+              style: TextStyle(
+                color: ParkingColors.ink,
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 12),
+            for (final option in options) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: option.$1 == currentValue ? const Color(0xFFEAF0FF) : const Color(0xFFF3F5FB),
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: Icon(option.$3, color: ParkingColors.primary, size: 22),
+                ),
+                title: Text(
+                  option.$2,
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: ParkingColors.ink),
+                ),
+                trailing: option.$1 == currentValue
+                    ? const Icon(Icons.check_circle_rounded, color: ParkingColors.primary)
+                    : null,
+                onTap: () => Navigator.of(context).pop(option.$1),
+              ),
+              if (option != options.last) const Divider(height: 1),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }

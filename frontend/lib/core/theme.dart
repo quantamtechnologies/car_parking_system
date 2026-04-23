@@ -1,12 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+class ParkingColors {
+  static const scaffold = Color(0xFFF4F7FC);
+  static const surface = Colors.white;
+  static const surfaceMuted = Color(0xFFF7F8FF);
+  static const ink = Color(0xFF111A4D);
+  static const inkSoft = Color(0xFF69708F);
+  static const primary = Color(0xFF2A63F5);
+  static const primaryDeep = Color(0xFF6D3EF7);
+  static const accent = Color(0xFF3E86FF);
+  static const success = Color(0xFF17B26A);
+  static const warning = Color(0xFFF2994A);
+  static const danger = Color(0xFFF04444);
+
+  static const LinearGradient primaryGradient = LinearGradient(
+    colors: [Color(0xFF2A63F5), Color(0xFF6D3EF7)],
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+  );
+
+  static const LinearGradient entryHeaderGradient = LinearGradient(
+    colors: [Color(0xFF245CF5), Color(0xFF3362F4), Color(0xFF5F42F6)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient blueCardGradient = LinearGradient(
+    colors: [Color(0xFF245CF5), Color(0xFF3D7BFF)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient purpleCardGradient = LinearGradient(
+    colors: [Color(0xFF9B5BFF), Color(0xFF6A3EF4)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+
+  static const LinearGradient navyCardGradient = LinearGradient(
+    colors: [Color(0xFF0A1E63), Color(0xFF102D8A)],
+    begin: Alignment.topLeft,
+    end: Alignment.bottomRight,
+  );
+}
+
 ThemeData parkingTheme() {
-  const primary = Color(0xFF4A35E8);
-  const accent = Color(0xFF2EC7FF);
-  const deepInk = Color(0xFF0D1530);
-  const bg = Color(0xFFF3F6FB);
-  const surface = Color(0xFFF9FBFF);
+  const primary = ParkingColors.primary;
+  const accent = ParkingColors.primaryDeep;
+  const deepInk = ParkingColors.ink;
+  const bg = ParkingColors.scaffold;
+  const surface = ParkingColors.surfaceMuted;
 
   final baseTextTheme = GoogleFonts.manropeTextTheme();
 
@@ -16,7 +60,7 @@ ThemeData parkingTheme() {
       seedColor: primary,
       primary: primary,
       secondary: accent,
-      surface: Colors.white,
+      surface: ParkingColors.surface,
       surfaceContainerHighest: surface,
       onSurface: deepInk,
       brightness: Brightness.light,
@@ -40,14 +84,14 @@ ThemeData parkingTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: surface,
+      fillColor: ParkingColors.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: const Color(0xFFE5EBF4)),
+        borderSide: BorderSide(color: const Color(0xFFE3E8F5)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: const Color(0xFFE5EBF4)),
+        borderSide: BorderSide(color: const Color(0xFFE3E8F5)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),

@@ -8,6 +8,7 @@ import 'features/auth/login_screen.dart';
 import 'features/admin/admin_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/entry/entry_screen.dart';
+import 'features/entry/registration_screen.dart';
 import 'features/exit/exit_screen.dart';
 import 'features/home/app_shell.dart';
 import 'features/payment/payment_screen.dart';
@@ -34,8 +35,8 @@ GoRouter buildRouter(AuthController authController) {
       }
       return null;
     },
-    routes: [
-      GoRoute(
+        routes: [
+          GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
       ),
@@ -68,12 +69,44 @@ GoRouter buildRouter(AuthController authController) {
         ),
         routes: [
           GoRoute(
-              path: '/', builder: (context, state) => const DashboardScreen()),
+            path: '/entry/register',
+            builder: (context, state) {
+              final extra = Map<String, dynamic>.from(state.extra as Map? ?? const {});
+              final plate = extra['plate']?.toString() ?? state.uri.queryParameters['plate'] ?? '';
+              final vehicleType = extra['vehicle_type']?.toString() ?? state.uri.queryParameters['vehicle_type'] ?? 'CAR';
+              return VehicleRegistrationScreen(
+                plateNumber: plate,
+                initialVehicleType: vehicleType,
+              );
+            },
+          ),
+          GoRoute(
+            path: '/',
+            builder: (context, state) {
+              final extra = Map<String, dynamic>.from(state.extra as Map? ?? const {});
+              return DashboardScreen(
+                initialPlate: extra['plate']?.toString() ?? '',
+              );
+            },
+          ),
           GoRoute(
               path: '/dashboard',
-              builder: (context, state) => const DashboardScreen()),
+              builder: (context, state) {
+                final extra = Map<String, dynamic>.from(state.extra as Map? ?? const {});
+                return DashboardScreen(
+                  initialPlate: extra['plate']?.toString() ?? '',
+                );
+              }),
           GoRoute(
-              path: '/entry', builder: (context, state) => const EntryScreen()),
+            path: '/entry',
+            builder: (context, state) {
+              final extra = Map<String, dynamic>.from(state.extra as Map? ?? const {});
+              return EntryScreen(
+                initialPlate: extra['plate']?.toString() ?? '',
+                initialVehicleType: extra['vehicle_type']?.toString() ?? 'CAR',
+              );
+            },
+          ),
           GoRoute(
               path: '/exit', builder: (context, state) => const ExitScreen()),
           GoRoute(

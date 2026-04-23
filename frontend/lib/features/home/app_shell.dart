@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import 'package:provider/provider.dart';
 
-import '../../core/controllers/auth_controller.dart';
-import '../../core/models.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
 class AppShell extends StatelessWidget {
@@ -18,105 +16,45 @@ class AppShell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final auth = context.watch<AuthController>();
-    final items = <_NavItem>[
-      const _NavItem('/', Icons.dashboard_rounded, 'Dashboard'),
-      const _NavItem('/entry', Icons.directions_car_rounded, 'Entry'),
-      const _NavItem('/exit', Icons.exit_to_app_rounded, 'Exit'),
-      const _NavItem('/payment', Icons.payments_rounded, 'Payment'),
-      const _NavItem('/reports', Icons.bar_chart_rounded, 'Reports'),
+    final items = <ParkingBottomNavItem>[
+      const ParkingBottomNavItem(path: '/', icon: Icons.dashboard_rounded, label: 'Dashboard'),
+      const ParkingBottomNavItem(path: '/entry', icon: Icons.directions_car_rounded, label: 'Entry'),
+      const ParkingBottomNavItem(path: '/exit', icon: Icons.exit_to_app_rounded, label: 'Exit'),
+      const ParkingBottomNavItem(path: '/payment', icon: Icons.payments_rounded, label: 'Payment'),
+      const ParkingBottomNavItem(path: '/reports', icon: Icons.bar_chart_rounded, label: 'Reports'),
     ];
-    if (auth.isAdmin) {
-      items.add(const _NavItem(
-          '/admin', Icons.admin_panel_settings_rounded, 'Admin'));
-    }
     final normalizedPath = _normalizePath(currentPath);
-    final selectedIndex =
-        items.indexWhere((item) => item.path == normalizedPath);
-    final wide = MediaQuery.of(context).size.width >= 1040;
+    final selectedIndex = _selectedIndexForPath(normalizedPath);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF3F6FB),
-      body: Stack(
-        children: [
-          const _Backdrop(),
-          SafeArea(
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final content = Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                    children: [
-                      _ShellHeader(
-                        title: _pageTitle(normalizedPath),
-                        subtitle: _pageSubtitle(normalizedPath),
-                        user: auth.user,
-                        onLogout: () => context.read<AuthController>().logout(),
-                        compact: !wide,
-                      ),
-                      Expanded(
-                        child: Padding(
-                          padding: EdgeInsets.fromLTRB(
-                              wide ? 0 : 12, 0, wide ? 18 : 12, wide ? 18 : 12),
-                          child: Container(
-                            clipBehavior: Clip.antiAlias,
-                            decoration: BoxDecoration(
-                              color: Colors.white.withOpacity(0.72),
-                              borderRadius: BorderRadius.circular(30),
-                              border: Border.all(
-                                  color: Colors.white.withOpacity(0.72)),
-                              boxShadow: const [
-                                BoxShadow(
-                                    color: Color(0x160B1630),
-                                    blurRadius: 30,
-                                    offset: Offset(0, 18)),
-                              ],
-                            ),
-                            child: child,
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                );
-
-                if (wide) {
-                  return Row(
-                    children: [
-                      _Sidebar(
-                        items: items,
-                        selectedIndex: selectedIndex,
-                        user: auth.user,
-                        onNavigate: (path) => context.go(path),
-                        onLogout: () => context.read<AuthController>().logout(),
-                      ),
-                      content,
-                    ],
-                  );
-                }
-
-                return Column(
-                  children: [
-                    content,
-                  ],
-                );
-              },
-            ),
-          ),
-        ],
+      backgroundColor: ParkingColors.scaffold,
+      body: child,
+      bottomNavigationBar: ParkingBottomNav(
+        items: items,
+        selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
+        onTap: (index) {
+          context.go(items[index].path);
+        },
       ),
-      bottomNavigationBar: wide
-          ? null
-          : NavigationBar(
-              selectedIndex: selectedIndex < 0 ? 0 : selectedIndex,
-              onDestinationSelected: (index) => context.go(items[index].path),
-              destinations: [
-                for (final item in items)
-                  NavigationDestination(
-                      icon: Icon(item.icon), label: item.label),
-              ],
-            ),
     );
+  }
+}
+
+int _selectedIndexForPath(String path) {
+  switch (path) {
+    case '/entry':
+    case '/entry/register':
+      return 1;
+    case '/exit':
+      return 2;
+    case '/payment':
+      return 3;
+    case '/reports':
+      return 4;
+    case '/':
+    case '/dashboard':
+    default:
+      return 0;
   }
 }
 
@@ -177,7 +115,7 @@ class _Sidebar extends StatelessWidget {
     required this.onLogout,
   });
 
-  final List<_NavItem> items;
+  final List<ParkingBottomNavItem> items;
   final int selectedIndex;
   final UserProfile? user;
   final ValueChanged<String> onNavigate;
@@ -431,14 +369,6 @@ class _ShellHeader extends StatelessWidget {
       ),
     );
   }
-}
-
-class _NavItem {
-  const _NavItem(this.path, this.icon, this.label);
-
-  final String path;
-  final IconData icon;
-  final String label;
 }
 
 String _normalizePath(String path) {

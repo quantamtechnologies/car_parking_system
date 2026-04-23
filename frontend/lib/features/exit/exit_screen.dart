@@ -7,6 +7,7 @@ import '../../core/controllers/auth_controller.dart';
 import '../../core/models.dart';
 import '../../core/services/api_client.dart';
 import '../../core/services/api_errors.dart';
+import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
 class ExitScreen extends StatefulWidget {
@@ -56,7 +57,10 @@ class _ExitScreenState extends State<ExitScreen> {
         .cast<VehicleRecord>()
         .where((vehicle) => vehicle.isActive && activePlates.contains(vehicle.plateNumber))
         .toList()
-      ..sort((a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)).compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)));
+      ..sort(
+        (a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+            .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)),
+      );
 
     return _ExitPageData(
       vehicles: vehicles,
@@ -65,14 +69,20 @@ class _ExitScreenState extends State<ExitScreen> {
   }
 
   Future<void> _scanPlate() async {
-    final result = await context.push<Map<String, dynamic>?>('/camera-exit', extra: {'source': 'EXIT', 'plate': _plate.text});
+    final result = await context.push<Map<String, dynamic>?>(
+      '/camera-exit',
+      extra: {'source': 'EXIT', 'plate': _plate.text},
+    );
     if (result == null) return;
+
     final plate = result['plate']?.toString() ?? '';
     final scan = result['scan'] as OcrResult?;
     setState(() {
       _plate.text = plate;
       _exitScanId = result['scan_id'] as int?;
-      _scanSummary = scan == null ? null : '${scan.detectedPlate.isEmpty ? 'Manual' : scan.detectedPlate} (${scan.confidence.toStringAsFixed(0)}%)';
+      _scanSummary = scan == null
+          ? null
+          : '${scan.detectedPlate.isEmpty ? 'Manual' : scan.detectedPlate} (${scan.confidence.toStringAsFixed(0)}%)';
       _selectedPlate = plate;
     });
   }
@@ -80,6 +90,7 @@ class _ExitScreenState extends State<ExitScreen> {
   Future<void> _prepareExit([String? plate]) async {
     final targetPlate = (plate ?? _plate.text).trim();
     if (targetPlate.isEmpty) return;
+
     setState(() => _loading = true);
     try {
       final response = await context.read<SmartParkingApi>().prepareExit({
@@ -94,7 +105,11 @@ class _ExitScreenState extends State<ExitScreen> {
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Exit lookup failed: ${apiErrorMessage(e, fallback: 'Unable to prepare the exit right now.')}')),
+        SnackBar(
+          content: Text(
+            'Exit lookup failed: ${apiErrorMessage(e, fallback: 'Unable to prepare the exit right now.')}',
+          ),
+        ),
       );
       if (isOfflineDioError(e)) {
         await context.read<AuthController>().queueIfOffline('exit', {'plate_number': targetPlate});
@@ -120,81 +135,125 @@ class _ExitScreenState extends State<ExitScreen> {
 
   double _asDouble(dynamic value) => value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
 
-  @override
-  Widget build(BuildContext context) {
-    return RefreshIndicator(
-      onRefresh: () async {
-        setState(() => _future = _load());
-        await _future;
-      },
-      child: FutureBuilder<_ExitPageData>(
-        future: _future,
-        builder: (context, snapshot) {
-          if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
-          }
+  Widget _buildHeader(UserProfile? user) {
+    return ParkingScreenHeader(
+      title: 'Vehicle Exit',
+      subtitle: 'Prepare parked vehicles for departure',
+      user: user,
+      onLeadingTap: () => context.go('/'),
+      leadingIcon: Icons.arrow_back_rounded,
+      dark: true,
+      backgroundGradient: ParkingColors.entryHeaderGradient,
+      titleColor: Colors.white,
+      subtitleColor: Colors.white.withOpacity(0.80),
+      leadingBackground: Colors.white.withOpacity(0.14),
+      leadingIconColor: Colors.white,
+      padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
+      titleSize: 30,
+      subtitleSize: 16,
+      bottomRadius: 34,
+    );
+  }
 
-          if (snapshot.hasError) {
-            return SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.all(18),
-              child: SurfaceCard(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text('Unable to load exit data', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                    const SizedBox(height: 8),
-                    Text(
-                      apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
-                      style: const TextStyle(color: Color(0xFF667085), height: 1.45),
+  Widget _buildLoading(UserProfile? user) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 122),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(user),
+          const SizedBox(height: 160),
+          const Center(child: CircularProgressIndicator()),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildError(UserProfile? user, Object? error) {
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 122),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(user),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+            child: SurfaceCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Unable to load exit data', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
+                  const SizedBox(height: 8),
+                  Text(
+                    apiErrorMessage(error, fallback: 'Please try again in a moment.'),
+                    style: const TextStyle(color: Color(0xFF667085), height: 1.45),
+                  ),
+                  const SizedBox(height: 16),
+                  SizedBox(
+                    width: double.infinity,
+                    child: GradientActionButton(
+                      label: 'Try again',
+                      icon: Icons.refresh_rounded,
+                      onPressed: () => setState(() => _future = _load()),
                     ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      width: double.infinity,
-                      child: GradientActionButton(
-                        label: 'Try again',
-                        icon: Icons.refresh_rounded,
-                        onPressed: () => setState(() => _future = _load()),
-                      ),
-                    ),
-                  ],
-                ),
+                  ),
+                ],
               ),
-            );
-          }
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-          final data = snapshot.data!;
-          final displayVehicles = _expandedVehicles ? data.vehicles : data.vehicles.take(6).toList();
-          final currentSession = _session;
-          final breakdown = _breakdown;
-          final activeVehicleCount = data.activePlates.length;
+  Widget _buildSuccess(UserProfile? user, _ExitPageData data) {
+    final displayVehicles = _expandedVehicles ? data.vehicles : data.vehicles.take(6).toList();
+    final currentSession = _session;
+    final breakdown = _breakdown;
+    final activeVehicleCount = data.activePlates.length;
 
-          final receipt = currentSession == null || breakdown == null
-              ? null
-              : ReceiptCard(
-                  entryTime: _formatDateTime(currentSession['entry_time']?.toString(), fallback: 'Unknown'),
-                  exitTime: DateFormat('HH:mm').format(DateTime.now()),
-                  durationLabel: _formatDuration((breakdown['duration_minutes'] as num?)?.toInt() ?? 0),
-                  baseFee: _asDouble(breakdown['base_fee']),
-                  overdueFee: _asDouble(breakdown['hourly_charge']) + _asDouble(breakdown['extra_charges']) + _asDouble(breakdown['penalty_amount']),
-                  totalDue: _asDouble(breakdown['total_fee']),
-                  overdue: _asDouble(breakdown['hourly_charge']) + _asDouble(breakdown['extra_charges']) + _asDouble(breakdown['penalty_amount']) > 0,
-                  note: _asDouble(breakdown['hourly_charge']) + _asDouble(breakdown['extra_charges']) + _asDouble(breakdown['penalty_amount']) > 0
-                      ? 'Overdue charges were added automatically because the stay exceeded the grace period.'
-                      : 'No overdue fee was added for this exit.',
-                );
+    final receipt = currentSession == null || breakdown == null
+        ? null
+        : ReceiptCard(
+            entryTime: _formatDateTime(currentSession['entry_time']?.toString(), fallback: 'Unknown'),
+            exitTime: DateFormat('HH:mm').format(DateTime.now()),
+            durationLabel: _formatDuration((breakdown['duration_minutes'] as num?)?.toInt() ?? 0),
+            baseFee: _asDouble(breakdown['base_fee']),
+            overdueFee: _asDouble(breakdown['hourly_charge']) +
+                _asDouble(breakdown['extra_charges']) +
+                _asDouble(breakdown['penalty_amount']),
+            totalDue: _asDouble(breakdown['total_fee']),
+            overdue: _asDouble(breakdown['hourly_charge']) +
+                    _asDouble(breakdown['extra_charges']) +
+                    _asDouble(breakdown['penalty_amount']) >
+                0,
+            note: _asDouble(breakdown['hourly_charge']) +
+                        _asDouble(breakdown['extra_charges']) +
+                        _asDouble(breakdown['penalty_amount']) >
+                    0
+                ? 'Overdue charges were added automatically because the stay exceeded the grace period.'
+                : 'No overdue fee was added for this exit.',
+          );
 
-          final sessionTotal = _asDouble(currentSession?['total_fee']);
-          final amountPaid = _asDouble(currentSession?['amount_paid']);
-          final paymentStatus = currentSession == null
-              ? 'Pending'
-              : amountPaid >= sessionTotal && sessionTotal > 0
-                  ? 'Paid'
-                  : 'Pending';
+    final sessionTotal = _asDouble(currentSession?['total_fee']);
+    final amountPaid = _asDouble(currentSession?['amount_paid']);
+    final paymentStatus = currentSession == null
+        ? 'Pending'
+        : amountPaid >= sessionTotal && sessionTotal > 0
+            ? 'Paid'
+            : 'Pending';
 
-          return SingleChildScrollView(
-            physics: const AlwaysScrollableScrollPhysics(),
-            padding: const EdgeInsets.fromLTRB(18, 18, 18, 26),
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(bottom: 122),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          _buildHeader(user),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1320),
@@ -419,8 +478,35 @@ class _ExitScreenState extends State<ExitScreen> {
                 ),
               ),
             ),
-          );
+          ),
+        ),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = context.watch<AuthController>().user;
+
+    return Scaffold(
+      backgroundColor: ParkingColors.scaffold,
+      body: RefreshIndicator(
+        onRefresh: () async {
+          setState(() => _future = _load());
+          await _future;
         },
+        child: FutureBuilder<_ExitPageData>(
+          future: _future,
+          builder: (context, snapshot) {
+            if (snapshot.connectionState != ConnectionState.done) {
+              return _buildLoading(user);
+            }
+            if (snapshot.hasError) {
+              return _buildError(user, snapshot.error);
+            }
+            return _buildSuccess(user, snapshot.data!);
+          },
+        ),
       ),
     );
   }

@@ -1,8 +1,9 @@
-import 'dart:math' as math;
+﻿import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
 import 'models.dart';
+import 'theme.dart';
 
 class SurfaceCard extends StatelessWidget {
   const SurfaceCard({
@@ -12,9 +13,9 @@ class SurfaceCard extends StatelessWidget {
     this.radius = 28,
     this.color = Colors.white,
     this.gradient,
-    this.borderColor = const Color(0xFFE5ECF5),
+    this.borderColor = Colors.transparent,
     this.shadow = const [
-      BoxShadow(color: Color(0x120B1630), blurRadius: 24, offset: Offset(0, 14)),
+      BoxShadow(color: Color(0x140B1630), blurRadius: 28, offset: Offset(0, 14)),
     ],
     this.onTap,
   });
@@ -80,10 +81,10 @@ class GradientActionButton extends StatelessWidget {
       opacity: enabled ? 1 : 0.72,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: const LinearGradient(colors: [Color(0xFF4A35E8), Color(0xFF2EC7FF)]),
+          gradient: ParkingColors.primaryGradient,
           borderRadius: BorderRadius.circular(18),
           boxShadow: const [
-            BoxShadow(color: Color(0x224A35E8), blurRadius: 20, offset: Offset(0, 10)),
+            BoxShadow(color: Color(0x264A35E8), blurRadius: 20, offset: Offset(0, 10)),
           ],
         ),
         child: ElevatedButton(
@@ -129,6 +130,7 @@ class MetricCard extends StatelessWidget {
     this.subtitle,
     this.icon,
     this.gradient,
+    this.footer,
   });
 
   final String title;
@@ -136,73 +138,80 @@ class MetricCard extends StatelessWidget {
   final String? subtitle;
   final IconData? icon;
   final Gradient? gradient;
+  final Widget? footer;
 
   @override
   Widget build(BuildContext context) {
-    final foreground = gradient == null ? const Color(0xFF0D1530) : Colors.white;
+    final foreground = gradient == null ? ParkingColors.ink : Colors.white;
     final muted = gradient == null ? const Color(0xFF667085) : Colors.white.withOpacity(0.84);
 
     return SurfaceCard(
       gradient: gradient,
-      borderColor: gradient == null ? const Color(0xFFE5ECF5) : Colors.white.withOpacity(0.08),
+      borderColor: gradient == null ? const Color(0xFFE8EDF7) : Colors.white.withOpacity(0.08),
       shadow: gradient == null
           ? const [BoxShadow(color: Color(0x0F0B1630), blurRadius: 24, offset: Offset(0, 12))]
           : const [BoxShadow(color: Color(0x260B1630), blurRadius: 26, offset: Offset(0, 16))],
       padding: const EdgeInsets.all(16),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 136),
+        constraints: const BoxConstraints(minHeight: 144),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
           children: [
             Row(
               children: [
                 if (icon != null)
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: 44,
+                    height: 44,
                     decoration: BoxDecoration(
-                      color: gradient == null ? const Color(0xFFF0F4FF) : Colors.white.withOpacity(0.16),
+                      color: gradient == null ? const Color(0xFFEAF0FF) : Colors.white.withOpacity(0.16),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(icon, color: gradient == null ? const Color(0xFF4A35E8) : Colors.white, size: 22),
+                    child: Icon(icon, color: gradient == null ? ParkingColors.primary : Colors.white, size: 22),
                   ),
                 const Spacer(),
-                Container(
-                  width: 10,
-                  height: 10,
-                  decoration: BoxDecoration(
-                    color: gradient == null ? const Color(0xFF4A35E8) : Colors.white.withOpacity(0.9),
-                    shape: BoxShape.circle,
+                if (gradient != null)
+                  Icon(
+                    Icons.more_vert_rounded,
+                    color: Colors.white.withOpacity(0.9),
+                    size: 20,
+                  )
+                else
+                  Icon(
+                    Icons.more_vert_rounded,
+                    color: const Color(0xFFB7BDD1),
+                    size: 20,
                   ),
-                ),
               ],
             ),
             const SizedBox(height: 18),
             Text(
-              value,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.6,
-                color: foreground,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
               title,
               style: TextStyle(
-                fontSize: 14,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w700,
                 color: foreground,
               ),
             ),
-            if (subtitle != null) ...[
-              const SizedBox(height: 4),
+            const SizedBox(height: 8),
+            Text(
+              value,
+              style: TextStyle(
+                fontSize: gradient == null ? 28 : 30,
+                fontWeight: FontWeight.w900,
+                letterSpacing: -0.7,
+                color: foreground,
+              ),
+            ),
+            if (footer != null) ...[
+              const SizedBox(height: 8),
+              footer!,
+            ] else if (subtitle != null) ...[
+              const SizedBox(height: 6),
               Text(
                 subtitle!,
                 style: TextStyle(
-                  fontSize: 12,
+                  fontSize: 12.5,
                   height: 1.35,
                   color: muted,
                 ),
@@ -329,8 +338,8 @@ class _QuickActionCardState extends State<QuickActionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final background = _hovered ? Colors.white : const Color(0xFFF8FAFF);
-    final borderColor = _hovered ? const Color(0xFFB9C7FF) : const Color(0xFFE5ECF5);
+    final background = _hovered ? Colors.white : Colors.white;
+    final borderColor = _hovered ? const Color(0xFFC9D6FF) : const Color(0xFFE8EDF7);
     final shadow = _hovered
         ? [
             const BoxShadow(color: Color(0x1A4A35E8), blurRadius: 20, offset: Offset(0, 10)),
@@ -348,45 +357,44 @@ class _QuickActionCardState extends State<QuickActionCard> {
         transform: Matrix4.translationValues(0, _hovered ? -2 : 0, 0),
         decoration: BoxDecoration(
           color: background,
-          borderRadius: BorderRadius.circular(18),
+          borderRadius: BorderRadius.circular(22),
           border: Border.all(color: borderColor),
           boxShadow: shadow,
         ),
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(18),
+            borderRadius: BorderRadius.circular(22),
             onTap: widget.onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-              child: Row(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 38,
-                    height: 38,
+                    width: 54,
+                    height: 54,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF0F4FF),
-                      borderRadius: BorderRadius.circular(14),
+                      color: const Color(0xFFEAF0FF),
+                      borderRadius: BorderRadius.circular(18),
                     ),
-                    child: Icon(widget.icon, color: const Color(0xFF4A35E8), size: 20),
+                    child: Icon(widget.icon, color: ParkingColors.primary, size: 28),
                   ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        widget.title,
-                        style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
-                      ),
-                      const SizedBox(height: 3),
-                      Text(
-                        widget.subtitle,
-                        style: const TextStyle(fontSize: 11.5, color: Color(0xFF667085)),
-                      ),
-                    ],
+                  const SizedBox(height: 12),
+                  Text(
+                    widget.title,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
                   ),
+                  if (widget.subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      widget.subtitle,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF667085), height: 1.25),
+                    ),
+                  ],
                 ],
               ),
             ),
@@ -421,127 +429,386 @@ class CameraPreviewCard extends StatelessWidget {
       radius: 30,
       padding: const EdgeInsets.all(18),
       gradient: const LinearGradient(
-        colors: [Color(0xFF11162C), Color(0xFF232B58), Color(0xFF4A35E8)],
+        colors: [Color(0xFF0F1C5A), Color(0xFF16307B), Color(0xFF223FA2)],
         begin: Alignment.topLeft,
         end: Alignment.bottomRight,
       ),
-      borderColor: Colors.white.withOpacity(0.08),
+      borderColor: Colors.white.withOpacity(0.06),
       shadow: const [
-        BoxShadow(color: Color(0x2B0B1630), blurRadius: 28, offset: Offset(0, 18)),
+        BoxShadow(color: Color(0x300B1630), blurRadius: 30, offset: Offset(0, 18)),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              StatusBadge(label: badgeLabel, color: Colors.white),
-              const Spacer(),
-              const Icon(Icons.sensors_rounded, color: Colors.white, size: 18),
+              Container(
+                width: 88,
+                height: 88,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF3B7BFF), Color(0xFF5F42F6)],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                  borderRadius: BorderRadius.circular(26),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x264A35E8), blurRadius: 22, offset: Offset(0, 10)),
+                  ],
+                ),
+                child: const Icon(Icons.photo_camera_rounded, color: Colors.white, size: 42),
+              ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 23,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.4,
+                      ),
+                    ),
+                    const SizedBox(height: 5),
+                    Text(
+                      subtitle,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.78),
+                        fontSize: 13.5,
+                        height: 1.35,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              SizedBox(
+                height: 58,
+                child: DecoratedBox(
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.14),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: TextButton.icon(
+                    onPressed: onAction,
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                    ),
+                    icon: const Icon(Icons.swap_horiz_rounded, size: 24),
+                    label: Text(
+                      actionLabel,
+                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                    ),
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 18),
-          Text(
-            title,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.w800,
-              letterSpacing: -0.3,
-            ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            subtitle,
-            style: TextStyle(
-              color: Colors.white.withOpacity(0.82),
-              fontSize: 13,
-              height: 1.45,
-            ),
-          ),
-          const SizedBox(height: 18),
+          const SizedBox(height: 14),
           AspectRatio(
-            aspectRatio: 1.32,
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.white.withOpacity(0.10)),
-              ),
+            aspectRatio: 1.55,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(24),
               child: Stack(
+                fit: StackFit.expand,
                 children: [
-                  Positioned(
-                    left: 18,
-                    top: 18,
-                    child: Container(
-                      width: 14,
-                      height: 14,
-                      decoration: const BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Color(0xFF2EC7FF),
+                  Container(
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF4D5E86), Color(0xFF24315A), Color(0xFF111C3D)],
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
                       ),
                     ),
                   ),
                   Positioned(
-                    right: 18,
-                    top: 18,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
                     child: Container(
-                      width: 14,
-                      height: 14,
+                      height: 64,
+                      color: const Color(0xFF18224B).withOpacity(0.62),
+                    ),
+                  ),
+                  Positioned(
+                    left: -12,
+                    top: 30,
+                    bottom: 18,
+                    child: Container(
+                      width: 84,
                       decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.2),
+                        color: Colors.black.withOpacity(0.10),
                       ),
                     ),
                   ),
-                  Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          width: 102,
-                          height: 102,
-                          decoration: BoxDecoration(
-                            color: Colors.white.withOpacity(0.08),
-                            borderRadius: BorderRadius.circular(30),
-                            border: Border.all(color: Colors.white.withOpacity(0.10)),
-                          ),
-                          child: Icon(icon, color: Colors.white, size: 48),
+                  Positioned(
+                    right: -18,
+                    top: 22,
+                    bottom: 22,
+                    child: Container(
+                      width: 108,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withOpacity(0.14),
+                      ),
+                    ),
+                  ),
+                  Align(
+                    alignment: Alignment.center,
+                    child: Container(
+                      width: 560,
+                      height: 220,
+                      margin: const EdgeInsets.symmetric(horizontal: 24),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF1E52A2), Color(0xFF0F2B68), Color(0xFF0A1A3C)],
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
                         ),
-                        const SizedBox(height: 16),
-                        Text(
-                          'Camera preview ready',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.92),
-                            fontWeight: FontWeight.w800,
+                        borderRadius: BorderRadius.circular(42),
+                        boxShadow: const [
+                          BoxShadow(color: Color(0x3A000000), blurRadius: 20, offset: Offset(0, 10)),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          Positioned(
+                            left: 44,
+                            right: 44,
+                            top: 16,
+                            child: Container(
+                              height: 70,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(30),
+                                gradient: const LinearGradient(
+                                  colors: [Color(0xFF214F9F), Color(0xFF132E65)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                              ),
+                            ),
                           ),
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          'Open the scanner, capture the plate, and continue.',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.74),
-                            fontSize: 12.5,
-                            height: 1.4,
+                          Positioned(
+                            left: 54,
+                            right: 54,
+                            top: 34,
+                            child: Container(
+                              height: 40,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF0E1B39),
+                                borderRadius: BorderRadius.circular(20),
+                                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                              ),
+                              child: Row(
+                                children: [
+                                  const SizedBox(width: 20),
+                                  Expanded(
+                                    child: Container(
+                                      height: 26,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0B1733),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 18),
+                                  Expanded(
+                                    child: Container(
+                                      height: 26,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF0B1733),
+                                        borderRadius: BorderRadius.circular(12),
+                                      ),
+                                    ),
+                                  ),
+                                  const SizedBox(width: 20),
+                                ],
+                              ),
+                            ),
                           ),
-                        ),
-                      ],
+                          Positioned(
+                            left: 84,
+                            right: 84,
+                            top: 80,
+                            child: Container(
+                              height: 62,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF21335A),
+                                borderRadius: BorderRadius.circular(30),
+                                border: Border.all(color: Colors.white.withOpacity(0.12)),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 118,
+                            right: 118,
+                            bottom: 24,
+                            child: Container(
+                              height: 54,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF6F3E7),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFF9E9A8C), width: 3),
+                                boxShadow: const [
+                                  BoxShadow(color: Color(0x26000000), blurRadius: 12, offset: Offset(0, 6)),
+                                ],
+                              ),
+                              child: const Center(
+                                child: Text(
+                                  'KCD 123A',
+                                  style: TextStyle(
+                                    color: Color(0xFF1A1A1A),
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 30,
+                                    letterSpacing: 1.2,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          Positioned(
+                            left: 88,
+                            right: 88,
+                            bottom: 22,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                _CameraCorner(
+                                  alignment: Alignment.topLeft,
+                                ),
+                                _CameraCorner(
+                                  alignment: Alignment.topRight,
+                                ),
+                              ],
+                            ),
+                          ),
+                          Positioned(
+                            left: 0,
+                            right: 0,
+                            top: 140,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 182,
+                                  height: 4,
+                                  decoration: BoxDecoration(
+                                    color: Colors.white.withOpacity(0.16),
+                                    borderRadius: BorderRadius.circular(999),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
           ),
-          const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: GradientActionButton(
-              label: actionLabel,
-              icon: icon,
-              onPressed: onAction,
-            ),
+          const SizedBox(height: 14),
+          Row(
+            children: [
+              _CameraControlButton(
+                icon: Icons.flash_on_rounded,
+                filled: false,
+                onTap: onAction,
+              ),
+              const Spacer(),
+              Container(
+                width: 92,
+                height: 92,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: ParkingColors.primaryGradient,
+                  border: Border.all(color: Colors.white, width: 6),
+                  boxShadow: const [
+                    BoxShadow(color: Color(0x384A35E8), blurRadius: 18, offset: Offset(0, 10)),
+                  ],
+                ),
+                child: const Center(
+                  child: Icon(Icons.photo_camera_rounded, color: Colors.white, size: 38),
+                ),
+              ),
+              const Spacer(),
+              _CameraControlButton(
+                icon: Icons.photo_library_rounded,
+                filled: false,
+                onTap: onAction,
+              ),
+            ],
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _CameraCorner extends StatelessWidget {
+  const _CameraCorner({
+    required this.alignment,
+  });
+
+  final Alignment alignment;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLeft = alignment == Alignment.topLeft;
+    return Container(
+      width: 28,
+      height: 28,
+      decoration: BoxDecoration(
+        border: Border(
+          left: BorderSide(color: Colors.white.withOpacity(0.95), width: isLeft ? 5 : 0),
+          top: BorderSide(color: Colors.white.withOpacity(0.95), width: 5),
+          right: BorderSide(color: Colors.white.withOpacity(0.95), width: isLeft ? 0 : 5),
+          bottom: BorderSide(color: Colors.white.withOpacity(0.95), width: 5),
+        ),
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(isLeft ? 12 : 0),
+          topRight: Radius.circular(isLeft ? 0 : 12),
+          bottomLeft: Radius.circular(isLeft ? 12 : 0),
+          bottomRight: Radius.circular(isLeft ? 0 : 12),
+        ),
+      ),
+    );
+  }
+}
+
+class _CameraControlButton extends StatelessWidget {
+  const _CameraControlButton({
+    required this.icon,
+    required this.onTap,
+    this.filled = true,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool filled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        customBorder: const CircleBorder(),
+        onTap: onTap,
+        child: Container(
+          width: 52,
+          height: 52,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: filled ? Colors.white.withOpacity(0.18) : Colors.white.withOpacity(0.14),
+          ),
+          child: Icon(icon, color: Colors.white, size: 28),
+        ),
       ),
     );
   }
@@ -959,70 +1226,186 @@ class MiniBarChart extends StatelessWidget {
     }
 
     final maxValue = points.fold<double>(0, (max, point) => math.max(max, point.value));
-    final max = maxValue <= 0 ? 1.0 : maxValue;
+    final max = _niceChartMax(maxValue);
+    final axisValues = <double>[
+      max,
+      max * 0.8,
+      max * 0.6,
+      max * 0.4,
+      max * 0.2,
+      0,
+    ];
 
     return LayoutBuilder(
-      builder: (context, constraints) {
+      builder: (context, _) {
         return SizedBox(
-          height: 220,
+          height: 228,
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              for (final point in points)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 5),
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.end,
-                      children: [
+              SizedBox(
+                width: 42,
+                child: Padding(
+                  padding: const EdgeInsets.only(top: 2, bottom: 28),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      for (final value in axisValues)
                         Text(
-                          point.subLabel ?? '',
+                          _compactAxisLabel(value),
                           style: const TextStyle(
-                            color: Color(0xFF667085),
+                            color: Color(0xFF7E86A3),
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
-                        const SizedBox(height: 8),
-                        Expanded(
-                          child: Align(
-                            alignment: Alignment.bottomCenter,
-                            child: AnimatedContainer(
-                              duration: const Duration(milliseconds: 260),
-                              curve: Curves.easeOutCubic,
-                              width: double.infinity,
-                              height: 150 * (point.value / max),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  colors: [barColor, accentColor],
-                                  begin: Alignment.bottomCenter,
-                                  end: Alignment.topCenter,
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Stack(
+                  children: [
+                    Positioned.fill(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 28),
+                        child: Column(
+                          children: List.generate(
+                            5,
+                            (index) => Expanded(
+                              child: Align(
+                                alignment: Alignment.topCenter,
+                                child: Container(
+                                  height: 1,
+                                  color: const Color(0xFFE9EDF5),
                                 ),
-                                borderRadius: const BorderRadius.vertical(top: Radius.circular(14)),
                               ),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Text(
-                          point.label,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            color: Color(0xFF667085),
-                            fontSize: 11.5,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
-                  ),
+                    Positioned.fill(
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          for (final point in points)
+                            Expanded(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 5),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  children: [
+                                    Expanded(
+                                      child: LayoutBuilder(
+                                        builder: (context, tileConstraints) {
+                                          final availableHeight = tileConstraints.maxHeight.isFinite
+                                              ? tileConstraints.maxHeight
+                                              : 150.0;
+                                          final barHeight = ((availableHeight - 34) * (point.value / max))
+                                              .clamp(12.0, availableHeight - 34)
+                                              .toDouble();
+
+                                          return Padding(
+                                            padding: const EdgeInsets.only(bottom: 28),
+                                            child: Align(
+                                              alignment: Alignment.bottomCenter,
+                                              child: AnimatedContainer(
+                                                duration: const Duration(milliseconds: 260),
+                                                curve: Curves.easeOutCubic,
+                                                width: double.infinity,
+                                                height: barHeight,
+                                                decoration: BoxDecoration(
+                                                  gradient: LinearGradient(
+                                                    colors: [barColor, accentColor],
+                                                    begin: Alignment.bottomCenter,
+                                                    end: Alignment.topCenter,
+                                                  ),
+                                                  borderRadius: const BorderRadius.vertical(
+                                                    top: Radius.circular(14),
+                                                  ),
+                                                  boxShadow: const [
+                                                    BoxShadow(
+                                                      color: Color(0x1A4A35E8),
+                                                      blurRadius: 12,
+                                                      offset: Offset(0, 6),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      point.label,
+                                      textAlign: TextAlign.center,
+                                      style: const TextStyle(
+                                        color: Color(0xFF7E86A3),
+                                        fontSize: 11.5,
+                                        fontWeight: FontWeight.w700,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
+              ),
             ],
           ),
         );
       },
     );
   }
+}
+
+String _compactAxisLabel(double value) {
+  if (value <= 0) {
+    return '0';
+  }
+  if (value >= 1000) {
+    final thousands = value / 1000;
+    if ((thousands - thousands.roundToDouble()).abs() < 0.05) {
+      return '${thousands.round()}K';
+    }
+    return '${thousands.toStringAsFixed(1)}K';
+  }
+  if (value >= 100) {
+    return value.round().toString();
+  }
+  return value.toStringAsFixed(0);
+}
+
+double _niceChartMax(double value) {
+  if (value <= 0) {
+    return 1.0;
+  }
+
+  final exponent = (math.log(value) / math.ln10).floor();
+  final magnitude = math.pow(10, exponent).toDouble();
+  final normalized = value / magnitude;
+
+  double step;
+  if (normalized <= 1) {
+    step = 1;
+  } else if (normalized <= 2) {
+    step = 2;
+  } else if (normalized <= 5) {
+    step = 5;
+  } else {
+    step = 10;
+  }
+
+  return step * magnitude;
 }
 
 class _ReceiptRow extends StatelessWidget {
@@ -1107,3 +1490,398 @@ class _PaymentMetric extends StatelessWidget {
     );
   }
 }
+
+class ParkingStatusBar extends StatelessWidget {
+  const ParkingStatusBar({
+    super.key,
+    this.dark = false,
+  });
+
+  final bool dark;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = dark ? Colors.white : ParkingColors.ink;
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      children: [
+        Text(
+          '9:41',
+          style: TextStyle(
+            color: foreground,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.2,
+          ),
+        ),
+        Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.signal_cellular_alt_rounded, color: foreground, size: 24),
+            const SizedBox(width: 6),
+            Icon(Icons.wifi_rounded, color: foreground, size: 24),
+            const SizedBox(width: 6),
+            Container(
+              width: 36,
+              height: 20,
+              decoration: BoxDecoration(
+                color: dark ? Colors.white : ParkingColors.ink,
+                borderRadius: BorderRadius.circular(6),
+              ),
+              alignment: Alignment.center,
+              child: Text(
+                '100',
+                style: TextStyle(
+                  color: dark ? ParkingColors.ink : Colors.white,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class ParkingUserChip extends StatelessWidget {
+  const ParkingUserChip({
+    super.key,
+    required this.name,
+    required this.role,
+    this.dark = false,
+    this.onTap,
+  });
+
+  final String name;
+  final String role;
+  final bool dark;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final textColor = dark ? Colors.white : ParkingColors.ink;
+    final roleColor = dark ? Colors.white.withOpacity(0.78) : const Color(0xFF6D3EF7);
+    final background = dark ? Colors.white.withOpacity(0.12) : Colors.white;
+    final borderColor = dark ? Colors.white.withOpacity(0.08) : const Color(0xFFE8EDF7);
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(22),
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(22),
+            border: Border.all(color: borderColor),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: dark ? Colors.white.withOpacity(0.16) : const Color(0xFFEAF0FF),
+                ),
+                child: Icon(Icons.person_rounded, color: dark ? Colors.white : ParkingColors.primary, size: 30),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: textColor,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: -0.2,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      role,
+                      style: TextStyle(
+                        color: roleColor,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        letterSpacing: 0.3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 12),
+              Icon(Icons.keyboard_arrow_down_rounded, color: textColor, size: 30),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ParkingScreenHeader extends StatelessWidget {
+  const ParkingScreenHeader({
+    super.key,
+    required this.title,
+    required this.subtitle,
+    required this.user,
+    required this.onLeadingTap,
+    required this.leadingIcon,
+    this.dark = false,
+    this.backgroundGradient,
+    this.backgroundColor,
+    this.leadingIconColor,
+    this.leadingBackground,
+    this.padding = const EdgeInsets.fromLTRB(18, 12, 18, 20),
+    this.titleSize = 30,
+    this.subtitleSize = 15,
+    this.titleColor,
+    this.subtitleColor,
+    this.showStatusBar = true,
+    this.bottomRadius = 34,
+  });
+
+  final String title;
+  final String subtitle;
+  final UserProfile? user;
+  final VoidCallback onLeadingTap;
+  final IconData leadingIcon;
+  final bool dark;
+  final Gradient? backgroundGradient;
+  final Color? backgroundColor;
+  final Color? leadingIconColor;
+  final Color? leadingBackground;
+  final EdgeInsetsGeometry padding;
+  final double titleSize;
+  final double subtitleSize;
+  final Color? titleColor;
+  final Color? subtitleColor;
+  final bool showStatusBar;
+  final double bottomRadius;
+
+  @override
+  Widget build(BuildContext context) {
+    final titleFg = titleColor ?? (dark ? Colors.white : ParkingColors.ink);
+    final subtitleFg = subtitleColor ?? (dark ? Colors.white.withOpacity(0.80) : const Color(0xFF667085));
+    final leadBg = leadingBackground ?? (dark ? Colors.white.withOpacity(0.14) : const Color(0xFFEAF0FF));
+    final leadFg = leadingIconColor ?? (dark ? Colors.white : ParkingColors.primary);
+
+    return Container(
+      decoration: BoxDecoration(
+        color: backgroundColor,
+        gradient: backgroundGradient,
+        borderRadius: BorderRadius.vertical(bottom: Radius.circular(bottomRadius)),
+      ),
+      child: SafeArea(
+        bottom: false,
+      child: Padding(
+          padding: padding,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (showStatusBar) ParkingStatusBar(dark: dark),
+              if (showStatusBar) const SizedBox(height: 20),
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  final narrow = constraints.maxWidth < 760;
+                  final heading = Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Material(
+                        color: Colors.transparent,
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(18),
+                          onTap: onLeadingTap,
+                          child: Container(
+                            width: 66,
+                            height: 66,
+                            decoration: BoxDecoration(
+                              color: leadBg,
+                              borderRadius: BorderRadius.circular(18),
+                            ),
+                            child: Icon(leadingIcon, color: leadFg, size: 36),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 18),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              title,
+                              style: TextStyle(
+                                color: titleFg,
+                                fontSize: titleSize,
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.6,
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              subtitle,
+                              style: TextStyle(
+                                color: subtitleFg,
+                                fontSize: subtitleSize,
+                                height: 1.25,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  );
+
+                  if (narrow) {
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        heading,
+                        if (user != null) ...[
+                          const SizedBox(height: 12),
+                          ParkingUserChip(
+                            name: user!.displayName,
+                            role: user!.displayRole,
+                            dark: dark,
+                          ),
+                        ],
+                      ],
+                    );
+                  }
+
+                  return Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Expanded(child: heading),
+                      if (user != null) ...[
+                        const SizedBox(width: 12),
+                        SizedBox(
+                          width: 364,
+                          child: ParkingUserChip(
+                            name: user!.displayName,
+                            role: user!.displayRole,
+                            dark: dark,
+                          ),
+                        ),
+                      ],
+                    ],
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class ParkingBottomNavItem {
+  const ParkingBottomNavItem({
+    required this.path,
+    required this.icon,
+    required this.label,
+  });
+
+  final String path;
+  final IconData icon;
+  final String label;
+}
+
+class ParkingBottomNav extends StatelessWidget {
+  const ParkingBottomNav({
+    super.key,
+    required this.items,
+    required this.selectedIndex,
+    required this.onTap,
+  });
+
+  final List<ParkingBottomNavItem> items;
+  final int selectedIndex;
+  final ValueChanged<int> onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+        child: SurfaceCard(
+          radius: 28,
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+          color: Colors.white,
+          borderColor: const Color(0xFFE8EDF7),
+          shadow: const [
+            BoxShadow(color: Color(0x180B1630), blurRadius: 24, offset: Offset(0, 12)),
+          ],
+          child: Row(
+            children: [
+              for (var index = 0; index < items.length; index++)
+                Expanded(
+                  child: _ParkingBottomNavItemTile(
+                    item: items[index],
+                    selected: index == selectedIndex,
+                    onTap: () => onTap(index),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ParkingBottomNavItemTile extends StatelessWidget {
+  const _ParkingBottomNavItemTile({
+    required this.item,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final ParkingBottomNavItem item;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = selected ? ParkingColors.primary : const Color(0xFF8B93AD);
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(item.icon, color: foreground, size: 31),
+              const SizedBox(height: 10),
+              Text(
+                item.label,
+                style: TextStyle(
+                  color: foreground,
+                  fontSize: 13.5,
+                  fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+

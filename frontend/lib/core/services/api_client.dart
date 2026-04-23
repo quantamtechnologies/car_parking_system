@@ -46,6 +46,9 @@ class SmartParkingApi {
 
   Map<String, dynamic> _asMap(dynamic data) => Map<String, dynamic>.from(data as Map);
 
+  String _normalizePlate(String plate) =>
+      plate.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
+
   Future<Response<dynamic>> _send(
     Future<Response<dynamic>> Function() action, {
     bool allowRefresh = true,
@@ -196,12 +199,16 @@ class SmartParkingApi {
     return _asMap(response.data);
   }
 
-  Future<List<VehicleRecord>> vehicles({String ordering = '-created_at'}) async {
+  Future<List<VehicleRecord>> vehicles({
+    String ordering = '-created_at',
+    String? search,
+  }) async {
     final response = await _send(
       () => _dio.get(
         '/parking/vehicles/',
         queryParameters: {
           'ordering': ordering,
+          if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
         },
       ),
     );
@@ -212,10 +219,43 @@ class SmartParkingApi {
         .toList();
   }
 
+  Future<VehicleRecord?> vehicleByPlate(String plate) async {
+    final normalized = _normalizePlate(plate);
+    if (normalized.isEmpty) return null;
+
+    final matches = await vehicles(search: normalized);
+    for (final vehicle in matches) {
+      if (_normalizePlate(vehicle.plateNumber) == normalized) {
+        return vehicle;
+      }
+    }
+    return null;
+  }
+
   Future<List<ParkingSessionSummary>> activeSessions() async {
     final response = await _send(() => _dio.get('/parking/sessions/active/'));
     final data = response.data as List;
     return data.map((item) => ParkingSessionSummary.fromJson(Map<String, dynamic>.from(item as Map))).toList();
+  }
+
+  Future<List<ParkingSessionSummary>> sessions({
+    String ordering = '-created_at',
+    int pageSize = 5,
+  }) async {
+    final response = await _send(
+      () => _dio.get(
+        '/parking/sessions/',
+        queryParameters: {
+          'ordering': ordering,
+          'page_size': pageSize,
+        },
+      ),
+    );
+    final data = response.data;
+    final results = data is Map<String, dynamic> && data['results'] is List ? data['results'] as List : data as List;
+    return results
+        .map((item) => ParkingSessionSummary.fromJson(Map<String, dynamic>.from(item as Map)))
+        .toList();
   }
 
   Future<PricingPolicyDto> currentPricing() async {
