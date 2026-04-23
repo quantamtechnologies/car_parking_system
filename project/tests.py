@@ -1,9 +1,12 @@
 from io import StringIO
+from itertools import count
+from unittest import mock
 
 from django.contrib.auth import get_user_model
 from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command, CommandError
 from django.test import SimpleTestCase, TestCase, override_settings
+from django.db import OperationalError
 
 from apps.accounts.startup import ensure_default_superuser
 import project.settings as project_settings
@@ -145,3 +148,35 @@ class DefaultSuperuserStartupTests(TestCase):
         self.assertTrue(user.is_superuser)
         self.assertEqual(user.role, user_model.Role.ADMIN)
         self.assertTrue(user.check_password("FreshPass123!"))
+
+
+class DeployMigrateCommandTests(SimpleTestCase):
+    @mock.patch("apps.config.management.commands.deploy_migrate.call_command")
+    @mock.patch("apps.config.management.commands.deploy_migrate.connections")
+    @mock.patch("apps.config.management.commands.deploy_migrate.sleep", return_value=None)
+    @mock.patch("apps.config.management.commands.deploy_migrate.monotonic")
+    def test_command_retries_database_and_runs_migrations(
+        self,
+        mock_monotonic,
+        mock_sleep,
+        mock_connections,
+        mock_call_command,
+    ):
+        connection = mock.Mock()
+        connection.ensure_connection.side_effect = [OperationalError("temporary dns failure"), None]
+        mock_connections.__getitem__.return_value = connection
+        mock_monotonic.side_effect = count()
+
+        stdout = StringIO()
+        call_command("deploy_migrate", timeout=5, interval=1, migrate_retries=1, stdout=stdout)
+
+        self.assertGreaterEqual(connection.ensure_connection.call_count, 2)
+        mock_call_command.assert_called_once_with(
+            "migrate",
+            database="default",
+            run_syncdb=True,
+            interactive=False,
+            verbosity=0,
+        )
+        mock_sleep.assert_called_once()
+        self.assertIn("Database 'default' is reachable.", stdout.getvalue())

@@ -4,7 +4,7 @@
     "builder": "DOCKERFILE"
   },
   "deploy": {
-    "preDeployCommand": "python manage.py migrate --run-syncdb --noinput --verbosity 0",
+    "preDeployCommand": "python manage.py deploy_migrate",
     "healthcheckPath": "/health/",
     "startCommand": null
   }

@@ -55,6 +55,7 @@ See [docs/api.md](docs/api.md) for the full route map.
 ## Deployment
 
 - Backend: Railway, using the root `Dockerfile`, `railway.json`, and `gunicorn project.wsgi:application`
+- Railway deploys use a retrying `deploy_migrate` hook so transient PostgreSQL DNS startup delays do not break the release.
 - Web dashboard: Netlify, using Flutter web build output
 - Database: Railway PostgreSQL or another managed PostgreSQL instance. SQLite is only a local-development fallback and should not be used for deployment.
 

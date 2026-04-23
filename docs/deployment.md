@@ -68,6 +68,7 @@ Railway-specific note:
 
 - Railway injects `RAILWAY_PUBLIC_DOMAIN` for each service, and the backend automatically adds that host and origin when it is present.
 - Railway healthchecks originate from `healthcheck.railway.app`, and the backend allows that host automatically so deploys can pass the readiness check.
+- The Railway pre-deploy hook uses a retrying `deploy_migrate` command so transient PostgreSQL DNS startup delays do not fail the release on the first connection attempt.
 - The `/health/` and `/api/health/` endpoints are exempt from SSL redirects so Railway can still get a `200` even if `SECURE_SSL_REDIRECT=True`.
 - `collectstatic` runs in the runtime container startup with minimal verbosity so the live container has the generated admin assets before Gunicorn serves requests.
 - Gunicorn runs at warning level to avoid filling the logs with routine startup chatter.
