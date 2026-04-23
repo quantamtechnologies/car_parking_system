@@ -20,6 +20,7 @@ env = environ.Env(
     RAILWAY_PUBLIC_DOMAIN=(str, ""),
     RAILWAY_PRIVATE_DOMAIN=(str, ""),
     AUTO_CREATE_DEFAULT_SUPERUSER=(bool, True),
+    AUTO_RESET_DEFAULT_SUPERUSER_PASSWORD=(bool, False),
     DEFAULT_SUPERUSER_USERNAME=(str, "admin"),
     DEFAULT_SUPERUSER_PASSWORD=(str, "admin12345"),
     DEFAULT_SUPERUSER_EMAIL=(str, "admin@example.com"),
@@ -29,13 +30,30 @@ env = environ.Env(
 )
 
 environ.Env.read_env(BASE_DIR / ".env")
-
-SECRET_KEY = env("SECRET_KEY")
 DEBUG = env.bool("DEBUG")
+
+
+def _validate_secret_key(value: str) -> str:
+    if DEBUG:
+        return value
+
+    if not value or value == "unsafe-development-key":
+        raise ImproperlyConfigured("SECRET_KEY must be set when DEBUG=False.")
+
+    if len(value) < 32:
+        raise ImproperlyConfigured(
+            "SECRET_KEY must be at least 32 characters long when DEBUG=False."
+        )
+
+    return value
+
+
+SECRET_KEY = _validate_secret_key(env("SECRET_KEY"))
 RAILWAY_PUBLIC_DOMAIN = env("RAILWAY_PUBLIC_DOMAIN", default="").strip()
 RAILWAY_PRIVATE_DOMAIN = env("RAILWAY_PRIVATE_DOMAIN", default="").strip()
 NETLIFY_FRONTEND_ORIGIN = env("NETLIFY_FRONTEND_ORIGIN").strip()
 AUTO_CREATE_DEFAULT_SUPERUSER = env.bool("AUTO_CREATE_DEFAULT_SUPERUSER")
+AUTO_RESET_DEFAULT_SUPERUSER_PASSWORD = env.bool("AUTO_RESET_DEFAULT_SUPERUSER_PASSWORD")
 DEFAULT_SUPERUSER_USERNAME = env("DEFAULT_SUPERUSER_USERNAME", default="admin").strip()
 DEFAULT_SUPERUSER_PASSWORD = env("DEFAULT_SUPERUSER_PASSWORD", default="admin12345")
 DEFAULT_SUPERUSER_EMAIL = env("DEFAULT_SUPERUSER_EMAIL", default="admin@example.com").strip()
@@ -210,6 +228,7 @@ SIMPLE_JWT = {
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
     "AUTH_HEADER_TYPES": ("Bearer",),
+    "SIGNING_KEY": SECRET_KEY,
 }
 
 CORS_ALLOW_CREDENTIALS = True

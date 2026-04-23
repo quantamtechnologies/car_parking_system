@@ -106,3 +106,24 @@ class DefaultSuperuserStartupTests(TestCase):
     def test_ensure_default_superuser_can_be_disabled(self):
         self.assertFalse(ensure_default_superuser())
         self.assertFalse(get_user_model().objects.filter(username="admin").exists())
+
+    @override_settings(
+        AUTO_CREATE_DEFAULT_SUPERUSER=True,
+        AUTO_RESET_DEFAULT_SUPERUSER_PASSWORD=True,
+        DEFAULT_SUPERUSER_USERNAME="admin",
+        DEFAULT_SUPERUSER_PASSWORD="FreshPass123!",
+        DEFAULT_SUPERUSER_EMAIL="admin@example.com",
+    )
+    def test_ensure_default_superuser_can_repair_existing_account(self):
+        user_model = get_user_model()
+        user_model.objects.create_user(username="admin", password="OldPass123!", role=user_model.Role.CASHIER)
+
+        created = ensure_default_superuser()
+
+        user = user_model.objects.get(username="admin")
+
+        self.assertFalse(created)
+        self.assertTrue(user.is_staff)
+        self.assertTrue(user.is_superuser)
+        self.assertEqual(user.role, user_model.Role.ADMIN)
+        self.assertTrue(user.check_password("FreshPass123!"))

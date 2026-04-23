@@ -23,6 +23,7 @@ def ensure_default_superuser() -> bool:
     username = getattr(settings, "DEFAULT_SUPERUSER_USERNAME", "admin").strip()
     password = getattr(settings, "DEFAULT_SUPERUSER_PASSWORD", "")
     email = getattr(settings, "DEFAULT_SUPERUSER_EMAIL", "admin@example.com").strip()
+    reset_password = getattr(settings, "AUTO_RESET_DEFAULT_SUPERUSER_PASSWORD", False)
 
     if not username or not password:
         logger.warning("Default superuser bootstrap skipped because the username or password is missing.")
@@ -33,10 +34,8 @@ def ensure_default_superuser() -> bool:
 
     try:
         with transaction.atomic():
-            if user_model.objects.filter(username=username).exists():
-                return False
-
-            user = user_model(username=username, email=email)
+            user, created = user_model.objects.get_or_create(username=username)
+            user.email = email or user.email
             user.is_staff = True
             user.is_superuser = True
             user.is_active = True
@@ -44,9 +43,11 @@ def ensure_default_superuser() -> bool:
             if hasattr(user, "role"):
                 user.role = admin_role
 
-            user.set_password(password)
+            if created or reset_password:
+                user.set_password(password)
+
             user.save()
-            return True
+            return created
     except IntegrityError:
         if user_model.objects.filter(username=username).exists():
             return False

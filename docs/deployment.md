@@ -95,18 +95,18 @@ Build:
 
 ```bash
 cd frontend
-flutter build web --release --dart-define=API_BASE_URL=https://your-backend.up.railway.app/api
+flutter build web --release --pwa-strategy=none --dart-define=API_BASE_URL=https://your-backend.up.railway.app/api
 ```
 
 The browser client uses `shared_preferences` for session and offline state, so it does not need a local SQLite database. The API base URL must be supplied at build time for a production web deploy.
 
-If you deploy through Netlify, add `API_BASE_URL` as a site environment variable and let `frontend/scripts/netlify-build.sh` install Flutter stable and pass it into the build. For local development, the app falls back to `http://127.0.0.1:8001/api` when you run it without a release build-time define.
+If you deploy through Netlify, add `API_BASE_URL` as a site environment variable and let `frontend/scripts/netlify-build.sh` install Flutter stable and pass it into the build. The build now disables the Flutter service worker so browser deploys reflect the latest code without old cached bundles hanging around. For local development, the app falls back to `http://127.0.0.1:8001/api` when you run it without a release build-time define.
 
 ### Netlify Site Settings
 
-- Base directory: `frontend`
-- Build command: `flutter build web --release --dart-define=API_BASE_URL=$API_BASE_URL`
-- Publish directory: `build/web`
+- Base directory: not required when using the root `netlify.toml`
+- Build command: `bash frontend/scripts/netlify-build.sh`
+- Publish directory: `frontend/build/web`
 - Environment variable: `API_BASE_URL=https://smart-parking-backend-production-18b7.up.railway.app/api`
 
 If you use a custom Netlify domain, add that domain to the backend `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` Railway variables before you deploy.

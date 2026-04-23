@@ -7,7 +7,7 @@ Production-ready smart parking and POS scaffold with:
 - PostgreSQL schema and pricing history
 - Camera-assisted ANPR flow with OpenCV + Tesseract on the server
 - Railway deployment for the backend
-- Netlify deployment for the Flutter web dashboard
+ - Netlify deployment for the Flutter web dashboard
 
 ## Repository Layout
 
@@ -68,7 +68,7 @@ For the Flutter web build, run it from `frontend/` and pass the API URL at compi
 
 ```bash
 cd frontend
-flutter build web --release --dart-define=API_BASE_URL=https://your-api.example.com/api
+flutter build web --release --pwa-strategy=none --dart-define=API_BASE_URL=https://your-api.example.com/api
 ```
 
 If `API_BASE_URL` is missing in a release build, the app shows a deployment warning instead of silently pointing at localhost.
@@ -80,7 +80,7 @@ If `API_BASE_URL` is missing in a release build, the app shows a deployment warn
 - Railway's public domain is included automatically when present; add any custom frontend origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`
 - `collectstatic` runs at container startup so Railway serves the admin and API static assets from the live runtime container
 - Railway uses the root Dockerfile automatically, which avoids the Railpack secret-resolution issue seen in the build logs
-- Netlify uses `frontend/netlify.toml` and `frontend/scripts/netlify-build.sh` to install Flutter stable during the build
+- Netlify uses the root `netlify.toml` plus `frontend/scripts/netlify-build.sh` to install Flutter stable during the build
 - The default admin account is bootstrapped automatically on startup using `AUTO_CREATE_DEFAULT_SUPERUSER` and the `DEFAULT_SUPERUSER_*` environment variables
 - Generate Django migrations before schema changes go live
 - Keep Tesseract installed on the runtime image or a separate OCR service
