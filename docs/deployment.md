@@ -99,9 +99,9 @@ cd frontend
 flutter build web --release --pwa-strategy=none --dart-define=API_BASE_URL=https://your-backend.up.railway.app/api
 ```
 
-The browser client uses `shared_preferences` for session and offline state, so it does not need a local SQLite database. The API base URL must be supplied at build time for a production web deploy.
+The browser client uses `shared_preferences` for session and offline state, so it does not need a local SQLite database. The API base URL should be supplied if you want the production web deploy to talk to your backend.
 
-If you deploy through Netlify, add `API_BASE_URL` as a site environment variable and let `frontend/scripts/netlify-build.sh` install Flutter stable and pass it into the build. The build now disables the Flutter service worker so browser deploys reflect the latest code without old cached bundles hanging around. For local development, the app falls back to `http://127.0.0.1:8001/api` when you run it without a release build-time define.
+If you deploy through Netlify, set `API_BASE_URL` as a site environment variable if you want the deployed app to talk to your backend. The build script will still complete without it and the app will show the missing API warning screen instead of hard-failing the deploy. The build also disables the Flutter service worker so browser deploys reflect the latest code without old cached bundles hanging around. For local development, the app falls back to `http://127.0.0.1:8001/api` when you run it without a release build-time define.
 
 ### Netlify Site Settings
 

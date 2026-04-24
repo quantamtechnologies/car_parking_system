@@ -7,7 +7,11 @@ FLUTTER_HOME="${FLUTTER_HOME:-$HOME/flutter}"
 
 cd "$PROJECT_ROOT"
 
-: "${API_BASE_URL:?API_BASE_URL must be set in Netlify site environment variables}"
+API_BASE_URL="${API_BASE_URL:-}"
+
+if [ -z "$API_BASE_URL" ]; then
+  echo "WARNING: API_BASE_URL is not set. The deployed app will show the missing API warning screen."
+fi
 
 if ! command -v flutter >/dev/null 2>&1; then
   if [ ! -x "$FLUTTER_HOME/bin/flutter" ]; then
@@ -22,4 +26,8 @@ flutter --version
 flutter config --enable-web
 flutter clean
 flutter pub get
-flutter build web --release --pwa-strategy=none --dart-define=API_BASE_URL="$API_BASE_URL"
+build_args=(build web --release --pwa-strategy=none)
+if [ -n "$API_BASE_URL" ]; then
+  build_args+=("--dart-define=API_BASE_URL=$API_BASE_URL")
+fi
+flutter "${build_args[@]}"

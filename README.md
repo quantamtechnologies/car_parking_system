@@ -72,7 +72,7 @@ cd frontend
 flutter build web --release --pwa-strategy=none --dart-define=API_BASE_URL=https://your-api.example.com/api
 ```
 
-If `API_BASE_URL` is missing in a release build, the app shows a deployment warning instead of silently pointing at localhost.
+If `API_BASE_URL` is missing in a release build, the app shows a deployment warning instead of silently pointing at localhost, and the Netlify build script now lets the deploy finish so you can still ship the frontend shell.
 
 ## Production Notes
 
