@@ -208,7 +208,9 @@ class _CameraScreenState extends State<CameraScreen> {
                                   icon: Icons.camera_alt_rounded,
                                   minHeight: 48,
                                   isBusy: _loading,
-                                  onPressed: _loading ? null : _capture,
+                                  onPressed: _loading ? null : () {
+                                    _capture();
+                                  },
                                 ),
                               );
 

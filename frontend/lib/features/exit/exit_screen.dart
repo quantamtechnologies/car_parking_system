@@ -153,7 +153,9 @@ class _ExitScreenState extends State<ExitScreen> {
       leadingBackground: Colors.white.withOpacity(0.16),
       leadingIconColor: Colors.white,
       trailingIcon: Icons.qr_code_scanner_rounded,
-      trailingOnTap: _scanPlate,
+      trailingOnTap: () {
+        _scanPlate();
+      },
       trailingBackground: Colors.white.withOpacity(0.16),
       trailingIconColor: Colors.white,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -314,6 +316,7 @@ class _ExitScreenState extends State<ExitScreen> {
                     LayoutBuilder(
                       builder: (context, constraints) {
                         final wide = constraints.maxWidth >= 1040;
+                        final compact = constraints.maxWidth < 760;
 
                         final plateCard = SurfaceCard(
                           radius: 28,
@@ -593,19 +596,56 @@ class _ExitScreenState extends State<ExitScreen> {
                           );
                         }
 
+                        if (compact) {
+                          return Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              plateCard,
+                              const SizedBox(height: 10),
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(child: entryInfoCard),
+                                  const SizedBox(width: 10),
+                                  Expanded(child: exitInfoCard),
+                                ],
+                              ),
+                              if (!hasSession) ...[
+                                const SizedBox(height: 10),
+                                inactiveNote,
+                              ],
+                              const SizedBox(height: 10),
+                              actionButton,
+                            ],
+                          );
+                        }
+
                         return Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            plateCard,
-                            const SizedBox(height: 16),
-                            entryInfoCard,
-                            const SizedBox(height: 16),
-                            exitInfoCard,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 5, child: plateCard),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  flex: 5,
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                                    children: [
+                                      entryInfoCard,
+                                      const SizedBox(height: 10),
+                                      exitInfoCard,
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
                             if (!hasSession) ...[
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 10),
                               inactiveNote,
                             ],
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 10),
                             actionButton,
                           ],
                         );

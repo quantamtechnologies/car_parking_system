@@ -198,7 +198,9 @@ class _EntryScreenState extends State<EntryScreen> {
               leadingBackground: Colors.white.withOpacity(0.16),
               leadingIconColor: Colors.white,
               trailingIcon: Icons.qr_code_scanner_rounded,
-              trailingOnTap: _openCamera,
+              trailingOnTap: () {
+                _openCamera();
+              },
               trailingBackground: Colors.white.withOpacity(0.16),
               trailingIconColor: Colors.white,
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -214,6 +216,7 @@ class _EntryScreenState extends State<EntryScreen> {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final wide = constraints.maxWidth >= 1040;
+                      final compact = constraints.maxWidth < 760;
                       final plateCard = SurfaceCard(
                         radius: 28,
                         padding: const EdgeInsets.all(18),
@@ -538,15 +541,40 @@ class _EntryScreenState extends State<EntryScreen> {
                         );
                       }
 
+                      if (compact) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            plateCard,
+                            const SizedBox(height: 10),
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(child: vehicleCard),
+                                const SizedBox(width: 10),
+                                Expanded(child: infoCard),
+                              ],
+                            ),
+                            const SizedBox(height: 10),
+                            startButton,
+                          ],
+                        );
+                      }
+
                       return Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          plateCard,
-                          const SizedBox(height: 16),
-                          vehicleCard,
-                          const SizedBox(height: 16),
+                          Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Expanded(flex: 5, child: plateCard),
+                              const SizedBox(width: 10),
+                              Expanded(flex: 4, child: vehicleCard),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
                           infoCard,
-                          const SizedBox(height: 16),
+                          const SizedBox(height: 10),
                           startButton,
                         ],
                       );

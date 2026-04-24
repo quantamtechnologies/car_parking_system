@@ -81,7 +81,9 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
               leadingBackground: const Color(0xFF1B2D5F),
               leadingIconColor: Colors.white,
               trailingIcon: Icons.refresh_rounded,
-              trailingOnTap: _reload,
+              trailingOnTap: () {
+                _reload();
+              },
               trailingBackground: const Color(0xFF1B2D5F),
               trailingIconColor: Colors.white,
               padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
@@ -141,7 +143,9 @@ class _ReceiptsScreenState extends State<ReceiptsScreen> {
                               child: GradientActionButton(
                                 label: 'Try again',
                                 icon: Icons.refresh_rounded,
-                                onPressed: _reload,
+                                onPressed: () {
+                                  _reload();
+                                },
                               ),
                             ),
                           ],

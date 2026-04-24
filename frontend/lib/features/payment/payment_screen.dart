@@ -275,7 +275,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
               icon: Icons.check_circle_rounded,
               minHeight: 48,
               isBusy: _busy,
-              onPressed: _busy ? null : _confirm,
+              onPressed: _busy ? null : () {
+                _confirm();
+              },
             ),
           ),
         ],
@@ -359,6 +361,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 child: LayoutBuilder(
                   builder: (context, constraints) {
                     final wide = constraints.maxWidth >= 920;
+                    final compact = constraints.maxWidth < 760;
                     final overviewColumn = Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -368,7 +371,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       ],
                     );
 
-                    if (wide) {
+                    if (wide || !compact) {
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -379,12 +382,14 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       );
                     }
 
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                    final tileWidth = (constraints.maxWidth - 10) / 2;
+
+                    return Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
                       children: [
-                        overviewColumn,
-                        const SizedBox(height: 10),
-                        formCard,
+                        SizedBox(width: tileWidth, child: overviewColumn),
+                        SizedBox(width: tileWidth, child: formCard),
                       ],
                     );
                   },

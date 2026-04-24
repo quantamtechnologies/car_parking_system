@@ -147,7 +147,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
                               child: GradientActionButton(
                                 label: 'Try again',
                                 icon: Icons.refresh_rounded,
-                                onPressed: _reload,
+                                onPressed: () {
+                                  _reload();
+                                },
                               ),
                             ),
                           ],

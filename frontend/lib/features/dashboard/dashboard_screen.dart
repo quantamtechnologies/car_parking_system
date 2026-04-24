@@ -137,7 +137,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   child: GradientActionButton(
                                     label: 'Try again',
                                     icon: Icons.refresh_rounded,
-                                    onPressed: _reload,
+                                    onPressed: () {
+                                      _reload();
+                                    },
                                   ),
                                 ),
                               ],
