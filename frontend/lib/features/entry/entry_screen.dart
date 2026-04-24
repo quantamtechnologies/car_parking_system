@@ -201,16 +201,16 @@ class _EntryScreenState extends State<EntryScreen> {
               trailingOnTap: _openCamera,
               trailingBackground: Colors.white.withOpacity(0.16),
               trailingIconColor: Colors.white,
-              padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
-              titleSize: 28,
-              subtitleSize: 15,
-              bottomRadius: 30,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              titleSize: 26,
+              subtitleSize: 13.5,
+              bottomRadius: 26,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
               child: Center(
                 child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1320),
+                  constraints: const BoxConstraints(maxWidth: 960),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final wide = constraints.maxWidth >= 1040;
@@ -512,6 +512,7 @@ class _EntryScreenState extends State<EntryScreen> {
                         child: GradientActionButton(
                           label: _busy ? 'Starting Parking Session' : 'Start Parking Session',
                           icon: Icons.arrow_forward_rounded,
+                          minHeight: 48,
                           isBusy: _busy,
                           onPressed: _busy ? null : _startSession,
                         ),

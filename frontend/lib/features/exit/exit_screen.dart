@@ -156,10 +156,10 @@ class _ExitScreenState extends State<ExitScreen> {
       trailingOnTap: _scanPlate,
       trailingBackground: Colors.white.withOpacity(0.16),
       trailingIconColor: Colors.white,
-      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
-      titleSize: 28,
-      subtitleSize: 15,
-      bottomRadius: 30,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      titleSize: 26,
+      subtitleSize: 13.5,
+      bottomRadius: 26,
     );
   }
 
@@ -187,7 +187,7 @@ class _ExitScreenState extends State<ExitScreen> {
         children: [
           _buildHeader(user),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
             child: SurfaceCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -304,10 +304,10 @@ class _ExitScreenState extends State<ExitScreen> {
         children: [
           _buildHeader(user),
           Padding(
-            padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 1320),
+                constraints: const BoxConstraints(maxWidth: 960),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
@@ -547,6 +547,7 @@ class _ExitScreenState extends State<ExitScreen> {
                           child: GradientActionButton(
                             label: actionLabel,
                             icon: hasSession ? Icons.payments_rounded : Icons.arrow_forward_rounded,
+                            minHeight: 48,
                             isBusy: _loading,
                             onPressed: _loading
                                 ? null

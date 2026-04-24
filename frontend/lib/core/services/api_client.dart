@@ -174,6 +174,26 @@ class SmartParkingApi {
     return PaymentReceipt.fromJson(_asMap(response.data));
   }
 
+  Future<List<PaymentRecord>> payments({
+    String ordering = '-confirmed_at',
+    int pageSize = 10,
+  }) async {
+    final response = await _send(
+      () => _dio.get(
+        '/billing/payments/',
+        queryParameters: {
+          'ordering': ordering,
+          'page_size': pageSize,
+        },
+      ),
+    );
+    final data = response.data;
+    final results = data is Map<String, dynamic> && data['results'] is List ? data['results'] as List : data as List;
+    return results
+        .map((item) => PaymentRecord.fromJson(Map<String, dynamic>.from(item as Map)))
+        .toList();
+  }
+
   Future<DashboardMetrics> dashboard({String? start, String? end}) async {
     final response = await _send(() => _dio.get('/analytics/dashboard/', queryParameters: {
           if (start != null) 'start': start,

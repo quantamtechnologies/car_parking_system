@@ -347,4 +347,49 @@ class PaymentReceipt {
       );
 }
 
+class PaymentRecord {
+  const PaymentRecord({
+    required this.id,
+    required this.sessionId,
+    required this.cashierId,
+    required this.cashShiftId,
+    required this.method,
+    required this.status,
+    required this.amountDue,
+    required this.amountTendered,
+    required this.changeDue,
+    required this.receiptNumber,
+    required this.notes,
+    required this.confirmedAt,
+  });
+
+  final int id;
+  final int sessionId;
+  final int cashierId;
+  final int? cashShiftId;
+  final String method;
+  final String status;
+  final double amountDue;
+  final double amountTendered;
+  final double changeDue;
+  final String receiptNumber;
+  final String notes;
+  final DateTime? confirmedAt;
+
+  factory PaymentRecord.fromJson(Map<String, dynamic> json) => PaymentRecord(
+        id: _asInt(json['id']),
+        sessionId: _asInt(json['session']),
+        cashierId: _asInt(json['cashier']),
+        cashShiftId: json['cash_shift'] == null ? null : _asInt(json['cash_shift']),
+        method: _asString(json['method']),
+        status: _asString(json['status']),
+        amountDue: _asDouble(json['amount_due']),
+        amountTendered: _asDouble(json['amount_tendered']),
+        changeDue: _asDouble(json['change_due']),
+        receiptNumber: _asString(json['receipt_number']),
+        notes: _asString(json['notes']),
+        confirmedAt: DateTime.tryParse(_asString(json['confirmed_at'])),
+      );
+}
+
 String money(double value) => NumberFormat.currency(symbol: 'R').format(value);

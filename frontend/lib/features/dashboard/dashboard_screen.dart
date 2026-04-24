@@ -16,7 +16,7 @@ class DashboardScreen extends StatefulWidget {
     this.initialPlate = '',
   });
 
-  // Reserved for deep-link driven handoff from entry/registration flows.
+  // Reserved for deep-link handoff from entry or camera flows.
   // ignore: unused_field
   final String initialPlate;
 
@@ -25,7 +25,7 @@ class DashboardScreen extends StatefulWidget {
 }
 
 class _DashboardScreenState extends State<DashboardScreen> {
-  late Future<_DashboardBundle> _future;
+  late Future<DashboardMetrics> _future;
 
   @override
   void initState() {
@@ -33,22 +33,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
     _future = _load();
   }
 
-  Future<_DashboardBundle> _load() async {
+  Future<DashboardMetrics> _load() async {
     final api = context.read<SmartParkingApi>();
     final today = DateTime.now();
     final todayKey = DateFormat('yyyy-MM-dd').format(today);
-    final weekStartKey = DateFormat('yyyy-MM-dd').format(today.subtract(const Duration(days: 6)));
-    final results = await Future.wait([
-      api.dashboard(start: todayKey, end: todayKey),
-      api.dashboard(start: weekStartKey, end: todayKey),
-      api.sessions(pageSize: 4, ordering: '-created_at'),
-    ]);
-
-    return _DashboardBundle(
-      today: results[0] as DashboardMetrics,
-      week: results[1] as DashboardMetrics,
-      recentSessions: results[2] as List<ParkingSessionSummary>,
-    );
+    return api.dashboard(start: todayKey, end: todayKey);
   }
 
   Future<void> _reload() async {
@@ -64,377 +53,221 @@ class _DashboardScreenState extends State<DashboardScreen> {
       backgroundColor: ParkingColors.scaffold,
       body: RefreshIndicator(
         onRefresh: _reload,
-        child: FutureBuilder<_DashboardBundle>(
+        child: FutureBuilder<DashboardMetrics>(
           future: _future,
           builder: (context, snapshot) {
+            final header = ParkingScreenHeader(
+              title: 'Dashboard',
+              subtitle: 'Cashier terminal',
+              user: user,
+              onLeadingTap: () {},
+              leadingIcon: Icons.menu_rounded,
+              trailingIcon: Icons.notifications_none_rounded,
+              trailingOnTap: () {},
+              trailingBadgeColor: const Color(0xFFEF4444),
+              dark: true,
+              backgroundGradient: const LinearGradient(
+                colors: [Color(0xFF081532), Color(0xFF0B1C48), Color(0xFF122B63)],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              titleColor: Colors.white,
+              subtitleColor: const Color(0xFFB0BBDD),
+              leadingBackground: const Color(0xFF1B2D5F),
+              leadingIconColor: Colors.white,
+              trailingBackground: const Color(0xFF1B2D5F),
+              trailingIconColor: Colors.white,
+              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+              titleSize: 26,
+              subtitleSize: 13.5,
+              bottomRadius: 26,
+            );
+
             if (snapshot.connectionState != ConnectionState.done) {
-              return const Center(child: CircularProgressIndicator());
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 112),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    const SizedBox(height: 140),
+                    const Center(child: CircularProgressIndicator()),
+                  ],
+                ),
+              );
             }
 
             if (snapshot.hasError) {
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(14, 10, 14, 122),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 980),
-                    child: SurfaceCard(
-                      radius: 28,
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Text(
-                            'Unable to load dashboard',
-                            style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
-                            style: const TextStyle(color: Color(0xFF667085), height: 1.45),
-                          ),
-                          const SizedBox(height: 16),
-                          SizedBox(
-                            width: double.infinity,
-                            child: GradientActionButton(
-                              label: 'Try again',
-                              icon: Icons.refresh_rounded,
-                              onPressed: _reload,
+                padding: const EdgeInsets.only(bottom: 112),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    header,
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: const BoxConstraints(maxWidth: 960),
+                          child: SurfaceCard(
+                            radius: 24,
+                            padding: const EdgeInsets.all(14),
+                            color: const Color(0xFF0F1B3A),
+                            borderColor: const Color(0xFF1E2B4D),
+                            shadow: const [
+                              BoxShadow(color: Color(0x40050A15), blurRadius: 18, offset: Offset(0, 10)),
+                            ],
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const Text(
+                                  'Unable to load dashboard',
+                                  style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w800),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
+                                  style: const TextStyle(color: Color(0xFF9EABC9), height: 1.4),
+                                ),
+                                const SizedBox(height: 14),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: GradientActionButton(
+                                    label: 'Try again',
+                                    icon: Icons.refresh_rounded,
+                                    onPressed: _reload,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ),
               );
             }
 
             final data = snapshot.data!;
-            final today = data.today;
-            final week = data.week;
-            final recentSessions = data.recentSessions;
+            final metricCards = [
+              MetricCard(
+                title: 'Today Cars',
+                value: data.carsPerDay.toString(),
+                icon: Icons.directions_car_rounded,
+                gradient: ParkingColors.blueCardGradient,
+                iconColor: Colors.white,
+              ),
+              MetricCard(
+                title: 'Revenue',
+                value: money(data.revenuePerDay),
+                icon: Icons.account_balance_wallet_rounded,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF0E7C66), Color(0xFF10B981)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                iconColor: Colors.white,
+              ),
+              MetricCard(
+                title: 'Active Cars',
+                value: data.activeSessions.toString(),
+                icon: Icons.local_parking_rounded,
+                gradient: ParkingColors.purpleCardGradient,
+                iconColor: Colors.white,
+              ),
+              MetricCard(
+                title: 'Pending Payments',
+                value: data.pendingPayments.toString(),
+                icon: Icons.payments_rounded,
+                gradient: const LinearGradient(
+                  colors: [Color(0xFFF59E0B), Color(0xFFEF4444)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                iconColor: Colors.white,
+              ),
+            ];
 
-            final entryDelta = _trendPercent(today.carsPerDay, week.averageCarsPerDay);
-            final exitDelta = _trendPercent(today.pendingPayments, week.pendingPayments == 0 ? 1 : week.pendingPayments.toDouble());
-            final revenueDelta = _trendPercent(today.revenuePerDay, week.revenuePerDay / 7);
-
-            final averageDailyRevenue = week.revenuePerDay / 7;
-            final peakBars = [
-              0.82,
-              1.08,
-              1.32,
-              0.90,
-              1.18,
-              1.12,
-              0.62,
-            ]
-                .asMap()
-                .entries
-                .map(
-                  (entry) => ChartBarData(
-                    label: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][entry.key],
-                    value: averageDailyRevenue * entry.value,
-                    subLabel: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][entry.key],
-                  ),
-                )
-                .toList();
+            final quickActions = [
+              QuickActionCard(
+                title: 'New Entry',
+                subtitle: '',
+                icon: Icons.directions_car_rounded,
+                accentColor: ParkingColors.primary,
+                onTap: () => context.go('/entry'),
+              ),
+              QuickActionCard(
+                title: 'Exit',
+                subtitle: '',
+                icon: Icons.exit_to_app_rounded,
+                accentColor: const Color(0xFF7C3AED),
+                onTap: () => context.go('/exit'),
+              ),
+              QuickActionCard(
+                title: 'Receipts',
+                subtitle: '',
+                icon: Icons.receipt_long_rounded,
+                accentColor: const Color(0xFF10B981),
+                onTap: () => context.go('/receipts'),
+              ),
+              QuickActionCard(
+                title: 'Reports',
+                subtitle: '',
+                icon: Icons.bar_chart_rounded,
+                accentColor: const Color(0xFFF59E0B),
+                onTap: () => context.go('/reports'),
+              ),
+            ];
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.fromLTRB(0, 0, 0, 122),
+              padding: const EdgeInsets.only(bottom: 112),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  ParkingScreenHeader(
-                    title: 'Dashboard',
-                    subtitle: 'Smart Parking System',
-                    user: user,
-                    onLeadingTap: () {},
-                    leadingIcon: Icons.menu_rounded,
-                    trailingIcon: Icons.notifications_none_rounded,
-                    trailingOnTap: () {},
-                    trailingBadgeColor: const Color(0xFFEF4444),
-                    dark: true,
-                    backgroundGradient: const LinearGradient(
-                      colors: [Color(0xFF081532), Color(0xFF0B1C48), Color(0xFF122B63)],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                    ),
-                    titleColor: Colors.white,
-                    subtitleColor: const Color(0xFFB0BBDD),
-                    leadingBackground: const Color(0xFF1B2D5F),
-                    leadingIconColor: Colors.white,
-                    trailingBackground: const Color(0xFF1B2D5F),
-                    trailingIconColor: Colors.white,
-                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
-                    titleSize: 30,
-                    subtitleSize: 15,
-                    bottomRadius: 30,
-                  ),
+                  header,
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
+                    padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
                     child: Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1320),
+                        constraints: const BoxConstraints(maxWidth: 960),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final columns = constraints.maxWidth >= 920 ? 4 : 2;
-                                return GridView.count(
-                                  crossAxisCount: columns,
-                                  crossAxisSpacing: 12,
-                                  mainAxisSpacing: 12,
-                                  shrinkWrap: true,
-                                  physics: const NeverScrollableScrollPhysics(),
-                                  childAspectRatio: columns == 2 ? 1.15 : 1.04,
-                                  children: [
-                                    MetricCard(
-                                      title: 'Today\'s Entries',
-                                      value: today.carsPerDay.toString(),
-                                      icon: Icons.directions_car_rounded,
-                                      gradient: ParkingColors.blueCardGradient,
-                                      iconColor: Colors.white,
-                                      footer: _TrendRow(
-                                        label: '${entryDelta.abs()}% from yesterday',
-                                        positive: entryDelta >= 0,
-                                      ),
-                                    ),
-                                    MetricCard(
-                                      title: 'Today\'s Exits',
-                                      value: today.pendingPayments.toString(),
-                                      icon: Icons.exit_to_app_rounded,
-                                      gradient: ParkingColors.purpleCardGradient,
-                                      iconColor: Colors.white,
-                                      footer: _TrendRow(
-                                        label: '${exitDelta.abs()}% from yesterday',
-                                        positive: exitDelta >= 0,
-                                      ),
-                                    ),
-                                    MetricCard(
-                                      title: 'Today\'s Revenue',
-                                      value: money(today.revenuePerDay),
-                                      icon: Icons.account_balance_wallet_rounded,
-                                      gradient: const LinearGradient(
-                                        colors: [Color(0xFF0E7C66), Color(0xFF10B981)],
-                                        begin: Alignment.topLeft,
-                                        end: Alignment.bottomRight,
-                                      ),
-                                      iconColor: Colors.white,
-                                      footer: _TrendRow(
-                                        label: '${revenueDelta.abs()}% from yesterday',
-                                        positive: revenueDelta >= 0,
-                                      ),
-                                    ),
-                                    MetricCard(
-                                      title: 'Active Vehicles',
-                                      value: today.activeSessions.toString(),
-                                      icon: Icons.schedule_rounded,
-                                      iconColor: const Color(0xFFF59E0B),
-                                      footer: Row(
-                                        children: [
-                                          Container(
-                                            width: 10,
-                                            height: 10,
-                                            decoration: const BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              color: ParkingColors.primary,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 8),
-                                          const Text(
-                                            'Currently Parked',
-                                            style: TextStyle(
-                                              color: Color(0xFF9EABC9),
-                                              fontSize: 12.5,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
+                            GridView.count(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              childAspectRatio: 1.06,
+                              children: metricCards,
                             ),
-                            const SizedBox(height: 14),
-                            SurfaceCard(
-                              radius: 28,
-                              padding: const EdgeInsets.all(16),
-                              color: const Color(0xFF0F1B3A),
-                              borderColor: const Color(0xFF1E2B4D),
-                              shadow: const [
-                                BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
-                              ],
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Row(
-                                    children: [
-                                      const Expanded(
-                                        child: Text(
-                                          'Revenue Overview',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 18,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                      ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF132246),
-                                          borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(color: const Color(0xFF243559)),
-                                        ),
-                                        child: const Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Text(
-                                              'This Week',
-                                              style: TextStyle(
-                                                color: Colors.white,
-                                                fontSize: 13.5,
-                                                fontWeight: FontWeight.w800,
-                                              ),
-                                            ),
-                                            SizedBox(width: 8),
-                                            Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF9EABC9), size: 22),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 14),
-                                  MiniBarChart(
-                                    points: peakBars,
-                                    barColor: ParkingColors.primary,
-                                    accentColor: ParkingColors.primaryDeep,
-                                  ),
-                                ],
+                            const SizedBox(height: 12),
+                            const Padding(
+                              padding: EdgeInsets.symmetric(horizontal: 2),
+                              child: Text(
+                                'Quick Actions',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: -0.2,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                const Expanded(
-                                  child: Text(
-                                    'Quick Actions',
-                                    style: TextStyle(
-                                      color: Colors.white,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () => context.go('/entry'),
-                                  child: const Text(
-                                    'View All',
-                                    style: TextStyle(
-                                      color: Color(0xFF9EABC9),
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ],
                             ),
                             const SizedBox(height: 8),
-                            SingleChildScrollView(
-                              scrollDirection: Axis.horizontal,
-                              physics: const BouncingScrollPhysics(),
-                              child: Row(
-                                children: [
-                                  QuickActionCard(
-                                    title: 'New Entry',
-                                    subtitle: '',
-                                    icon: Icons.directions_car_rounded,
-                                    accentColor: ParkingColors.primary,
-                                    onTap: () => context.go('/entry'),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  QuickActionCard(
-                                    title: 'Vehicle Exit',
-                                    subtitle: '',
-                                    icon: Icons.exit_to_app_rounded,
-                                    accentColor: ParkingColors.primaryDeep,
-                                    onTap: () => context.go('/exit'),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  QuickActionCard(
-                                    title: 'Payment',
-                                    subtitle: '',
-                                    icon: Icons.account_balance_wallet_rounded,
-                                    accentColor: const Color(0xFF10B981),
-                                    onTap: () => context.go('/payment'),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  QuickActionCard(
-                                    title: 'Receipts',
-                                    subtitle: '',
-                                    icon: Icons.receipt_long_rounded,
-                                    accentColor: const Color(0xFFF59E0B),
-                                    onTap: () => context.go('/reports'),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  QuickActionCard(
-                                    title: 'Reports',
-                                    subtitle: '',
-                                    icon: Icons.bar_chart_rounded,
-                                    accentColor: const Color(0xFFEF4444),
-                                    onTap: () => context.go('/reports'),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 14),
-                            Row(
-                              children: [
-                                const Expanded(
-                                  child: Text(
-                                    'Recent Activity',
-                                    style: TextStyle(
-                                      color: ParkingColors.ink,
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                                TextButton(
-                                  onPressed: () => context.go('/reports'),
-                                  child: const Text(
-                                    'View All',
-                                    style: TextStyle(
-                                      color: ParkingColors.primary,
-                                      fontSize: 15,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            SurfaceCard(
-                              radius: 28,
-                              padding: EdgeInsets.zero,
-                              color: const Color(0xFF0F1B3A),
-                              borderColor: const Color(0xFF1E2B4D),
-                              shadow: const [
-                                BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
-                              ],
-                              child: Column(
-                                children: [
-                                  for (var index = 0; index < recentSessions.length; index++) ...[
-                                    _RecentActivityRow(session: recentSessions[index]),
-                                    if (index != recentSessions.length - 1)
-                                      const Divider(height: 1, thickness: 1, color: Color(0xFF1E2B4D)),
-                                  ],
-                                ],
-                              ),
+                            GridView.count(
+                              crossAxisCount: 2,
+                              crossAxisSpacing: 10,
+                              mainAxisSpacing: 10,
+                              shrinkWrap: true,
+                              physics: const NeverScrollableScrollPhysics(),
+                              childAspectRatio: 1.18,
+                              children: quickActions,
                             ),
                           ],
                         ),
@@ -449,164 +282,4 @@ class _DashboardScreenState extends State<DashboardScreen> {
       ),
     );
   }
-}
-
-class _DashboardBundle {
-  _DashboardBundle({
-    required this.today,
-    required this.week,
-    required this.recentSessions,
-  });
-
-  final DashboardMetrics today;
-  final DashboardMetrics week;
-  final List<ParkingSessionSummary> recentSessions;
-}
-
-class _TrendRow extends StatelessWidget {
-  const _TrendRow({
-    required this.label,
-    required this.positive,
-  });
-
-  final String label;
-  final bool positive;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = positive ? const Color(0xFF2BD576) : const Color(0xFFE45858);
-    return Row(
-      children: [
-        Icon(
-          positive ? Icons.arrow_upward_rounded : Icons.arrow_downward_rounded,
-          color: color,
-          size: 16,
-        ),
-        const SizedBox(width: 6),
-        Expanded(
-          child: Text(
-            label,
-            style: TextStyle(
-              color: color,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _RecentActivityRow extends StatelessWidget {
-  const _RecentActivityRow({
-    required this.session,
-  });
-
-  final ParkingSessionSummary session;
-
-  @override
-  Widget build(BuildContext context) {
-    final isPaid = session.status.toUpperCase() == 'CLOSED' || session.amountPaid > 0;
-    final isExit = session.status.toUpperCase() == 'PENDING_PAYMENT' || session.exitTime != null;
-    final title = isPaid
-        ? 'Payment Received'
-        : isExit
-            ? 'Vehicle Exit'
-            : 'Vehicle Entry';
-    final accent = isPaid
-        ? const Color(0xFF17B26A)
-        : isExit
-            ? const Color(0xFF6D3EF7)
-            : ParkingColors.primary;
-    final badge = isPaid
-        ? money(session.amountPaid)
-        : isExit
-            ? 'Completed'
-            : 'Active';
-    final time = DateFormat('hh:mm a').format(session.exitTime ?? session.entryTime ?? DateTime.now());
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 48,
-            height: 48,
-            decoration: BoxDecoration(
-              color: accent.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: Icon(
-              isPaid
-                  ? Icons.account_balance_wallet_rounded
-                  : isExit
-                      ? Icons.exit_to_app_rounded
-                      : Icons.directions_car_rounded,
-              color: accent,
-              size: 24,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 15,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  session.plateNumber.isEmpty ? 'Unknown plate' : session.plateNumber,
-                  style: const TextStyle(
-                    color: Color(0xFF9EABC9),
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            time,
-            style: const TextStyle(
-              color: Color(0xFF9EABC9),
-              fontSize: 12.5,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
-          const SizedBox(width: 12),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-            decoration: BoxDecoration(
-              color: accent.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(999),
-            ),
-            child: Text(
-              badge,
-              style: TextStyle(
-                color: accent,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-int _trendPercent(num current, num reference) {
-  final currentValue = current.toDouble();
-  final referenceValue = reference.toDouble();
-  if (referenceValue == 0) return 0;
-  final value = (((currentValue - referenceValue) / referenceValue) * 100).round();
-  return value;
 }

@@ -11,6 +11,7 @@ import 'features/entry/entry_screen.dart';
 import 'features/entry/registration_screen.dart';
 import 'features/exit/exit_screen.dart';
 import 'features/home/app_shell.dart';
+import 'features/receipts/receipts_screen.dart';
 import 'features/payment/payment_screen.dart';
 import 'features/reports/reports_screen.dart';
 
@@ -61,6 +62,10 @@ GoRouter buildRouter(AuthController authController) {
             initialPlate: extra['plate']?.toString() ?? '',
           );
         },
+      ),
+      GoRoute(
+        path: '/receipts',
+        builder: (context, state) => const ReceiptsScreen(),
       ),
       ShellRoute(
         builder: (context, state, child) => AppShell(

@@ -52,6 +52,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid session ID.')));
       return;
     }
+
     final cashShiftText = _cashShiftId.text.trim();
     final cashShiftId = cashShiftText.isEmpty ? null : int.tryParse(cashShiftText);
     if (cashShiftText.isNotEmpty && cashShiftId == null) {
@@ -92,16 +93,36 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  Widget _buildFieldCard({required Widget child}) {
+  Widget _buildDarkCard({required Widget child}) {
     return SurfaceCard(
-      radius: 28,
-      padding: const EdgeInsets.all(18),
-      color: const Color(0xFFF9FBFF),
-      borderColor: const Color(0xFFE5ECF5),
+      radius: 24,
+      padding: const EdgeInsets.all(14),
+      color: const Color(0xFF0F1B3A),
+      borderColor: const Color(0xFF1E2B4D),
       shadow: const [
-        BoxShadow(color: Color(0x0D0B1630), blurRadius: 20, offset: Offset(0, 10)),
+        BoxShadow(color: Color(0x40050A15), blurRadius: 18, offset: Offset(0, 10)),
       ],
       child: child,
+    );
+  }
+
+  Widget _buildHeader(UserProfile? user) {
+    return ParkingScreenHeader(
+      title: 'Payment',
+      subtitle: 'Cash-only exit payments',
+      user: user,
+      onLeadingTap: () => context.go('/'),
+      leadingIcon: Icons.arrow_back_rounded,
+      dark: true,
+      backgroundGradient: ParkingColors.entryHeaderGradient,
+      titleColor: Colors.white,
+      subtitleColor: Colors.white.withOpacity(0.80),
+      leadingBackground: const Color(0xFF1B2D5F),
+      leadingIconColor: Colors.white,
+      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
+      titleSize: 26,
+      subtitleSize: 13.5,
+      bottomRadius: 26,
     );
   }
 
@@ -112,277 +133,288 @@ class _PaymentScreenState extends State<PaymentScreen> {
     final fee = session == null ? null : double.tryParse(session['total_fee'].toString()) ?? 0;
     final vehicle = session?['vehicle'] as Map?;
     final paidAmount = _receipt?.amountTendered ?? 0;
+    final admin = context.watch<AuthController>().isAdmin;
 
-    return Scaffold(
-      backgroundColor: ParkingColors.scaffold,
-      body: ListView(
-        padding: const EdgeInsets.only(bottom: 122),
-      children: [
-        ParkingScreenHeader(
-          title: 'Payment',
-          subtitle: 'Confirm exit cash payments',
-          user: user,
-          onLeadingTap: () => context.go('/'),
-          leadingIcon: Icons.arrow_back_rounded,
-          dark: true,
-          backgroundGradient: ParkingColors.entryHeaderGradient,
-          titleColor: Colors.white,
-          subtitleColor: Colors.white.withOpacity(0.80),
-          leadingBackground: Colors.white.withOpacity(0.14),
-          leadingIconColor: Colors.white,
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-          titleSize: 30,
-          subtitleSize: 16,
-          bottomRadius: 34,
-        ),
-        Padding(
-          padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
-          child: Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 1320),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      final wide = constraints.maxWidth >= 1000;
-                      final summary = PaymentStatusCard(
-                        statusLabel: _receipt == null ? 'Pending' : 'Paid',
-                        amountPaid: paidAmount,
-                        amountDue: fee ?? 0,
-                        receiptNumber: _receipt?.receiptNumber,
-                        method: _receipt?.method,
-                      );
+    final summaryCard = PaymentStatusCard(
+      statusLabel: _receipt == null ? 'Pending' : 'Paid',
+      amountPaid: paidAmount,
+      amountDue: fee ?? 0,
+      receiptNumber: _receipt?.receiptNumber,
+      method: _receipt?.method,
+    );
 
-                      final summaryCard = _buildFieldCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF0F4FF),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: const Icon(Icons.payments_rounded, color: Color(0xFF4A35E8)),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Payment overview',
-                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'A simple snapshot of the session before the cash is closed.',
-                                        style: TextStyle(color: Color(0xFF667085), height: 1.35),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 18),
-                            summary,
-                            const SizedBox(height: 14),
-                            if (session != null) ...[
-                              _InfoRow(label: 'Session ID', value: session['id'].toString()),
-                              const SizedBox(height: 10),
-                              _InfoRow(label: 'Plate', value: vehicle?['plate_number']?.toString() ?? ''),
-                              const SizedBox(height: 10),
-                              _InfoRow(label: 'Amount due', value: money(fee ?? 0)),
-                            ] else
-                              const Text(
-                                'Enter the session ID manually if the vehicle was not passed from the exit page.',
-                                style: TextStyle(color: Color(0xFF667085), height: 1.4),
-                              ),
-                          ],
-                        ),
-                      );
+    final sessionSnapshotCard = _buildDarkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF142348),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.payments_rounded, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Session snapshot',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'The exit screen should hand this session over automatically.',
+                      style: TextStyle(color: Color(0xFF9EABC9), fontSize: 12.5, height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (session != null) ...[
+            _InfoRow(label: 'Session ID', value: session['id'].toString()),
+            const SizedBox(height: 8),
+            _InfoRow(label: 'Plate', value: vehicle?['plate_number']?.toString() ?? ''),
+            const SizedBox(height: 8),
+            _InfoRow(label: 'Amount due', value: money(fee ?? 0)),
+          ] else
+            const Text(
+              'If the session did not arrive from exit, type the session ID below to continue.',
+              style: TextStyle(color: Color(0xFF9EABC9), height: 1.35),
+            ),
+        ],
+      ),
+    );
 
-                      final formCard = _buildFieldCard(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF0F4FF),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4A35E8)),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Cash payment',
-                                        style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
-                                      ),
-                                      const SizedBox(height: 4),
-                                      const Text(
-                                        'Keep the form concise and use the override only when necessary.',
-                                        style: TextStyle(color: Color(0xFF667085), height: 1.35),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 18),
-                            TextField(
-                              controller: _sessionId,
-                              decoration: const InputDecoration(labelText: 'Session ID'),
-                              keyboardType: TextInputType.number,
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _amountTendered,
-                              decoration: const InputDecoration(labelText: 'Cash received'),
-                              keyboardType: const TextInputType.numberWithOptions(decimal: true),
-                              onChanged: (_) => setState(() {}),
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _cashShiftId,
-                              decoration: const InputDecoration(labelText: 'Cash shift ID (optional)'),
-                              keyboardType: TextInputType.number,
-                            ),
-                            const SizedBox(height: 12),
-                            TextField(
-                              controller: _notes,
-                              decoration: const InputDecoration(labelText: 'Reason / notes'),
-                              minLines: 1,
-                              maxLines: 3,
-                            ),
-                            const SizedBox(height: 10),
-                            if (context.watch<AuthController>().isAdmin)
-                              SwitchListTile.adaptive(
-                                value: _override,
-                                onChanged: (value) => setState(() => _override = value),
-                                title: const Text('Admin override'),
-                                subtitle: const Text('Allow exit without collecting cash'),
-                                contentPadding: EdgeInsets.zero,
-                              ),
-                            const SizedBox(height: 10),
-                            SizedBox(
-                              width: double.infinity,
-                              child: GradientActionButton(
-                                label: _busy ? 'Confirming payment' : 'Confirm payment',
-                                icon: Icons.check_circle_rounded,
-                                isBusy: _busy,
-                                onPressed: _busy ? null : _confirm,
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
+    final formCard = _buildDarkCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF142348),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Cash payment',
+                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Cash only. Confirm the amount, then close the session.',
+                      style: TextStyle(color: Color(0xFF9EABC9), fontSize: 12.5, height: 1.35),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (session == null) ...[
+            TextField(
+              controller: _sessionId,
+              decoration: const InputDecoration(labelText: 'Session ID'),
+              keyboardType: TextInputType.number,
+            ),
+            const SizedBox(height: 10),
+          ] else ...[
+            StatusBadge(label: 'Session locked', color: const Color(0xFF10B981)),
+            const SizedBox(height: 10),
+          ],
+          TextField(
+            controller: _amountTendered,
+            decoration: const InputDecoration(labelText: 'Cash received'),
+            keyboardType: const TextInputType.numberWithOptions(decimal: true),
+            onChanged: (_) => setState(() {}),
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _cashShiftId,
+            decoration: const InputDecoration(labelText: 'Cash shift ID (optional)'),
+            keyboardType: TextInputType.number,
+          ),
+          const SizedBox(height: 10),
+          TextField(
+            controller: _notes,
+            decoration: const InputDecoration(labelText: 'Reason / notes'),
+            minLines: 1,
+            maxLines: 3,
+          ),
+          const SizedBox(height: 8),
+          if (admin)
+            SwitchListTile.adaptive(
+              value: _override,
+              onChanged: (value) => setState(() => _override = value),
+              title: const Text('Admin override'),
+              subtitle: const Text('Allow exit without collecting cash'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          const SizedBox(height: 8),
+          SizedBox(
+            width: double.infinity,
+            child: GradientActionButton(
+              label: _busy ? 'Confirming payment' : 'Confirm payment',
+              icon: Icons.check_circle_rounded,
+              minHeight: 48,
+              isBusy: _busy,
+              onPressed: _busy ? null : _confirm,
+            ),
+          ),
+        ],
+      ),
+    );
 
-                      if (wide) {
-                        return Row(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Expanded(child: summaryCard),
-                            const SizedBox(width: 16),
-                            Expanded(child: formCard),
-                          ],
-                        );
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          summaryCard,
-                          const SizedBox(height: 16),
-                          formCard,
-                        ],
-                      );
-                    },
-                  ),
-                  if (_receipt != null) ...[
-                    const SizedBox(height: 18),
-                    SurfaceCard(
-                      radius: 28,
-                      padding: const EdgeInsets.all(18),
+    final receiptCard = _receipt == null
+        ? const SizedBox.shrink()
+        : _buildDarkCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF142348),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                width: 42,
-                                height: 42,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF0F4FF),
-                                  borderRadius: BorderRadius.circular(14),
-                                ),
-                                child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4A35E8)),
-                              ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const Text('Receipt', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w800)),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      'Receipt ${_receipt!.receiptNumber}',
-                                      style: const TextStyle(color: Color(0xFF667085), height: 1.35),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                          const Text(
+                            'Receipt',
+                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
                           ),
-                          const SizedBox(height: 16),
-                          _InfoRow(label: 'Amount due', value: money(_receipt!.amountDue)),
-                          const SizedBox(height: 10),
-                          _InfoRow(label: 'Cash received', value: money(_receipt!.amountTendered)),
-                          const SizedBox(height: 10),
-                          _InfoRow(label: 'Change due', value: money(_receipt!.changeDue)),
-                          const SizedBox(height: 10),
-                          _InfoRow(label: 'Method', value: _receipt!.method),
-                          const SizedBox(height: 10),
-                          _InfoRow(
-                            label: 'Status',
-                            value: (_receipt!.status == 'CONFIRMED' || _receipt!.status == 'OVERRIDDEN') ? 'Paid' : 'Pending',
-                          ),
-                          const SizedBox(height: 18),
-                          SizedBox(
-                            width: double.infinity,
-                            child: GradientActionButton(
-                              label: 'Back to dashboard',
-                              icon: Icons.dashboard_rounded,
-                              onPressed: () => context.go('/'),
-                            ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Receipt ${_receipt!.receiptNumber}',
+                            style: const TextStyle(color: Color(0xFF9EABC9), height: 1.35),
                           ),
                         ],
                       ),
                     ),
                   ],
-                ],
+                ),
+                const SizedBox(height: 12),
+                _InfoRow(label: 'Amount due', value: money(_receipt!.amountDue)),
+                const SizedBox(height: 8),
+                _InfoRow(label: 'Cash received', value: money(_receipt!.amountTendered)),
+                const SizedBox(height: 8),
+                _InfoRow(label: 'Change due', value: money(_receipt!.changeDue)),
+                const SizedBox(height: 8),
+                _InfoRow(label: 'Method', value: _receipt!.method),
+                const SizedBox(height: 8),
+                _InfoRow(
+                  label: 'Status',
+                  value: (_receipt!.status == 'CONFIRMED' || _receipt!.status == 'OVERRIDDEN') ? 'Paid' : 'Pending',
+                ),
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: GradientActionButton(
+                    label: 'Back to dashboard',
+                    icon: Icons.dashboard_rounded,
+                    minHeight: 48,
+                    onPressed: () => context.go('/'),
+                  ),
+                ),
+              ],
+            ),
+          );
+
+    return Scaffold(
+      backgroundColor: ParkingColors.scaffold,
+      body: ListView(
+        padding: const EdgeInsets.only(bottom: 112),
+        children: [
+          _buildHeader(user),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 960),
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final wide = constraints.maxWidth >= 920;
+                    final overviewColumn = Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        summaryCard,
+                        const SizedBox(height: 12),
+                        sessionSnapshotCard,
+                      ],
+                    );
+
+                    if (wide) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Expanded(child: overviewColumn),
+                          const SizedBox(width: 10),
+                          Expanded(child: formCard),
+                        ],
+                      );
+                    }
+
+                    return Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        overviewColumn,
+                        const SizedBox(height: 10),
+                        formCard,
+                      ],
+                    );
+                  },
+                ),
               ),
             ),
           ),
-        ),
-      ],
-    ));
+          if (_receipt != null) ...[
+            const SizedBox(height: 10),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 960),
+                  child: receiptCard,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
   }
 }
 
 class _InfoRow extends StatelessWidget {
-  const _InfoRow({required this.label, required this.value});
+  const _InfoRow({
+    required this.label,
+    required this.value,
+  });
 
   final String label;
   final String value;
@@ -394,7 +426,7 @@ class _InfoRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: Color(0xFF667085), fontWeight: FontWeight.w700),
+            style: const TextStyle(color: Color(0xFF9EABC9), fontWeight: FontWeight.w700),
           ),
         ),
         const SizedBox(width: 16),
@@ -402,7 +434,7 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             value,
             textAlign: TextAlign.right,
-            style: const TextStyle(fontWeight: FontWeight.w800),
+            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
           ),
         ),
       ],

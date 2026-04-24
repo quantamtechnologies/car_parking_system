@@ -55,6 +55,7 @@ def dashboard_metrics(start=None, end=None):
         "staff_performance": staff_performance,
         "occupancy_rate": occupancy_rate,
         "active_sessions": ParkingSession.objects.filter(status__in=[ParkingSession.Status.ACTIVE, ParkingSession.Status.PENDING_PAYMENT]).count(),
+        "pending_payments": ParkingSession.objects.filter(status=ParkingSession.Status.PENDING_PAYMENT).count(),
         "open_cash_shifts": CashShift.objects.filter(status=CashShift.Status.OPEN).count(),
     }
 
