@@ -11,11 +11,11 @@ class SurfaceCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(18),
     this.radius = 28,
-    this.color = Colors.white,
+    this.color = ParkingColors.surface,
     this.gradient,
-    this.borderColor = Colors.transparent,
+    this.borderColor = const Color(0xFF1F2D4D),
     this.shadow = const [
-      BoxShadow(color: Color(0x140B1630), blurRadius: 28, offset: Offset(0, 14)),
+      BoxShadow(color: Color(0x40050A15), blurRadius: 28, offset: Offset(0, 16)),
     ],
     this.onTap,
   });
@@ -131,6 +131,7 @@ class MetricCard extends StatelessWidget {
     this.icon,
     this.gradient,
     this.footer,
+    this.iconColor,
   });
 
   final String title;
@@ -139,21 +140,23 @@ class MetricCard extends StatelessWidget {
   final IconData? icon;
   final Gradient? gradient;
   final Widget? footer;
+  final Color? iconColor;
 
   @override
   Widget build(BuildContext context) {
-    final foreground = gradient == null ? ParkingColors.ink : Colors.white;
-    final muted = gradient == null ? const Color(0xFF667085) : Colors.white.withOpacity(0.84);
+    final foreground = Colors.white;
+    final muted = const Color(0xFF9EABC9);
 
     return SurfaceCard(
       gradient: gradient,
-      borderColor: gradient == null ? const Color(0xFFE8EDF7) : Colors.white.withOpacity(0.08),
+      color: gradient == null ? const Color(0xFF101C38) : Colors.transparent,
+      borderColor: gradient == null ? const Color(0xFF1E2B4D) : Colors.white.withOpacity(0.08),
       shadow: gradient == null
-          ? const [BoxShadow(color: Color(0x0F0B1630), blurRadius: 24, offset: Offset(0, 12))]
-          : const [BoxShadow(color: Color(0x260B1630), blurRadius: 26, offset: Offset(0, 16))],
+          ? const [BoxShadow(color: Color(0x40050A15), blurRadius: 22, offset: Offset(0, 12))]
+          : const [BoxShadow(color: Color(0x300F1D3C), blurRadius: 26, offset: Offset(0, 16))],
       padding: const EdgeInsets.all(16),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 144),
+        constraints: const BoxConstraints(minHeight: 134),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -161,13 +164,17 @@ class MetricCard extends StatelessWidget {
               children: [
                 if (icon != null)
                   Container(
-                    width: 44,
-                    height: 44,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
-                      color: gradient == null ? const Color(0xFFEAF0FF) : Colors.white.withOpacity(0.16),
+                      color: gradient == null ? const Color(0xFF1A294C) : Colors.white.withOpacity(0.16),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(icon, color: gradient == null ? ParkingColors.primary : Colors.white, size: 22),
+                    child: Icon(
+                      icon,
+                      color: gradient == null ? (iconColor ?? const Color(0xFF7FB2FF)) : Colors.white,
+                      size: 22,
+                    ),
                   ),
                 const Spacer(),
                 if (gradient != null)
@@ -188,16 +195,16 @@ class MetricCard extends StatelessWidget {
             Text(
               title,
               style: TextStyle(
-                fontSize: 14.5,
+                fontSize: 13.5,
                 fontWeight: FontWeight.w700,
                 color: foreground,
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 6),
             Text(
               value,
               style: TextStyle(
-                fontSize: gradient == null ? 28 : 30,
+                fontSize: gradient == null ? 26 : 28,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.7,
                 color: foreground,
@@ -211,7 +218,7 @@ class MetricCard extends StatelessWidget {
               Text(
                 subtitle!,
                 style: TextStyle(
-                  fontSize: 12.5,
+                  fontSize: 11.5,
                   height: 1.35,
                   color: muted,
                 ),
@@ -322,12 +329,14 @@ class QuickActionCard extends StatefulWidget {
     required this.subtitle,
     required this.icon,
     required this.onTap,
+    this.accentColor = ParkingColors.primary,
   });
 
   final String title;
   final String subtitle;
   final IconData icon;
   final VoidCallback onTap;
+  final Color accentColor;
 
   @override
   State<QuickActionCard> createState() => _QuickActionCardState();
@@ -338,14 +347,14 @@ class _QuickActionCardState extends State<QuickActionCard> {
 
   @override
   Widget build(BuildContext context) {
-    final background = _hovered ? Colors.white : Colors.white;
-    final borderColor = _hovered ? const Color(0xFFC9D6FF) : const Color(0xFFE8EDF7);
+    final background = _hovered ? const Color(0xFF132246) : const Color(0xFF101C38);
+    final borderColor = _hovered ? const Color(0xFF2A3C68) : const Color(0xFF1D2B4C);
     final shadow = _hovered
         ? [
-            const BoxShadow(color: Color(0x1A4A35E8), blurRadius: 20, offset: Offset(0, 10)),
+            const BoxShadow(color: Color(0x300F1D3C), blurRadius: 22, offset: Offset(0, 12)),
           ]
         : [
-            const BoxShadow(color: Color(0x0D0B1630), blurRadius: 18, offset: Offset(0, 8)),
+            const BoxShadow(color: Color(0x40050A15), blurRadius: 18, offset: Offset(0, 10)),
           ];
 
     return MouseRegion(
@@ -367,32 +376,32 @@ class _QuickActionCardState extends State<QuickActionCard> {
             borderRadius: BorderRadius.circular(22),
             onTap: widget.onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 54,
-                    height: 54,
+                    width: 42,
+                    height: 42,
                     decoration: BoxDecoration(
-                      color: const Color(0xFFEAF0FF),
-                      borderRadius: BorderRadius.circular(18),
+                      color: widget.accentColor.withOpacity(0.14),
+                      borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(widget.icon, color: ParkingColors.primary, size: 28),
+                    child: Icon(widget.icon, color: widget.accentColor, size: 22),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 10),
                   Text(
                     widget.title,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w800),
+                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Colors.white),
                   ),
                   if (widget.subtitle.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       widget.subtitle,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 11.5, color: Color(0xFF667085), height: 1.25),
+                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF8F9CB9), height: 1.2),
                     ),
                   ],
                 ],
@@ -1121,16 +1130,21 @@ class PaymentStatusCard extends StatelessWidget {
     return SurfaceCard(
       radius: 26,
       padding: const EdgeInsets.all(18),
+      color: const Color(0xFF101C38),
+      borderColor: const Color(0xFF1E2B4D),
+      shadow: const [
+        BoxShadow(color: Color(0x40050A15), blurRadius: 22, offset: Offset(0, 12)),
+      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
               Container(
-                width: 42,
-                height: 42,
+                width: 40,
+                height: 40,
                 decoration: BoxDecoration(
-                  color: color.withOpacity(0.10),
+                  color: color.withOpacity(0.14),
                   borderRadius: BorderRadius.circular(14),
                 ),
                 child: Icon(paid ? Icons.verified_rounded : Icons.pending_rounded, color: color, size: 22),
@@ -1142,12 +1156,12 @@ class PaymentStatusCard extends StatelessWidget {
                   children: [
                     Text(
                       'Payment status',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       receiptNumber == null ? 'Waiting for confirmation' : 'Receipt $receiptNumber',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF667085)),
+                      style: const TextStyle(color: Color(0xFF9EABC9), fontSize: 12.5, height: 1.35),
                     ),
                   ],
                 ),
@@ -1179,7 +1193,7 @@ class PaymentStatusCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Method: ${method!}',
-              style: const TextStyle(color: Color(0xFF667085), fontSize: 12.5),
+              style: const TextStyle(color: Color(0xFF9EABC9), fontSize: 12.5),
             ),
           ],
         ],
@@ -1220,7 +1234,7 @@ class MiniBarChart extends StatelessWidget {
       return Center(
         child: Text(
           emptyLabel,
-          style: const TextStyle(color: Color(0xFF667085), fontWeight: FontWeight.w600),
+          style: const TextStyle(color: Color(0xFF9EABC9), fontWeight: FontWeight.w600),
         ),
       );
     }
@@ -1255,7 +1269,7 @@ class MiniBarChart extends StatelessWidget {
                         Text(
                           _compactAxisLabel(value),
                           style: const TextStyle(
-                            color: Color(0xFF7E86A3),
+                            color: Color(0xFF8D9AB8),
                             fontSize: 11,
                             fontWeight: FontWeight.w700,
                           ),
@@ -1279,7 +1293,7 @@ class MiniBarChart extends StatelessWidget {
                                 alignment: Alignment.topCenter,
                                 child: Container(
                                   height: 1,
-                                  color: const Color(0xFFE9EDF5),
+                                  color: const Color(0xFF1E2B4D),
                                 ),
                               ),
                             ),
@@ -1345,7 +1359,7 @@ class MiniBarChart extends StatelessWidget {
                                       point.label,
                                       textAlign: TextAlign.center,
                                       style: const TextStyle(
-                                        color: Color(0xFF7E86A3),
+                                        color: Color(0xFF8D9AB8),
                                         fontSize: 11.5,
                                         fontWeight: FontWeight.w700,
                                       ),
@@ -1461,8 +1475,9 @@ class _PaymentMetric extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.08),
+        color: const Color(0xFF0F1B3A),
         borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: color.withOpacity(0.24)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1470,7 +1485,7 @@ class _PaymentMetric extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: Color(0xFF667085),
+              color: Color(0xFF9EABC9),
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
             ),
@@ -1545,26 +1560,86 @@ class ParkingStatusBar extends StatelessWidget {
   }
 }
 
+class _HeaderIconButton extends StatelessWidget {
+  const _HeaderIconButton({
+    required this.icon,
+    required this.onTap,
+    required this.background,
+    required this.foreground,
+    this.badgeColor,
+  });
+
+  final IconData icon;
+  final VoidCallback onTap;
+  final Color background;
+  final Color foreground;
+  final Color? badgeColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: onTap,
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Container(
+              width: 54,
+              height: 54,
+              decoration: BoxDecoration(
+                color: background,
+                borderRadius: BorderRadius.circular(18),
+              ),
+              child: Icon(icon, color: foreground, size: 24),
+            ),
+            if (badgeColor != null)
+              Positioned(
+                right: 8,
+                top: 8,
+                child: Container(
+                  width: 10,
+                  height: 10,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: badgeColor,
+                    border: Border.all(color: background, width: 2),
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class ParkingUserChip extends StatelessWidget {
   const ParkingUserChip({
     super.key,
     required this.name,
     required this.role,
     this.dark = false,
+    this.compact = false,
     this.onTap,
   });
 
   final String name;
   final String role;
   final bool dark;
+  final bool compact;
   final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
     final textColor = dark ? Colors.white : ParkingColors.ink;
-    final roleColor = dark ? Colors.white.withOpacity(0.78) : const Color(0xFF6D3EF7);
-    final background = dark ? Colors.white.withOpacity(0.12) : Colors.white;
-    final borderColor = dark ? Colors.white.withOpacity(0.08) : const Color(0xFFE8EDF7);
+    final roleColor = dark ? const Color(0xFFB1BED9) : const Color(0xFF6D3EF7);
+    final background = dark ? const Color(0xFF0F1B3A) : Colors.white;
+    final borderColor = dark ? const Color(0xFF1E2B4D) : const Color(0xFFE8EDF7);
+    final avatarSize = compact ? 42.0 : 54.0;
+    final nameSize = compact ? 15.0 : 18.0;
+    final roleSize = compact ? 12.0 : 13.0;
 
     return Material(
       color: Colors.transparent,
@@ -1582,16 +1657,16 @@ class ParkingUserChip extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Container(
-                width: 54,
-                height: 54,
+                width: avatarSize,
+                height: avatarSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: dark ? Colors.white.withOpacity(0.16) : const Color(0xFFEAF0FF),
+                  color: dark ? Colors.white.withOpacity(0.12) : const Color(0xFFEAF0FF),
                 ),
-                child: Icon(Icons.person_rounded, color: dark ? Colors.white : ParkingColors.primary, size: 30),
+                child: Icon(Icons.person_rounded, color: dark ? Colors.white : ParkingColors.primary, size: compact ? 24 : 30),
               ),
-              const SizedBox(width: 14),
-              Expanded(
+              const SizedBox(width: 12),
+              Flexible(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   mainAxisSize: MainAxisSize.min,
@@ -1602,7 +1677,7 @@ class ParkingUserChip extends StatelessWidget {
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
                         color: textColor,
-                        fontSize: 18,
+                        fontSize: nameSize,
                         fontWeight: FontWeight.w800,
                         letterSpacing: -0.2,
                       ),
@@ -1612,7 +1687,7 @@ class ParkingUserChip extends StatelessWidget {
                       role,
                       style: TextStyle(
                         color: roleColor,
-                        fontSize: 13,
+                        fontSize: roleSize,
                         fontWeight: FontWeight.w700,
                         letterSpacing: 0.3,
                       ),
@@ -1621,7 +1696,7 @@ class ParkingUserChip extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Icon(Icons.keyboard_arrow_down_rounded, color: textColor, size: 30),
+              Icon(Icons.keyboard_arrow_down_rounded, color: textColor, size: compact ? 24 : 30),
             ],
           ),
         ),
@@ -1643,12 +1718,17 @@ class ParkingScreenHeader extends StatelessWidget {
     this.backgroundColor,
     this.leadingIconColor,
     this.leadingBackground,
+    this.trailingIcon,
+    this.trailingOnTap,
+    this.trailingBackground,
+    this.trailingIconColor,
+    this.trailingBadgeColor,
     this.padding = const EdgeInsets.fromLTRB(18, 12, 18, 20),
     this.titleSize = 30,
     this.subtitleSize = 15,
     this.titleColor,
     this.subtitleColor,
-    this.showStatusBar = true,
+    this.showStatusBar = false,
     this.bottomRadius = 34,
   });
 
@@ -1662,6 +1742,11 @@ class ParkingScreenHeader extends StatelessWidget {
   final Color? backgroundColor;
   final Color? leadingIconColor;
   final Color? leadingBackground;
+  final IconData? trailingIcon;
+  final VoidCallback? trailingOnTap;
+  final Color? trailingBackground;
+  final Color? trailingIconColor;
+  final Color? trailingBadgeColor;
   final EdgeInsetsGeometry padding;
   final double titleSize;
   final double subtitleSize;
@@ -1674,8 +1759,10 @@ class ParkingScreenHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final titleFg = titleColor ?? (dark ? Colors.white : ParkingColors.ink);
     final subtitleFg = subtitleColor ?? (dark ? Colors.white.withOpacity(0.80) : const Color(0xFF667085));
-    final leadBg = leadingBackground ?? (dark ? Colors.white.withOpacity(0.14) : const Color(0xFFEAF0FF));
+    final leadBg = leadingBackground ?? (dark ? const Color(0xFF142348) : const Color(0xFFEAF0FF));
     final leadFg = leadingIconColor ?? (dark ? Colors.white : ParkingColors.primary);
+    final trailBg = trailingBackground ?? (dark ? const Color(0xFF142348) : const Color(0xFFEAF0FF));
+    final trailFg = trailingIconColor ?? (dark ? Colors.white : ParkingColors.primary);
 
     return Container(
       decoration: BoxDecoration(
@@ -1685,101 +1772,83 @@ class ParkingScreenHeader extends StatelessWidget {
       ),
       child: SafeArea(
         bottom: false,
-      child: Padding(
+        child: Padding(
           padding: padding,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              if (showStatusBar) ParkingStatusBar(dark: dark),
-              if (showStatusBar) const SizedBox(height: 20),
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  final narrow = constraints.maxWidth < 760;
-                  final heading = Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          borderRadius: BorderRadius.circular(18),
-                          onTap: onLeadingTap,
-                          child: Container(
-                            width: 66,
-                            height: 66,
-                            decoration: BoxDecoration(
-                              color: leadBg,
-                              borderRadius: BorderRadius.circular(18),
-                            ),
-                            child: Icon(leadingIcon, color: leadFg, size: 36),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 18),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              title,
-                              style: TextStyle(
-                                color: titleFg,
-                                fontSize: titleSize,
-                                fontWeight: FontWeight.w800,
-                                letterSpacing: -0.6,
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              subtitle,
-                              style: TextStyle(
-                                color: subtitleFg,
-                                fontSize: subtitleSize,
-                                height: 1.25,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  );
-
-                  if (narrow) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final narrow = constraints.maxWidth < 760;
+              final topRow = Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _HeaderIconButton(
+                    icon: leadingIcon,
+                    onTap: onLeadingTap,
+                    background: leadBg,
+                    foreground: leadFg,
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        heading,
-                        if (user != null) ...[
-                          const SizedBox(height: 12),
-                          ParkingUserChip(
-                            name: user!.displayName,
-                            role: user!.displayRole,
-                            dark: dark,
+                        Text(
+                          title,
+                          style: TextStyle(
+                            color: titleFg,
+                            fontSize: titleSize,
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: -0.6,
                           ),
-                        ],
-                      ],
-                    );
-                  }
-
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      Expanded(child: heading),
-                      if (user != null) ...[
-                        const SizedBox(width: 12),
-                        SizedBox(
-                          width: 364,
-                          child: ParkingUserChip(
-                            name: user!.displayName,
-                            role: user!.displayRole,
-                            dark: dark,
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: subtitleFg,
+                            fontSize: subtitleSize,
+                            height: 1.25,
                           ),
                         ),
                       ],
-                    ],
-                  );
-                },
-              ),
-            ],
+                    ),
+                  ),
+                  if (trailingIcon != null) ...[
+                    const SizedBox(width: 12),
+                    _HeaderIconButton(
+                      icon: trailingIcon!,
+                      onTap: trailingOnTap ?? () {},
+                      background: trailBg,
+                      foreground: trailFg,
+                      badgeColor: trailingBadgeColor,
+                    ),
+                  ],
+                ],
+              );
+
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  if (showStatusBar) ParkingStatusBar(dark: dark),
+                  if (showStatusBar) const SizedBox(height: 16),
+                  topRow,
+                  if (user != null) ...[
+                    const SizedBox(height: 12),
+                    Align(
+                      alignment: Alignment.centerRight,
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(maxWidth: narrow ? constraints.maxWidth : 336),
+                        child: ParkingUserChip(
+                          name: user!.displayName,
+                          role: user!.displayRole,
+                          dark: dark,
+                          compact: true,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              );
+            },
           ),
         ),
       ),
@@ -1819,11 +1888,11 @@ class ParkingBottomNav extends StatelessWidget {
         padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
         child: SurfaceCard(
           radius: 28,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
-          color: Colors.white,
-          borderColor: const Color(0xFFE8EDF7),
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+          color: const Color(0xFF0F1B3A),
+          borderColor: const Color(0xFF1E2B4D),
           shadow: const [
-            BoxShadow(color: Color(0x180B1630), blurRadius: 24, offset: Offset(0, 12)),
+            BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
           ],
           child: Row(
             children: [
@@ -1856,24 +1925,34 @@ class _ParkingBottomNavItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = selected ? ParkingColors.primary : const Color(0xFF8B93AD);
+    final foreground = selected ? const Color(0xFF63A0FF) : const Color(0xFF8F9BB7);
+    final background = selected ? const Color(0xFF122856) : Colors.transparent;
+    final borderColor = selected ? const Color(0xFF21438A) : Colors.transparent;
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(vertical: 4),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          curve: Curves.easeOutCubic,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(color: borderColor),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(item.icon, color: foreground, size: 31),
-              const SizedBox(height: 10),
+              Icon(item.icon, color: foreground, size: 24),
+              const SizedBox(height: 6),
               Text(
                 item.label,
                 style: TextStyle(
                   color: foreground,
-                  fontSize: 13.5,
+                  fontSize: 12,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
                 ),
               ),

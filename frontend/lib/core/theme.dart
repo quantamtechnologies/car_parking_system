@@ -2,44 +2,44 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ParkingColors {
-  static const scaffold = Color(0xFFF4F7FC);
-  static const surface = Colors.white;
-  static const surfaceMuted = Color(0xFFF7F8FF);
-  static const ink = Color(0xFF111A4D);
-  static const inkSoft = Color(0xFF69708F);
-  static const primary = Color(0xFF2A63F5);
-  static const primaryDeep = Color(0xFF6D3EF7);
-  static const accent = Color(0xFF3E86FF);
-  static const success = Color(0xFF17B26A);
-  static const warning = Color(0xFFF2994A);
-  static const danger = Color(0xFFF04444);
+  static const scaffold = Color(0xFF081429);
+  static const surface = Color(0xFF0D1832);
+  static const surfaceMuted = Color(0xFF111E3C);
+  static const ink = Color(0xFFF7FAFF);
+  static const inkSoft = Color(0xFF90A0C0);
+  static const primary = Color(0xFF2563EB);
+  static const primaryDeep = Color(0xFF7C3AED);
+  static const accent = Color(0xFF4F7DFB);
+  static const success = Color(0xFF10B981);
+  static const warning = Color(0xFFF59E0B);
+  static const danger = Color(0xFFEF4444);
 
   static const LinearGradient primaryGradient = LinearGradient(
-    colors: [Color(0xFF2A63F5), Color(0xFF6D3EF7)],
+    colors: [Color(0xFF2563EB), Color(0xFF7C3AED)],
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
   );
 
   static const LinearGradient entryHeaderGradient = LinearGradient(
-    colors: [Color(0xFF245CF5), Color(0xFF3362F4), Color(0xFF5F42F6)],
+    colors: [Color(0xFF2563EB), Color(0xFF3B82F6), Color(0xFF7C3AED)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient blueCardGradient = LinearGradient(
-    colors: [Color(0xFF245CF5), Color(0xFF3D7BFF)],
+    colors: [Color(0xFF2563EB), Color(0xFF4F7DFB)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient purpleCardGradient = LinearGradient(
-    colors: [Color(0xFF9B5BFF), Color(0xFF6A3EF4)],
+    colors: [Color(0xFF7C3AED), Color(0xFF5B21B6)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
 
   static const LinearGradient navyCardGradient = LinearGradient(
-    colors: [Color(0xFF0A1E63), Color(0xFF102D8A)],
+    colors: [Color(0xFF0A152A), Color(0xFF10264D)],
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
@@ -52,7 +52,7 @@ ThemeData parkingTheme() {
   const bg = ParkingColors.scaffold;
   const surface = ParkingColors.surfaceMuted;
 
-  final baseTextTheme = GoogleFonts.manropeTextTheme();
+  final baseTextTheme = GoogleFonts.manropeTextTheme(ThemeData.dark().textTheme);
 
   return ThemeData(
     useMaterial3: true,
@@ -63,7 +63,7 @@ ThemeData parkingTheme() {
       surface: ParkingColors.surface,
       surfaceContainerHighest: surface,
       onSurface: deepInk,
-      brightness: Brightness.light,
+      brightness: Brightness.dark,
     ),
     scaffoldBackgroundColor: bg,
     textTheme: baseTextTheme.apply(
@@ -87,27 +87,27 @@ ThemeData parkingTheme() {
       fillColor: ParkingColors.surface,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: const Color(0xFFE3E8F5)),
+        borderSide: BorderSide(color: const Color(0xFF243559)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: const Color(0xFFE3E8F5)),
+        borderSide: BorderSide(color: const Color(0xFF243559)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: primary, width: 1.4),
       ),
-      labelStyle: const TextStyle(color: Color(0xFF6C768C), fontWeight: FontWeight.w600),
+      labelStyle: const TextStyle(color: Color(0xFF93A1C4), fontWeight: FontWeight.w600),
       floatingLabelStyle: const TextStyle(color: primary, fontWeight: FontWeight.w700),
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: Colors.white.withOpacity(0.92),
-      indicatorColor: primary.withOpacity(0.12),
+      backgroundColor: const Color(0xFF0C1731).withOpacity(0.96),
+      indicatorColor: primary.withOpacity(0.18),
       labelTextStyle: MaterialStateProperty.resolveWith(
         (states) => TextStyle(
           fontWeight: states.contains(MaterialState.selected) ? FontWeight.w800 : FontWeight.w600,
-          color: states.contains(MaterialState.selected) ? primary : const Color(0xFF718096),
+          color: states.contains(MaterialState.selected) ? primary : const Color(0xFF8A97B7),
           fontSize: 12,
         ),
       ),

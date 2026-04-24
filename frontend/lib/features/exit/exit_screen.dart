@@ -138,20 +138,28 @@ class _ExitScreenState extends State<ExitScreen> {
   Widget _buildHeader(UserProfile? user) {
     return ParkingScreenHeader(
       title: 'Vehicle Exit',
-      subtitle: 'Prepare parked vehicles for departure',
+      subtitle: 'Record vehicle departure',
       user: user,
       onLeadingTap: () => context.go('/'),
       leadingIcon: Icons.arrow_back_rounded,
       dark: true,
-      backgroundGradient: ParkingColors.entryHeaderGradient,
+      backgroundGradient: const LinearGradient(
+        colors: [Color(0xFF5B21B6), Color(0xFF7C3AED), Color(0xFF8B5CF6)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+      ),
       titleColor: Colors.white,
-      subtitleColor: Colors.white.withOpacity(0.80),
-      leadingBackground: Colors.white.withOpacity(0.14),
+      subtitleColor: const Color(0xFFE4D9FF),
+      leadingBackground: Colors.white.withOpacity(0.16),
       leadingIconColor: Colors.white,
-      padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-      titleSize: 30,
-      subtitleSize: 16,
-      bottomRadius: 34,
+      trailingIcon: Icons.qr_code_scanner_rounded,
+      trailingOnTap: _scanPlate,
+      trailingBackground: Colors.white.withOpacity(0.16),
+      trailingIconColor: Colors.white,
+      padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+      titleSize: 28,
+      subtitleSize: 15,
+      bottomRadius: 30,
     );
   }
 
@@ -209,41 +217,84 @@ class _ExitScreenState extends State<ExitScreen> {
   }
 
   Widget _buildSuccess(UserProfile? user, _ExitPageData data) {
-    final displayVehicles = _expandedVehicles ? data.vehicles : data.vehicles.take(6).toList();
     final currentSession = _session;
     final breakdown = _breakdown;
+    final vehicle = currentSession?['vehicle'] as Map?;
+    final plate = vehicle?['plate_number']?.toString() ?? _selectedPlate ?? _plate.text.trim();
+    final entryAt = DateTime.tryParse(currentSession?['entry_time']?.toString() ?? '');
+    final now = DateTime.now();
+    final hasSession = currentSession != null && breakdown != null;
     final activeVehicleCount = data.activePlates.length;
+    final entryDate = entryAt == null ? 'Waiting' : DateFormat('d MMM y').format(entryAt);
+    final entryClock = entryAt == null ? '--:--' : DateFormat('hh:mm a').format(entryAt);
+    final exitDate = DateFormat('d MMM y').format(now);
+    final exitClock = DateFormat('hh:mm a').format(now);
+    final durationLabel = hasSession ? _formatDuration((breakdown!['duration_minutes'] as num?)?.toInt() ?? 0) : '--';
+    final amountDue = hasSession ? _asDouble(breakdown!['total_fee']) : 0;
+    final actionLabel = hasSession ? 'Continue to Payment' : 'Process Exit';
 
-    final receipt = currentSession == null || breakdown == null
-        ? null
-        : ReceiptCard(
-            entryTime: _formatDateTime(currentSession['entry_time']?.toString(), fallback: 'Unknown'),
-            exitTime: DateFormat('HH:mm').format(DateTime.now()),
-            durationLabel: _formatDuration((breakdown['duration_minutes'] as num?)?.toInt() ?? 0),
-            baseFee: _asDouble(breakdown['base_fee']),
-            overdueFee: _asDouble(breakdown['hourly_charge']) +
-                _asDouble(breakdown['extra_charges']) +
-                _asDouble(breakdown['penalty_amount']),
-            totalDue: _asDouble(breakdown['total_fee']),
-            overdue: _asDouble(breakdown['hourly_charge']) +
-                    _asDouble(breakdown['extra_charges']) +
-                    _asDouble(breakdown['penalty_amount']) >
-                0,
-            note: _asDouble(breakdown['hourly_charge']) +
-                        _asDouble(breakdown['extra_charges']) +
-                        _asDouble(breakdown['penalty_amount']) >
-                    0
-                ? 'Overdue charges were added automatically because the stay exceeded the grace period.'
-                : 'No overdue fee was added for this exit.',
-          );
+    Widget buildInfoCard({
+      required String title,
+      required String subtitle,
+      required List<Widget> cells,
+    }) {
+      return SurfaceCard(
+        radius: 28,
+        padding: const EdgeInsets.all(18),
+        color: const Color(0xFF0F1B3A),
+        borderColor: const Color(0xFF1E2B4D),
+        shadow: const [
+          BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
+        ],
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              subtitle,
+              style: const TextStyle(
+                color: Color(0xFF9EABC9),
+                fontSize: 12.5,
+                height: 1.35,
+              ),
+            ),
+            const SizedBox(height: 18),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final stacked = constraints.maxWidth < 720;
+                if (stacked) {
+                  return Column(
+                    children: [
+                      for (var index = 0; index < cells.length; index++) ...[
+                        cells[index],
+                        if (index != cells.length - 1) const SizedBox(height: 12),
+                      ],
+                    ],
+                  );
+                }
 
-    final sessionTotal = _asDouble(currentSession?['total_fee']);
-    final amountPaid = _asDouble(currentSession?['amount_paid']);
-    final paymentStatus = currentSession == null
-        ? 'Pending'
-        : amountPaid >= sessionTotal && sessionTotal > 0
-            ? 'Paid'
-            : 'Pending';
+                return Row(
+                  children: [
+                    for (var index = 0; index < cells.length; index++) ...[
+                      if (index > 0) Container(width: 1, height: 54, color: const Color(0xFF1E2B4D)),
+                      Expanded(child: cells[index]),
+                    ],
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      );
+    }
 
     return SingleChildScrollView(
       physics: const AlwaysScrollableScrollPhysics(),
@@ -258,229 +309,314 @@ class _ExitScreenState extends State<ExitScreen> {
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 1320),
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    SurfaceCard(
-                      radius: 30,
-                      padding: const EdgeInsets.all(18),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final wide = constraints.maxWidth >= 1000;
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final wide = constraints.maxWidth >= 1040;
 
-                          final preview = CameraPreviewCard(
-                            title: 'Camera preview',
-                            subtitle: 'Capture the exit plate or pick a parked vehicle from the list below.',
-                            badgeLabel: 'EXIT',
-                            actionLabel: 'Open camera',
-                            onAction: _scanPlate,
-                            icon: Icons.camera_alt_rounded,
-                          );
-
-                          final form = SurfaceCard(
-                            radius: 28,
-                            padding: const EdgeInsets.all(18),
-                            color: const Color(0xFFF9FBFF),
-                            borderColor: const Color(0xFFE5ECF5),
-                            shadow: const [
-                              BoxShadow(color: Color(0x0D0B1630), blurRadius: 20, offset: Offset(0, 10)),
-                            ],
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
+                        final plateCard = SurfaceCard(
+                          radius: 28,
+                          padding: const EdgeInsets.all(18),
+                          color: const Color(0xFF0F1B3A),
+                          borderColor: const Color(0xFF1E2B4D),
+                          shadow: const [
+                            BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
+                          ],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                children: [
+                                  Container(
+                                    width: 42,
+                                    height: 42,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1A294C),
+                                      borderRadius: BorderRadius.circular(14),
+                                    ),
+                                    child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF8FB5FF), size: 22),
+                                  ),
+                                  const SizedBox(width: 12),
+                                  const Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Exit Plate Number',
+                                          style: TextStyle(
+                                            color: Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w800,
+                                          ),
+                                        ),
+                                        SizedBox(height: 4),
+                                        Text(
+                                          'Type the plate or use the scanner to load the exit fee.',
+                                          style: TextStyle(
+                                            color: Color(0xFF9EABC9),
+                                            fontSize: 12.5,
+                                            height: 1.35,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
+                              Container(
+                                height: 64,
+                                padding: const EdgeInsets.symmetric(horizontal: 14),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF101C38),
+                                  borderRadius: BorderRadius.circular(18),
+                                  border: Border.all(color: const Color(0xFF243559)),
+                                ),
+                                child: Row(
                                   children: [
                                     Container(
-                                      width: 42,
-                                      height: 42,
+                                      width: 40,
+                                      height: 26,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFF0F4FF),
-                                        borderRadius: BorderRadius.circular(14),
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(color: const Color(0xFF31446B)),
                                       ),
-                                      child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4A35E8)),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                      child: Stack(
+                                        fit: StackFit.expand,
                                         children: [
-                                          Text(
-                                            'Exit plate',
-                                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                                  fontWeight: FontWeight.w800,
-                                                ),
+                                          Column(
+                                            children: const [
+                                              Expanded(child: ColoredBox(color: Color(0xFF000000))),
+                                              Expanded(child: ColoredBox(color: Color(0xFFD71F2A))),
+                                              Expanded(child: ColoredBox(color: Color(0xFF006A44))),
+                                            ],
                                           ),
-                                          const SizedBox(height: 4),
-                                          const Text(
-                                            'Type the number plate or use the camera and prepare the receipt.',
-                                            style: TextStyle(color: Color(0xFF667085), height: 1.35),
+                                          Center(
+                                            child: Container(
+                                              width: 8,
+                                              height: 20,
+                                              decoration: BoxDecoration(
+                                                color: Colors.white,
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                            ),
                                           ),
                                         ],
                                       ),
                                     ),
+                                    const SizedBox(width: 8),
+                                    const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF9EABC9), size: 24),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: TextField(
+                                        controller: _plate,
+                                        decoration: const InputDecoration(
+                                          border: InputBorder.none,
+                                          isDense: true,
+                                          hintText: 'Enter or scan the plate',
+                                          hintStyle: TextStyle(color: Color(0xFF7280A5)),
+                                          contentPadding: EdgeInsets.zero,
+                                        ),
+                                        textCapitalization: TextCapitalization.characters,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.4,
+                                        ),
+                                        onSubmitted: (_) => _prepareExit(),
+                                      ),
+                                    ),
+                                    Material(
+                                      color: Colors.transparent,
+                                      child: InkWell(
+                                        borderRadius: BorderRadius.circular(14),
+                                        onTap: _prepareExit,
+                                        child: Container(
+                                          width: 38,
+                                          height: 38,
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF142348),
+                                            borderRadius: BorderRadius.circular(14),
+                                          ),
+                                          child: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
+                                        ),
+                                      ),
+                                    ),
                                   ],
                                 ),
-                                const SizedBox(height: 18),
-                                TextField(
-                                  controller: _plate,
-                                  decoration: InputDecoration(
-                                    labelText: 'Number plate',
-                                    hintText: 'Enter or scan the plate',
-                                    suffixIcon: IconButton(
-                                      icon: const Icon(Icons.camera_alt_rounded),
-                                      tooltip: 'Open camera scanner',
-                                      onPressed: _scanPlate,
-                                    ),
-                                  ),
-                                  textCapitalization: TextCapitalization.characters,
-                                ),
-                                if (_scanSummary != null) ...[
-                                  const SizedBox(height: 14),
-                                  Align(
-                                    alignment: Alignment.centerLeft,
-                                    child: StatusBadge(label: _scanSummary!, color: const Color(0xFF4A35E8)),
-                                  ),
-                                ],
-                                const SizedBox(height: 18),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: GradientActionButton(
-                                    label: _loading ? 'Calculating' : 'Calculate fee',
-                                    icon: Icons.receipt_long_rounded,
-                                    isBusy: _loading,
-                                    onPressed: _loading ? null : _prepareExit,
-                                  ),
+                              ),
+                              if (_scanSummary != null) ...[
+                                const SizedBox(height: 14),
+                                Align(
+                                  alignment: Alignment.centerLeft,
+                                  child: StatusBadge(label: _scanSummary!, color: const Color(0xFF8B5CF6)),
                                 ),
                               ],
+                            ],
+                          ),
+                        );
+
+                        final entryInfoCard = buildInfoCard(
+                          title: 'Entry Information',
+                          subtitle: hasSession
+                              ? 'Details captured when the vehicle entered the parking lot.'
+                              : 'Scan a plate to load the entry details.',
+                          cells: [
+                            _InfoCell(
+                              icon: Icons.calendar_month_rounded,
+                              label: 'Entry Date',
+                              value: entryDate,
                             ),
-                          );
+                            _InfoCell(
+                              icon: Icons.schedule_rounded,
+                              label: 'Entry Time',
+                              value: entryClock,
+                            ),
+                            _InfoCell(
+                              icon: Icons.receipt_long_rounded,
+                              label: 'Plate',
+                              value: plate.isEmpty ? 'Waiting' : plate,
+                            ),
+                          ],
+                        );
 
-                          if (wide) {
-                            return Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(flex: 5, child: preview),
-                                const SizedBox(width: 16),
-                                Expanded(flex: 5, child: form),
-                              ],
-                            );
-                          }
+                        final exitInfoCard = buildInfoCard(
+                          title: 'Exit Information',
+                          subtitle: hasSession
+                              ? 'Review the exit snapshot before moving to payment.'
+                              : 'Exit date, time, and fee will appear here once processed.',
+                          cells: [
+                            _InfoCell(
+                              icon: Icons.event_available_rounded,
+                              label: 'Exit Date',
+                              value: exitDate,
+                            ),
+                            _InfoCell(
+                              icon: Icons.schedule_rounded,
+                              label: 'Exit Time',
+                              value: exitClock,
+                            ),
+                            _InfoCell(
+                              icon: Icons.payments_rounded,
+                              label: 'Amount Due',
+                              value: hasSession ? money(amountDue) : 'Pending',
+                            ),
+                          ],
+                        );
 
+                        final inactiveNote = !hasSession
+                            ? SurfaceCard(
+                                radius: 22,
+                                padding: const EdgeInsets.all(14),
+                                color: const Color(0xFF101C38),
+                                borderColor: const Color(0xFF1E2B4D),
+                                shadow: const [
+                                  BoxShadow(color: Color(0x40050A15), blurRadius: 18, offset: Offset(0, 10)),
+                                ],
+                                child: Row(
+                                  children: [
+                                    Container(
+                                      width: 38,
+                                      height: 38,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF142348),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        '$activeVehicleCount vehicles are currently active. Scan a plate to load the exit fee.',
+                                        style: const TextStyle(
+                                          color: Color(0xFF9EABC9),
+                                          fontSize: 12.5,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              )
+                            : const SizedBox.shrink();
+
+                        final actionButton = SizedBox(
+                          width: double.infinity,
+                          child: GradientActionButton(
+                            label: actionLabel,
+                            icon: hasSession ? Icons.payments_rounded : Icons.arrow_forward_rounded,
+                            isBusy: _loading,
+                            onPressed: _loading
+                                ? null
+                                : () {
+                                    if (hasSession) {
+                                      context.go('/payment', extra: currentSession);
+                                    } else {
+                                      _prepareExit();
+                                    }
+                                  },
+                          ),
+                        );
+
+                        if (wide) {
                           return Column(
                             crossAxisAlignment: CrossAxisAlignment.stretch,
                             children: [
-                              preview,
+                              Row(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Expanded(flex: 5, child: plateCard),
+                                  const SizedBox(width: 16),
+                                  Expanded(
+                                    flex: 5,
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                      children: [
+                                        entryInfoCard,
+                                        const SizedBox(height: 16),
+                                        exitInfoCard,
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              if (!hasSession) ...[
+                                const SizedBox(height: 16),
+                                inactiveNote,
+                              ],
                               const SizedBox(height: 16),
-                              form,
+                              actionButton,
                             ],
                           );
-                        },
-                      ),
-                    ),
-                    if (receipt != null) ...[
-                      const SizedBox(height: 18),
-                      receipt,
-                      const SizedBox(height: 18),
-                      PaymentStatusCard(
-                        statusLabel: paymentStatus,
-                        amountPaid: amountPaid,
-                        amountDue: sessionTotal,
-                        receiptNumber: currentSession?['receipt_number']?.toString(),
-                        method: currentSession?['payment_method']?.toString(),
-                      ),
-                      const SizedBox(height: 14),
-                      Align(
-                        alignment: Alignment.centerRight,
-                        child: SizedBox(
-                          width: 220,
-                          child: GradientActionButton(
-                            label: 'Go to payment',
-                            icon: Icons.payments_rounded,
-                            onPressed: () => context.go('/payment', extra: currentSession),
-                          ),
-                        ),
-                      ),
-                    ],
-                    const SizedBox(height: 18),
-                    SurfaceCard(
-                      radius: 28,
-                      padding: const EdgeInsets.all(18),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'Active vehicles',
-                                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                            fontWeight: FontWeight.w800,
-                                            letterSpacing: -0.3,
-                                          ),
-                                    ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '$activeVehicleCount parked vehicles ready for exit',
-                                      style: const TextStyle(color: Color(0xFF667085), height: 1.35),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: data.vehicles.length <= 6
-                                    ? null
-                                    : () => setState(() => _expandedVehicles = !_expandedVehicles),
-                                child: Text(_expandedVehicles ? 'Show less' : 'See more'),
-                              ),
+                        }
+
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            plateCard,
+                            const SizedBox(height: 16),
+                            entryInfoCard,
+                            const SizedBox(height: 16),
+                            exitInfoCard,
+                            if (!hasSession) ...[
+                              const SizedBox(height: 16),
+                              inactiveNote,
                             ],
-                          ),
-                          const SizedBox(height: 16),
-                          if (displayVehicles.isEmpty)
-                            const Padding(
-                              padding: EdgeInsets.symmetric(vertical: 28),
-                              child: Center(
-                                child: Text(
-                                  'No parked vehicles are ready for exit.',
-                                  style: TextStyle(color: Color(0xFF667085)),
-                                ),
-                              ),
-                            )
-                          else
-                            Column(
-                              children: [
-                                for (var index = 0; index < displayVehicles.length; index++) ...[
-                                  VehicleRowCard(
-                                    vehicleType: displayVehicles[index].displayVehicleType,
-                                    ownerName: displayVehicles[index].ownerDisplay,
-                                    phoneNumber: displayVehicles[index].phoneDisplay,
-                                    plateNumber: displayVehicles[index].plateNumber,
-                                    statusLabel: 'Ready to exit',
-                                    statusColor: const Color(0xFF22A06B),
-                                    selected: _selectedPlate == displayVehicles[index].plateNumber,
-                                    onTap: () {
-                                      setState(() {
-                                        _plate.text = displayVehicles[index].plateNumber;
-                                        _selectedPlate = displayVehicles[index].plateNumber;
-                                      });
-                                      _prepareExit(displayVehicles[index].plateNumber);
-                                    },
-                                  ),
-                                  if (index != displayVehicles.length - 1) const SizedBox(height: 12),
-                                ],
-                              ],
-                            ),
-                        ],
-                      ),
+                            const SizedBox(height: 16),
+                            actionButton,
+                          ],
+                        );
+                      },
                     ),
                   ],
                 ),
               ),
             ),
           ),
-      ],
-        ),
+        ],
+      ),
     );
   }
 

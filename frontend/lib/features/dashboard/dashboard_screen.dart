@@ -152,23 +152,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     user: user,
                     onLeadingTap: () {},
                     leadingIcon: Icons.menu_rounded,
-                    dark: false,
-                    backgroundColor: ParkingColors.scaffold,
-                    titleColor: ParkingColors.ink,
-                    subtitleColor: const Color(0xFF667085),
-                    leadingBackground: const Color(0xFFEAF0FF),
-                    leadingIconColor: ParkingColors.primary,
-                    padding: const EdgeInsets.fromLTRB(18, 12, 18, 12),
-                    titleSize: 32,
-                    subtitleSize: 17,
-                    showStatusBar: true,
-                    bottomRadius: 0,
+                    trailingIcon: Icons.notifications_none_rounded,
+                    trailingOnTap: () {},
+                    trailingBadgeColor: const Color(0xFFEF4444),
+                    dark: true,
+                    backgroundGradient: const LinearGradient(
+                      colors: [Color(0xFF081532), Color(0xFF0B1C48), Color(0xFF122B63)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    titleColor: Colors.white,
+                    subtitleColor: const Color(0xFFB0BBDD),
+                    leadingBackground: const Color(0xFF1B2D5F),
+                    leadingIconColor: Colors.white,
+                    trailingBackground: const Color(0xFF1B2D5F),
+                    trailingIconColor: Colors.white,
+                    padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+                    titleSize: 30,
+                    subtitleSize: 15,
+                    bottomRadius: 30,
                   ),
                   Padding(
                     padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
                     child: Center(
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 980),
+                        constraints: const BoxConstraints(maxWidth: 1320),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
@@ -188,6 +196,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       value: today.carsPerDay.toString(),
                                       icon: Icons.directions_car_rounded,
                                       gradient: ParkingColors.blueCardGradient,
+                                      iconColor: Colors.white,
                                       footer: _TrendRow(
                                         label: '${entryDelta.abs()}% from yesterday',
                                         positive: entryDelta >= 0,
@@ -198,6 +207,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       value: today.pendingPayments.toString(),
                                       icon: Icons.exit_to_app_rounded,
                                       gradient: ParkingColors.purpleCardGradient,
+                                      iconColor: Colors.white,
                                       footer: _TrendRow(
                                         label: '${exitDelta.abs()}% from yesterday',
                                         positive: exitDelta >= 0,
@@ -207,7 +217,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       title: 'Today\'s Revenue',
                                       value: money(today.revenuePerDay),
                                       icon: Icons.account_balance_wallet_rounded,
-                                      gradient: ParkingColors.navyCardGradient,
+                                      gradient: const LinearGradient(
+                                        colors: [Color(0xFF0E7C66), Color(0xFF10B981)],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      iconColor: Colors.white,
                                       footer: _TrendRow(
                                         label: '${revenueDelta.abs()}% from yesterday',
                                         positive: revenueDelta >= 0,
@@ -217,6 +232,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       title: 'Active Vehicles',
                                       value: today.activeSessions.toString(),
                                       icon: Icons.schedule_rounded,
+                                      iconColor: const Color(0xFFF59E0B),
                                       footer: Row(
                                         children: [
                                           Container(
@@ -231,7 +247,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                           const Text(
                                             'Currently Parked',
                                             style: TextStyle(
-                                              color: Color(0xFF667085),
+                                              color: Color(0xFF9EABC9),
                                               fontSize: 12.5,
                                               fontWeight: FontWeight.w700,
                                             ),
@@ -247,10 +263,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             SurfaceCard(
                               radius: 28,
                               padding: const EdgeInsets.all(18),
-                              color: Colors.white,
-                              borderColor: const Color(0xFFE8EDF7),
+                              color: const Color(0xFF0F1B3A),
+                              borderColor: const Color(0xFF1E2B4D),
                               shadow: const [
-                                BoxShadow(color: Color(0x100B1630), blurRadius: 24, offset: Offset(0, 12)),
+                                BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
                               ],
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -261,7 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         child: Text(
                                           'Revenue Overview',
                                           style: TextStyle(
-                                            color: ParkingColors.ink,
+                                            color: Colors.white,
                                             fontSize: 18,
                                             fontWeight: FontWeight.w800,
                                           ),
@@ -270,9 +286,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: const Color(0xFF132246),
                                           borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(color: const Color(0xFFDDE4F2)),
+                                          border: Border.all(color: const Color(0xFF243559)),
                                         ),
                                         child: const Row(
                                           mainAxisSize: MainAxisSize.min,
@@ -280,13 +296,13 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                             Text(
                                               'This Week',
                                               style: TextStyle(
-                                                color: ParkingColors.ink,
+                                                color: Colors.white,
                                                 fontSize: 13.5,
                                                 fontWeight: FontWeight.w800,
                                               ),
                                             ),
                                             SizedBox(width: 8),
-                                            Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF8A93B4), size: 22),
+                                            Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF9EABC9), size: 22),
                                           ],
                                         ),
                                       ),
@@ -308,7 +324,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   child: Text(
                                     'Quick Actions',
                                     style: TextStyle(
-                                      color: ParkingColors.ink,
+                                      color: Colors.white,
                                       fontSize: 18,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -319,7 +335,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   child: const Text(
                                     'View All',
                                     style: TextStyle(
-                                      color: ParkingColors.primary,
+                                      color: Color(0xFF9EABC9),
                                       fontSize: 15,
                                       fontWeight: FontWeight.w800,
                                     ),
@@ -337,6 +353,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     title: 'New Entry',
                                     subtitle: '',
                                     icon: Icons.directions_car_rounded,
+                                    accentColor: ParkingColors.primary,
                                     onTap: () => context.go('/entry'),
                                   ),
                                   const SizedBox(width: 12),
@@ -344,6 +361,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     title: 'Vehicle Exit',
                                     subtitle: '',
                                     icon: Icons.exit_to_app_rounded,
+                                    accentColor: ParkingColors.primaryDeep,
                                     onTap: () => context.go('/exit'),
                                   ),
                                   const SizedBox(width: 12),
@@ -351,6 +369,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     title: 'Payment',
                                     subtitle: '',
                                     icon: Icons.account_balance_wallet_rounded,
+                                    accentColor: const Color(0xFF10B981),
                                     onTap: () => context.go('/payment'),
                                   ),
                                   const SizedBox(width: 12),
@@ -358,6 +377,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     title: 'Receipts',
                                     subtitle: '',
                                     icon: Icons.receipt_long_rounded,
+                                    accentColor: const Color(0xFFF59E0B),
                                     onTap: () => context.go('/reports'),
                                   ),
                                   const SizedBox(width: 12),
@@ -365,6 +385,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                     title: 'Reports',
                                     subtitle: '',
                                     icon: Icons.bar_chart_rounded,
+                                    accentColor: const Color(0xFFEF4444),
                                     onTap: () => context.go('/reports'),
                                   ),
                                 ],
@@ -400,17 +421,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
                             SurfaceCard(
                               radius: 28,
                               padding: EdgeInsets.zero,
-                              color: Colors.white,
-                              borderColor: const Color(0xFFE8EDF7),
+                              color: const Color(0xFF0F1B3A),
+                              borderColor: const Color(0xFF1E2B4D),
                               shadow: const [
-                                BoxShadow(color: Color(0x100B1630), blurRadius: 24, offset: Offset(0, 12)),
+                                BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
                               ],
                               child: Column(
                                 children: [
                                   for (var index = 0; index < recentSessions.length; index++) ...[
                                     _RecentActivityRow(session: recentSessions[index]),
                                     if (index != recentSessions.length - 1)
-                                      const Divider(height: 1, thickness: 1, color: Color(0xFFECEFF7)),
+                                      const Divider(height: 1, thickness: 1, color: Color(0xFF1E2B4D)),
                                   ],
                                 ],
                               ),
@@ -510,10 +531,10 @@ class _RecentActivityRow extends StatelessWidget {
       child: Row(
         children: [
           Container(
-            width: 60,
-            height: 60,
+            width: 54,
+            height: 54,
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.12),
+              color: accent.withOpacity(0.14),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Icon(
@@ -523,7 +544,7 @@ class _RecentActivityRow extends StatelessWidget {
                       ? Icons.exit_to_app_rounded
                       : Icons.directions_car_rounded,
               color: accent,
-              size: 30,
+              size: 26,
             ),
           ),
           const SizedBox(width: 14),
@@ -534,8 +555,8 @@ class _RecentActivityRow extends StatelessWidget {
                 Text(
                   title,
                   style: const TextStyle(
-                    color: ParkingColors.ink,
-                    fontSize: 16,
+                    color: Colors.white,
+                    fontSize: 15.5,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -543,8 +564,8 @@ class _RecentActivityRow extends StatelessWidget {
                 Text(
                   session.plateNumber.isEmpty ? 'Unknown plate' : session.plateNumber,
                   style: const TextStyle(
-                    color: Color(0xFF667085),
-                    fontSize: 13.5,
+                    color: Color(0xFF9EABC9),
+                    fontSize: 13,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
@@ -555,23 +576,23 @@ class _RecentActivityRow extends StatelessWidget {
           Text(
             time,
             style: const TextStyle(
-              color: Color(0xFF7C84A6),
-              fontSize: 13.5,
+              color: Color(0xFF9EABC9),
+              fontSize: 12.5,
               fontWeight: FontWeight.w700,
             ),
           ),
           const SizedBox(width: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
             decoration: BoxDecoration(
-              color: accent.withOpacity(0.12),
+              color: accent.withOpacity(0.14),
               borderRadius: BorderRadius.circular(999),
             ),
             child: Text(
               badge,
               style: TextStyle(
                 color: accent,
-                fontSize: 12.5,
+                fontSize: 12,
                 fontWeight: FontWeight.w800,
               ),
             ),

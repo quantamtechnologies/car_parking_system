@@ -27,7 +27,6 @@ class EntryScreen extends StatefulWidget {
 class _EntryScreenState extends State<EntryScreen> {
   late final TextEditingController _plateController;
   late String _vehicleType;
-  String _assignedSlot = 'B2 - 24';
   VehicleRecord? _resolvedVehicle;
   bool _busy = false;
 
@@ -195,433 +194,362 @@ class _EntryScreenState extends State<EntryScreen> {
               dark: true,
               backgroundGradient: ParkingColors.entryHeaderGradient,
               titleColor: Colors.white,
-              subtitleColor: Colors.white.withOpacity(0.80),
-              leadingBackground: Colors.white.withOpacity(0.14),
+              subtitleColor: const Color(0xFFE4E8FF),
+              leadingBackground: Colors.white.withOpacity(0.16),
               leadingIconColor: Colors.white,
-              padding: const EdgeInsets.fromLTRB(18, 12, 18, 18),
-              titleSize: 30,
-              subtitleSize: 16,
-              bottomRadius: 34,
+              trailingIcon: Icons.qr_code_scanner_rounded,
+              trailingOnTap: _openCamera,
+              trailingBackground: Colors.white.withOpacity(0.16),
+              trailingIconColor: Colors.white,
+              padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+              titleSize: 28,
+              subtitleSize: 15,
+              bottomRadius: 30,
             ),
-            Container(
-              decoration: const BoxDecoration(
-                color: ParkingColors.surface,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(34)),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(18, 18, 18, 0),
-                child: Center(
-                  child: ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 1040),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final dense = constraints.maxWidth >= 980;
-                        final stackSelectors = constraints.maxWidth < 720;
-
-                        final cameraCard = CameraPreviewCard(
-                          title: 'Capture License Plate',
-                          subtitle: 'Position the license plate within the frame',
-                          badgeLabel: 'ENTRY',
-                          actionLabel: 'Switch Camera',
-                          onAction: _openCamera,
-                          icon: Icons.photo_camera_rounded,
-                        );
-
-                        final plateCard = SurfaceCard(
-                          radius: 28,
-                          padding: const EdgeInsets.all(18),
-                          color: Colors.white,
-                          borderColor: const Color(0xFFE8EDF7),
-                          shadow: const [
-                            BoxShadow(color: Color(0x100B1630), blurRadius: 22, offset: Offset(0, 12)),
-                          ],
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'License Plate Number',
-                                style: TextStyle(
-                                  color: ParkingColors.ink,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 14),
-                              Container(
-                                height: 72,
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: const Color(0xFFDDE4F2)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 26,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFFD9E2F0)),
-                                      ),
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          Column(
-                                            children: const [
-                                              Expanded(child: ColoredBox(color: Color(0xFF000000))),
-                                              Expanded(child: ColoredBox(color: Color(0xFFD71F2A))),
-                                              Expanded(child: ColoredBox(color: Color(0xFF006A44))),
-                                            ],
-                                          ),
-                                          Center(
-                                            child: Container(
-                                              width: 8,
-                                              height: 20,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Icon(
-                                      Icons.keyboard_arrow_down_rounded,
-                                      color: Color(0xFF8A93B4),
-                                      size: 24,
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _plateController,
-                                        textCapitalization: TextCapitalization.characters,
-                                        style: const TextStyle(
-                                          color: ParkingColors.ink,
-                                          fontSize: 22,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.5,
-                                        ),
-                                        decoration: const InputDecoration(
-                                          border: InputBorder.none,
-                                          isDense: true,
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
-                                        onSubmitted: (_) => _lookupVehicle(redirectToRegistration: true),
-                                      ),
-                                    ),
-                                    IconButton(
-                                      onPressed: _openCamera,
-                                      icon: const Icon(
-                                        Icons.qr_code_scanner_rounded,
-                                        color: ParkingColors.primary,
-                                        size: 28,
-                                      ),
-                                      tooltip: 'Scan plate',
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        final vehicleCard = SurfaceCard(
-                          radius: 26,
-                          padding: const EdgeInsets.all(18),
-                          color: const Color(0xFFE9EEFF),
-                          borderColor: Colors.transparent,
-                          shadow: const [
-                            BoxShadow(color: Color(0x0F0B1630), blurRadius: 18, offset: Offset(0, 10)),
-                          ],
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFDDE5FF),
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                    child: const Icon(Icons.directions_car_rounded, color: ParkingColors.primary, size: 28),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Vehicle Type',
-                                          style: TextStyle(
-                                            color: ParkingColors.ink,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          'Select type',
-                                          style: TextStyle(
-                                            color: Color(0xFF6C7592),
-                                            fontSize: 13.5,
-                                            height: 1.2,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              _SelectionField(
-                                value: vehicleTypeLabel(_vehicleType),
-                                onTap: () async {
-                                  final result = await showModalBottomSheet<String>(
-                                    context: context,
-                                    backgroundColor: Colors.transparent,
-                                    isScrollControlled: true,
-                                    builder: (context) {
-                                      return _TypePicker(
-                                        currentValue: _vehicleType,
-                                      );
-                                    },
-                                  );
-                                  if (result != null && mounted) {
-                                    setState(() => _vehicleType = result);
-                                  }
-                                },
-                                trailing: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF7980A3), size: 30),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        final slotCard = SurfaceCard(
-                          radius: 26,
-                          padding: const EdgeInsets.all(18),
-                          color: const Color(0xFFF5EEFF),
-                          borderColor: Colors.transparent,
-                          shadow: const [
-                            BoxShadow(color: Color(0x0F0B1630), blurRadius: 18, offset: Offset(0, 10)),
-                          ],
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 50,
-                                    height: 50,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFFE4D8FF),
-                                      borderRadius: BorderRadius.circular(18),
-                                    ),
-                                    child: const Center(
-                                      child: Text(
-                                        'P',
-                                        style: TextStyle(
-                                          color: Color(0xFF5F36F4),
-                                          fontSize: 24,
-                                          fontWeight: FontWeight.w900,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Assign Slot',
-                                          style: TextStyle(
-                                            color: ParkingColors.ink,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          'Auto assign slot',
-                                          style: TextStyle(
-                                            color: Color(0xFF6C7592),
-                                            fontSize: 13.5,
-                                            height: 1.2,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              _SelectionField(
-                                value: _assignedSlot,
-                                onTap: () {},
-                                textColor: const Color(0xFF5F36F4),
-                                trailing: const Icon(Icons.swap_horiz_rounded, color: Color(0xFF5F36F4), size: 28),
-                              ),
-                            ],
-                          ),
-                        );
-
-                        final infoCard = SurfaceCard(
-                          radius: 28,
-                          padding: const EdgeInsets.all(18),
-                          color: const Color(0xFFF6F3FF),
-                          borderColor: Colors.transparent,
-                          shadow: const [
-                            BoxShadow(color: Color(0x0F0B1630), blurRadius: 18, offset: Offset(0, 10)),
-                          ],
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Entry Information',
-                                style: TextStyle(
-                                  color: ParkingColors.ink,
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 18),
-                              LayoutBuilder(
-                                builder: (context, constraints) {
-                                  final stacked = constraints.maxWidth < 720;
-                                  final cells = [
-                                    _InfoCell(
-                                      icon: Icons.calendar_month_rounded,
-                                      label: 'Entry Date',
-                                      value: dateLabel,
-                                    ),
-                                    _InfoCell(
-                                      icon: Icons.schedule_rounded,
-                                      label: 'Entry Time',
-                                      value: timeLabel,
-                                    ),
-                                    _InfoCell(
-                                      icon: Icons.person_outline_rounded,
-                                      label: 'Recorded By',
-                                      value: recordedBy,
-                                    ),
-                                  ];
-
-                                  if (stacked) {
-                                    return Column(
-                                      children: [
-                                        for (var i = 0; i < cells.length; i++) ...[
-                                          cells[i],
-                                          if (i != cells.length - 1) const SizedBox(height: 12),
-                                        ],
-                                      ],
-                                    );
-                                  }
-
-                                  return Row(
-                                    children: [
-                                      Expanded(child: cells[0]),
-                                      Container(width: 1, height: 54, color: const Color(0xFFD8DAE9)),
-                                      Expanded(child: cells[1]),
-                                      Container(width: 1, height: 54, color: const Color(0xFFD8DAE9)),
-                                      Expanded(child: cells[2]),
-                                    ],
-                                  );
-                                },
-                              ),
-                            ],
-                          ),
-                        );
-
-                        final startButton = SizedBox(
-                          width: double.infinity,
-                          child: GradientActionButton(
-                            label: _busy ? 'Starting Parking Session' : 'Start Parking Session',
-                            icon: Icons.open_in_new_rounded,
-                            isBusy: _busy,
-                            onPressed: _busy ? null : _startSession,
-                          ),
-                        );
-
-                        if (!dense) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              cameraCard,
-                              const SizedBox(height: 18),
-                              plateCard,
-                              const SizedBox(height: 18),
-                              if (stackSelectors)
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                                  children: [
-                                    vehicleCard,
-                                    const SizedBox(height: 18),
-                                    slotCard,
-                                  ],
-                                )
-                              else
-                                Row(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Expanded(child: vehicleCard),
-                                    const SizedBox(width: 18),
-                                    Expanded(child: slotCard),
-                                  ],
-                                ),
-                              const SizedBox(height: 18),
-                              infoCard,
-                              const SizedBox(height: 18),
-                              startButton,
-                            ],
-                          );
-                        }
-
-                        return Row(
+            Padding(
+              padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1320),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth >= 1040;
+                      final plateCard = SurfaceCard(
+                        radius: 28,
+                        padding: const EdgeInsets.all(18),
+                        color: const Color(0xFF0F1B3A),
+                        borderColor: const Color(0xFF1E2B4D),
+                        shadow: const [
+                          BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
+                        ],
+                        child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Expanded(flex: 6, child: cameraCard),
-                            const SizedBox(width: 18),
-                            Expanded(
-                              flex: 4,
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.stretch,
+                            Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1A294C),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(Icons.local_parking_rounded, color: Color(0xFF7FB2FF), size: 22),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'License Plate Number',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Type the plate or use the small scanner button to capture it.',
+                                        style: TextStyle(
+                                          color: Color(0xFF9EABC9),
+                                          fontSize: 12.5,
+                                          height: 1.35,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Material(
+                                  color: Colors.transparent,
+                                  child: InkWell(
+                                    borderRadius: BorderRadius.circular(16),
+                                    onTap: _openCamera,
+                                    child: Container(
+                                      width: 48,
+                                      height: 48,
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF132246),
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: const Color(0xFF243559)),
+                                      ),
+                                      child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 22),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            Container(
+                              height: 64,
+                              padding: const EdgeInsets.symmetric(horizontal: 14),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF101C38),
+                                borderRadius: BorderRadius.circular(18),
+                                border: Border.all(color: const Color(0xFF243559)),
+                              ),
+                              child: Row(
                                 children: [
-                                  plateCard,
-                                  const SizedBox(height: 18),
-                                  if (stackSelectors)
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  Container(
+                                    width: 40,
+                                    height: 26,
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(6),
+                                      border: Border.all(color: const Color(0xFF31446B)),
+                                    ),
+                                    child: Stack(
+                                      fit: StackFit.expand,
                                       children: [
-                                        vehicleCard,
-                                        const SizedBox(height: 18),
-                                        slotCard,
-                                      ],
-                                    )
-                                  else
-                                    Row(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Expanded(child: vehicleCard),
-                                        const SizedBox(width: 18),
-                                        Expanded(child: slotCard),
+                                        Column(
+                                          children: const [
+                                            Expanded(child: ColoredBox(color: Color(0xFF000000))),
+                                            Expanded(child: ColoredBox(color: Color(0xFFD71F2A))),
+                                            Expanded(child: ColoredBox(color: Color(0xFF006A44))),
+                                          ],
+                                        ),
+                                        Center(
+                                          child: Container(
+                                            width: 8,
+                                            height: 20,
+                                            decoration: BoxDecoration(
+                                              color: Colors.white,
+                                              borderRadius: BorderRadius.circular(6),
+                                            ),
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                  const SizedBox(height: 18),
-                                  infoCard,
-                                  const SizedBox(height: 18),
-                                  startButton,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF9EABC9), size: 24),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: TextField(
+                                      controller: _plateController,
+                                      textCapitalization: TextCapitalization.characters,
+                                      style: const TextStyle(
+                                        color: Colors.white,
+                                        fontSize: 20,
+                                        fontWeight: FontWeight.w800,
+                                        letterSpacing: 0.4,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.zero,
+                                      ),
+                                      onSubmitted: (_) => _lookupVehicle(redirectToRegistration: true),
+                                    ),
+                                  ),
+                                  Material(
+                                    color: Colors.transparent,
+                                    child: InkWell(
+                                      borderRadius: BorderRadius.circular(14),
+                                      onTap: () => _lookupVehicle(redirectToRegistration: true),
+                                      child: Container(
+                                        width: 38,
+                                        height: 38,
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFF142348),
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        child: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
+                                      ),
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),
                           ],
+                        ),
+                      );
+
+                      final vehicleCard = SurfaceCard(
+                        radius: 28,
+                        padding: const EdgeInsets.all(18),
+                        color: const Color(0xFF0F1B3A),
+                        borderColor: const Color(0xFF1E2B4D),
+                        shadow: const [
+                          BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
+                        ],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1A294C),
+                                    borderRadius: BorderRadius.circular(14),
+                                  ),
+                                  child: const Icon(Icons.directions_car_rounded, color: Color(0xFF7FB2FF), size: 22),
+                                ),
+                                const SizedBox(width: 12),
+                                const Expanded(
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        'Vehicle Type',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w800,
+                                        ),
+                                      ),
+                                      SizedBox(height: 4),
+                                      Text(
+                                        'Select type',
+                                        style: TextStyle(
+                                          color: Color(0xFF9EABC9),
+                                          fontSize: 12.5,
+                                          height: 1.2,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            _SelectionField(
+                              value: vehicleTypeLabel(_vehicleType),
+                              onTap: () async {
+                                final result = await showModalBottomSheet<String>(
+                                  context: context,
+                                  backgroundColor: Colors.transparent,
+                                  isScrollControlled: true,
+                                  builder: (context) {
+                                    return _TypePicker(
+                                      currentValue: _vehicleType,
+                                    );
+                                  },
+                                );
+                                if (result != null && mounted) {
+                                  setState(() => _vehicleType = result);
+                                }
+                              },
+                              trailing: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF9EABC9), size: 28),
+                              textColor: Colors.white,
+                            ),
+                          ],
+                        ),
+                      );
+
+                      final infoCard = SurfaceCard(
+                        radius: 28,
+                        padding: const EdgeInsets.all(18),
+                        color: const Color(0xFF0F1B3A),
+                        borderColor: const Color(0xFF1E2B4D),
+                        shadow: const [
+                          BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
+                        ],
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            const Text(
+                              'Entry Information',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            const SizedBox(height: 18),
+                            LayoutBuilder(
+                              builder: (context, constraints) {
+                                final stacked = constraints.maxWidth < 720;
+                                final cells = [
+                                  _InfoCell(
+                                    icon: Icons.calendar_month_rounded,
+                                    label: 'Entry Date',
+                                    value: dateLabel,
+                                  ),
+                                  _InfoCell(
+                                    icon: Icons.schedule_rounded,
+                                    label: 'Entry Time',
+                                    value: timeLabel,
+                                  ),
+                                  _InfoCell(
+                                    icon: Icons.person_outline_rounded,
+                                    label: 'Recorded By',
+                                    value: recordedBy,
+                                  ),
+                                ];
+
+                                if (stacked) {
+                                  return Column(
+                                    children: [
+                                      for (var i = 0; i < cells.length; i++) ...[
+                                        cells[i],
+                                        if (i != cells.length - 1) const SizedBox(height: 12),
+                                      ],
+                                    ],
+                                  );
+                                }
+
+                                return Row(
+                                  children: [
+                                    Expanded(child: cells[0]),
+                                    Container(width: 1, height: 54, color: const Color(0xFF1E2B4D)),
+                                    Expanded(child: cells[1]),
+                                    Container(width: 1, height: 54, color: const Color(0xFF1E2B4D)),
+                                    Expanded(child: cells[2]),
+                                  ],
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      );
+
+                      final startButton = SizedBox(
+                        width: double.infinity,
+                        child: GradientActionButton(
+                          label: _busy ? 'Starting Parking Session' : 'Start Parking Session',
+                          icon: Icons.arrow_forward_rounded,
+                          isBusy: _busy,
+                          onPressed: _busy ? null : _startSession,
+                        ),
+                      );
+
+                      if (wide) {
+                        return Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Expanded(flex: 5, child: plateCard),
+                                const SizedBox(width: 16),
+                                Expanded(flex: 4, child: vehicleCard),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            infoCard,
+                            const SizedBox(height: 16),
+                            startButton,
+                          ],
                         );
-                      },
-                    ),
+                      }
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          plateCard,
+                          const SizedBox(height: 16),
+                          vehicleCard,
+                          const SizedBox(height: 16),
+                          infoCard,
+                          const SizedBox(height: 16),
+                          startButton,
+                        ],
+                      );
+                    },
                   ),
                 ),
               ),
@@ -657,9 +585,9 @@ class _SelectionField extends StatelessWidget {
           height: 62,
           padding: const EdgeInsets.symmetric(horizontal: 16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFF101C38),
             borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFFDDE4F2)),
+            border: Border.all(color: const Color(0xFF243559)),
           ),
           child: Row(
             children: [
@@ -668,7 +596,7 @@ class _SelectionField extends StatelessWidget {
                   value,
                   style: TextStyle(
                     color: textColor,
-                    fontSize: 18,
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -700,7 +628,7 @@ class _InfoCell extends StatelessWidget {
       padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF5A628A), size: 34),
+          Icon(icon, color: const Color(0xFF7B8AB1), size: 30),
           const SizedBox(width: 16),
           Expanded(
             child: Column(
@@ -710,7 +638,7 @@ class _InfoCell extends StatelessWidget {
                   label,
                   textAlign: textAlign,
                   style: const TextStyle(
-                    color: Color(0xFF586086),
+                    color: Color(0xFF9EABC9),
                     fontSize: 13.5,
                     fontWeight: FontWeight.w700,
                   ),
@@ -722,8 +650,8 @@ class _InfoCell extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: ParkingColors.ink,
-                    fontSize: 17,
+                    color: Colors.white,
+                    fontSize: 16.5,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -760,10 +688,10 @@ class _TypePicker extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF0F1B3A),
           borderRadius: BorderRadius.circular(28),
           boxShadow: const [
-            BoxShadow(color: Color(0x260B1630), blurRadius: 26, offset: Offset(0, 14)),
+            BoxShadow(color: Color(0x40050A15), blurRadius: 26, offset: Offset(0, 14)),
           ],
         ),
         child: Column(
@@ -773,7 +701,7 @@ class _TypePicker extends StatelessWidget {
             const Text(
               'Choose Vehicle Type',
               style: TextStyle(
-                color: ParkingColors.ink,
+                color: Colors.white,
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
@@ -786,21 +714,21 @@ class _TypePicker extends StatelessWidget {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: option.$1 == currentValue ? const Color(0xFFEAF0FF) : const Color(0xFFF3F5FB),
+                    color: option.$1 == currentValue ? const Color(0xFF142348) : const Color(0xFF101C38),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(option.$3, color: ParkingColors.primary, size: 22),
+                  child: Icon(option.$3, color: Colors.white, size: 22),
                 ),
                 title: Text(
                   option.$2,
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: ParkingColors.ink),
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
                 ),
                 trailing: option.$1 == currentValue
-                    ? const Icon(Icons.check_circle_rounded, color: ParkingColors.primary)
+                    ? const Icon(Icons.check_circle_rounded, color: Color(0xFF7FB2FF))
                     : null,
                 onTap: () => Navigator.of(context).pop(option.$1),
               ),
-              if (option != options.last) const Divider(height: 1),
+              if (option != options.last) const Divider(height: 1, color: Color(0xFF1E2B4D)),
             ],
           ],
         ),
