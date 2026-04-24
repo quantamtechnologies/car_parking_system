@@ -230,7 +230,7 @@ class _ExitScreenState extends State<ExitScreen> {
     final exitDate = DateFormat('d MMM y').format(now);
     final exitClock = DateFormat('hh:mm a').format(now);
     final durationLabel = hasSession ? _formatDuration((breakdown!['duration_minutes'] as num?)?.toInt() ?? 0) : '--';
-    final amountDue = hasSession ? _asDouble(breakdown!['total_fee']) : 0;
+    final double amountDue = hasSession ? _asDouble(breakdown!['total_fee']) : 0.0;
     final actionLabel = hasSession ? 'Continue to Payment' : 'Process Exit';
 
     Widget buildInfoCard({
@@ -656,4 +656,58 @@ class _ExitPageData {
 
   final List<VehicleRecord> vehicles;
   final Set<String> activePlates;
+}
+
+class _InfoCell extends StatelessWidget {
+  const _InfoCell({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    final textAlign = MediaQuery.of(context).size.width < 720 ? TextAlign.left : TextAlign.left;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+      child: Row(
+        children: [
+          Icon(icon, color: const Color(0xFF7B8AB1), size: 30),
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  textAlign: textAlign,
+                  style: const TextStyle(
+                    color: Color(0xFF9EABC9),
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  textAlign: textAlign,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 16.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }
