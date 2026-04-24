@@ -5,6 +5,32 @@ import 'package:flutter/material.dart';
 import 'models.dart';
 import 'theme.dart';
 
+const _compactWidthBreakpoint = 600.0;
+
+bool _isCompactWidth(BuildContext context) =>
+    MediaQuery.sizeOf(context).width < _compactWidthBreakpoint;
+
+EdgeInsets _compactInsets(
+  BuildContext context,
+  EdgeInsetsGeometry padding, {
+  double scale = 0.78,
+  double minValue = 6,
+}) {
+  final resolved = padding.resolve(Directionality.of(context));
+
+  double shrink(double value) {
+    if (value <= 0) return 0;
+    return math.max(minValue, value * scale).toDouble();
+  }
+
+  return EdgeInsets.fromLTRB(
+    shrink(resolved.left),
+    shrink(resolved.top),
+    shrink(resolved.right),
+    shrink(resolved.bottom),
+  );
+}
+
 class SurfaceCard extends StatelessWidget {
   const SurfaceCard({
     super.key,
@@ -31,6 +57,8 @@ class SurfaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final effectivePadding =
+        _isCompactWidth(context) ? _compactInsets(context, padding) : padding.resolve(Directionality.of(context));
     final decorated = Container(
       decoration: BoxDecoration(
         color: gradient == null ? color : null,
@@ -39,7 +67,7 @@ class SurfaceCard extends StatelessWidget {
         border: Border.all(color: borderColor),
         boxShadow: shadow,
       ),
-      child: Padding(padding: padding, child: child),
+      child: Padding(padding: effectivePadding, child: child),
     );
 
     if (onTap == null) {
@@ -146,6 +174,7 @@ class MetricCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final foreground = Colors.white;
     final muted = const Color(0xFF9EABC9);
+    final compact = _isCompactWidth(context);
 
     return SurfaceCard(
       gradient: gradient,
@@ -156,7 +185,7 @@ class MetricCard extends StatelessWidget {
           : const [BoxShadow(color: Color(0x300F1D3C), blurRadius: 26, offset: Offset(0, 16))],
       padding: const EdgeInsets.all(16),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(minHeight: 134),
+        constraints: BoxConstraints(minHeight: compact ? 122 : 134),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -188,10 +217,10 @@ class MetricCard extends StatelessWidget {
                     Icons.more_vert_rounded,
                     color: const Color(0xFFB7BDD1),
                     size: 20,
-                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: compact ? 14 : 18),
             Text(
               title,
               style: TextStyle(
@@ -204,7 +233,7 @@ class MetricCard extends StatelessWidget {
             Text(
               value,
               style: TextStyle(
-                fontSize: gradient == null ? 26 : 28,
+                fontSize: compact ? (gradient == null ? 24 : 26) : (gradient == null ? 26 : 28),
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.7,
                 color: foreground,
@@ -347,6 +376,7 @@ class _QuickActionCardState extends State<QuickActionCard> {
 
   @override
   Widget build(BuildContext context) {
+    final compact = _isCompactWidth(context);
     final background = _hovered ? const Color(0xFF132246) : const Color(0xFF101C38);
     final borderColor = _hovered ? const Color(0xFF2A3C68) : const Color(0xFF1D2B4C);
     final shadow = _hovered
@@ -373,35 +403,43 @@ class _QuickActionCardState extends State<QuickActionCard> {
         child: Material(
           color: Colors.transparent,
           child: InkWell(
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(compact ? 20 : 22),
             onTap: widget.onTap,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+              padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14, vertical: compact ? 10 : 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Container(
-                    width: 42,
-                    height: 42,
+                    width: compact ? 40 : 42,
+                    height: compact ? 40 : 42,
                     decoration: BoxDecoration(
                       color: widget.accentColor.withOpacity(0.14),
-                      borderRadius: BorderRadius.circular(14),
+                      borderRadius: BorderRadius.circular(compact ? 13 : 14),
                     ),
-                    child: Icon(widget.icon, color: widget.accentColor, size: 22),
+                    child: Icon(widget.icon, color: widget.accentColor, size: compact ? 20 : 22),
                   ),
-                  const SizedBox(height: 10),
+                  SizedBox(height: compact ? 8 : 10),
                   Text(
                     widget.title,
                     textAlign: TextAlign.center,
-                    style: const TextStyle(fontSize: 12.5, fontWeight: FontWeight.w800, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: compact ? 12 : 12.5,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
                   ),
                   if (widget.subtitle.isNotEmpty) ...[
                     const SizedBox(height: 4),
                     Text(
                       widget.subtitle,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 10.5, color: Color(0xFF8F9CB9), height: 1.2),
+                      style: TextStyle(
+                        fontSize: compact ? 10 : 10.5,
+                        color: const Color(0xFF8F9CB9),
+                        height: 1.2,
+                      ),
                     ),
                   ],
                 ],
@@ -1566,6 +1604,8 @@ class _HeaderIconButton extends StatelessWidget {
     required this.onTap,
     required this.background,
     required this.foreground,
+    this.size = 54,
+    this.iconSize = 24,
     this.badgeColor,
   });
 
@@ -1573,6 +1613,8 @@ class _HeaderIconButton extends StatelessWidget {
   final VoidCallback onTap;
   final Color background;
   final Color foreground;
+  final double size;
+  final double iconSize;
   final Color? badgeColor;
 
   @override
@@ -1586,13 +1628,13 @@ class _HeaderIconButton extends StatelessWidget {
           clipBehavior: Clip.none,
           children: [
             Container(
-              width: 54,
-              height: 54,
+              width: size,
+              height: size,
               decoration: BoxDecoration(
                 color: background,
                 borderRadius: BorderRadius.circular(18),
               ),
-              child: Icon(icon, color: foreground, size: 24),
+              child: Icon(icon, color: foreground, size: iconSize),
             ),
             if (badgeColor != null)
               Positioned(
@@ -1772,67 +1814,83 @@ class ParkingScreenHeader extends StatelessWidget {
       ),
       child: SafeArea(
         bottom: false,
-        child: Padding(
-          padding: padding,
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final narrow = constraints.maxWidth < 760;
-              final topRow = Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final narrow = constraints.maxWidth < 760;
+            final resolved = padding.resolve(Directionality.of(context));
+            final effectivePadding = narrow
+                ? _compactInsets(
+                    context,
+                    EdgeInsets.fromLTRB(resolved.left, resolved.top, resolved.right, resolved.bottom),
+                    scale: 0.76,
+                    minValue: 8,
+                  )
+                : resolved;
+            final compact = narrow;
+            final effectiveTitleSize = compact ? titleSize * 0.9 : titleSize;
+            final effectiveSubtitleSize = compact ? subtitleSize * 0.9 : subtitleSize;
+            final topRow = Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _HeaderIconButton(
+                  icon: leadingIcon,
+                  onTap: onLeadingTap,
+                  background: leadBg,
+                  foreground: leadFg,
+                  size: compact ? 48 : 54,
+                  iconSize: compact ? 22 : 24,
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: TextStyle(
+                          color: titleFg,
+                          fontSize: effectiveTitleSize,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Text(
+                        subtitle,
+                        style: TextStyle(
+                          color: subtitleFg,
+                          fontSize: effectiveSubtitleSize,
+                          height: 1.25,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                if (trailingIcon != null) ...[
+                  const SizedBox(width: 10),
                   _HeaderIconButton(
-                    icon: leadingIcon,
-                    onTap: onLeadingTap,
-                    background: leadBg,
-                    foreground: leadFg,
+                    icon: trailingIcon!,
+                    onTap: trailingOnTap ?? () {},
+                    background: trailBg,
+                    foreground: trailFg,
+                    badgeColor: trailingBadgeColor,
+                    size: compact ? 48 : 54,
+                    iconSize: compact ? 22 : 24,
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          title,
-                          style: TextStyle(
-                            color: titleFg,
-                            fontSize: titleSize,
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.6,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          subtitle,
-                          style: TextStyle(
-                            color: subtitleFg,
-                            fontSize: subtitleSize,
-                            height: 1.25,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  if (trailingIcon != null) ...[
-                    const SizedBox(width: 12),
-                    _HeaderIconButton(
-                      icon: trailingIcon!,
-                      onTap: trailingOnTap ?? () {},
-                      background: trailBg,
-                      foreground: trailFg,
-                      badgeColor: trailingBadgeColor,
-                    ),
-                  ],
                 ],
-              );
+              ],
+            );
 
-              return Column(
+            return Padding(
+              padding: effectivePadding,
+              child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   if (showStatusBar) ParkingStatusBar(dark: dark),
-                  if (showStatusBar) const SizedBox(height: 16),
+                  if (showStatusBar) const SizedBox(height: 12),
                   topRow,
                   if (user != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     Align(
                       alignment: Alignment.centerRight,
                       child: ConstrainedBox(
@@ -1847,9 +1905,9 @@ class ParkingScreenHeader extends StatelessWidget {
                     ),
                   ],
                 ],
-              );
-            },
-          ),
+              ),
+            );
+          },
         ),
       ),
     );
@@ -1882,12 +1940,13 @@ class ParkingBottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.sizeOf(context).width < _compactWidthBreakpoint;
     return SafeArea(
       top: false,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(18, 0, 18, 16),
+        padding: EdgeInsets.fromLTRB(compact ? 12 : 18, 0, compact ? 12 : 18, compact ? 12 : 16),
         child: SurfaceCard(
-          radius: 28,
+          radius: compact ? 24 : 28,
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
           color: const Color(0xFF0F1B3A),
           borderColor: const Color(0xFF1E2B4D),
@@ -1928,31 +1987,32 @@ class _ParkingBottomNavItemTile extends StatelessWidget {
     final foreground = selected ? const Color(0xFF63A0FF) : const Color(0xFF8F9BB7);
     final background = selected ? const Color(0xFF122856) : Colors.transparent;
     final borderColor = selected ? const Color(0xFF21438A) : Colors.transparent;
+    final compact = MediaQuery.sizeOf(context).width < _compactWidthBreakpoint;
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(compact ? 14 : 16),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
-          padding: const EdgeInsets.symmetric(vertical: 8),
+          margin: EdgeInsets.symmetric(horizontal: compact ? 2 : 4),
+          padding: EdgeInsets.symmetric(vertical: compact ? 6 : 8),
           decoration: BoxDecoration(
             color: background,
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(compact ? 14 : 16),
             border: Border.all(color: borderColor),
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(item.icon, color: foreground, size: 24),
-              const SizedBox(height: 6),
+              Icon(item.icon, color: foreground, size: compact ? 22 : 24),
+              SizedBox(height: compact ? 4 : 6),
               Text(
                 item.label,
                 style: TextStyle(
                   color: foreground,
-                  fontSize: 12,
+                  fontSize: compact ? 11.5 : 12,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
                 ),
               ),

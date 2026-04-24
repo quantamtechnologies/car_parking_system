@@ -130,7 +130,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                       bottomRadius: 30,
                     ),
                     Padding(
-                      padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+                      padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
                       child: SurfaceCard(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -206,7 +206,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
                     bottomRadius: 30,
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+                    padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 1320),

@@ -74,7 +74,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             if (snapshot.hasError) {
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.fromLTRB(18, 12, 18, 122),
+                padding: const EdgeInsets.fromLTRB(14, 10, 14, 122),
                 child: Center(
                   child: ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 980),
@@ -173,7 +173,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     bottomRadius: 30,
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 0, 18, 0),
+                    padding: const EdgeInsets.fromLTRB(14, 0, 14, 0),
                     child: Center(
                       child: ConstrainedBox(
                         constraints: const BoxConstraints(maxWidth: 1320),
@@ -185,11 +185,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 final columns = constraints.maxWidth >= 920 ? 4 : 2;
                                 return GridView.count(
                                   crossAxisCount: columns,
-                                  crossAxisSpacing: 16,
-                                  mainAxisSpacing: 16,
+                                  crossAxisSpacing: 12,
+                                  mainAxisSpacing: 12,
                                   shrinkWrap: true,
                                   physics: const NeverScrollableScrollPhysics(),
-                                  childAspectRatio: columns == 2 ? 1.18 : 1.05,
+                                  childAspectRatio: columns == 2 ? 1.15 : 1.04,
                                   children: [
                                     MetricCard(
                                       title: 'Today\'s Entries',
@@ -259,10 +259,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 );
                               },
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 14),
                             SurfaceCard(
                               radius: 28,
-                              padding: const EdgeInsets.all(18),
+                              padding: const EdgeInsets.all(16),
                               color: const Color(0xFF0F1B3A),
                               borderColor: const Color(0xFF1E2B4D),
                               shadow: const [
@@ -308,7 +308,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                       ),
                                     ],
                                   ),
-                                  const SizedBox(height: 18),
+                                  const SizedBox(height: 14),
                                   MiniBarChart(
                                     points: peakBars,
                                     barColor: ParkingColors.primary,
@@ -317,7 +317,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 14),
                             Row(
                               children: [
                                 const Expanded(
@@ -343,7 +343,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
                             SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
                               physics: const BouncingScrollPhysics(),
@@ -391,7 +391,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 18),
+                            const SizedBox(height: 14),
                             Row(
                               children: [
                                 const Expanded(
@@ -417,7 +417,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
+                            const SizedBox(height: 8),
                             SurfaceCard(
                               radius: 28,
                               padding: EdgeInsets.zero,
@@ -527,15 +527,15 @@ class _RecentActivityRow extends StatelessWidget {
     final time = DateFormat('hh:mm a').format(session.exitTime ?? session.entryTime ?? DateTime.now());
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
       child: Row(
         children: [
           Container(
-            width: 54,
-            height: 54,
+            width: 48,
+            height: 48,
             decoration: BoxDecoration(
               color: accent.withOpacity(0.14),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(
               isPaid
@@ -544,10 +544,10 @@ class _RecentActivityRow extends StatelessWidget {
                       ? Icons.exit_to_app_rounded
                       : Icons.directions_car_rounded,
               color: accent,
-              size: 26,
+              size: 24,
             ),
           ),
-          const SizedBox(width: 14),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -556,7 +556,7 @@ class _RecentActivityRow extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     color: Colors.white,
-                    fontSize: 15.5,
+                    fontSize: 15,
                     fontWeight: FontWeight.w800,
                   ),
                 ),

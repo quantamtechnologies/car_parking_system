@@ -207,7 +207,7 @@ class _EntryScreenState extends State<EntryScreen> {
               bottomRadius: 30,
             ),
             Padding(
-              padding: const EdgeInsets.fromLTRB(18, 16, 18, 0),
+              padding: const EdgeInsets.fromLTRB(14, 14, 14, 0),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 1320),
