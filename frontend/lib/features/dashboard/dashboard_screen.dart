@@ -60,171 +60,171 @@ class _DashboardScreenState extends State<DashboardScreen> {
             future: _future,
             builder: (context, snapshot) {
               final data = snapshot.data ?? _emptyMetrics();
-
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.only(bottom: 112),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                    child: _DashboardHeader(user: user),
-                  ),
-                  const SizedBox(height: 18),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: _RevenueCard(
-                      revenue: _mkMoney(data.revenuePerDay, decimals: 2, zeroPlaceholder: 'MK0,000.00'),
+                    Padding(
+                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                      child: _DashboardHeader(user: user),
                     ),
-                  ),
-                  const SizedBox(height: 18),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final cardWidth = _dashboardCardWidth(constraints.maxWidth);
-                        final cards = [
-                          _MetricCard(
-                            title: 'Today Cars',
-                            value: data.carsPerDay.toString(),
-                            footer: 'Average cars/day  ${_compactNumber(data.averageCarsPerDay)}',
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF1CD59A), Color(0xFF12B981)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            icon: Icons.directions_car_outlined,
-                          ),
-                          _MetricCard(
-                            title: 'Active Cars',
-                            value: data.activeSessions.toString(),
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF9D6DFF), Color(0xFF6D28D9)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            icon: Icons.directions_car_filled_outlined,
-                          ),
-                          _MetricCard(
-                            title: 'Pending\nPayments',
-                            value: 'MK${NumberFormat('#,##0').format(data.pendingPayments)}',
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFFFFC62A), Color(0xFFF97316)],
-                              begin: Alignment.topLeft,
-                              end: Alignment.bottomRight,
-                            ),
-                            icon: Icons.receipt_long_outlined,
-                          ),
-                        ];
-
-                        return Wrap(
-                          spacing: 16,
-                          runSpacing: 16,
-                          children: [
-                            for (final card in cards)
-                              SizedBox(
-                                width: cardWidth,
-                                child: card,
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  const SizedBox(height: 28),
-                  const Padding(
-                    padding: EdgeInsets.symmetric(horizontal: 12),
-                    child: _SectionHeader(title: 'Quick Actions'),
-                  ),
-                  const SizedBox(height: 16),
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 12),
-                    child: LayoutBuilder(
-                      builder: (context, constraints) {
-                        final cardWidth = _actionCardWidth(constraints.maxWidth);
-                        final actions = [
-                          _ActionCard(
-                            title: 'Entry',
-                            icon: Icons.login_rounded,
-                            tint: const Color(0xFF2C6CF6),
-                            onTap: () => context.go('/entry'),
-                          ),
-                          _ActionCard(
-                            title: 'Receipts',
-                            icon: Icons.receipt_long_rounded,
-                            tint: const Color(0xFF7C3AED),
-                            onTap: () => context.go('/receipts'),
-                          ),
-                          _ActionCard(
-                            title: 'Exit',
-                            icon: Icons.logout_rounded,
-                            tint: const Color(0xFFF43F5E),
-                            onTap: () => context.go('/exit'),
-                          ),
-                        ];
-
-                        return Wrap(
-                          spacing: 16,
-                          runSpacing: 16,
-                          children: [
-                            for (final action in actions)
-                              SizedBox(
-                                width: cardWidth,
-                                child: action,
-                              ),
-                          ],
-                        );
-                      },
-                    ),
-                  ),
-                  if (snapshot.hasError) ...[
                     const SizedBox(height: 18),
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: SurfaceCard(
-                        radius: 24,
-                        padding: const EdgeInsets.all(16),
-                        color: Colors.white,
-                        borderColor: const Color(0xFFE5EBF5),
-                        shadow: const [
-                          BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
-                        ],
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Unable to load dashboard',
-                              style: TextStyle(
-                                color: Color(0xFF0F172A),
-                                fontSize: 17,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
-                              style: const TextStyle(color: Color(0xFF64748B), height: 1.45),
-                            ),
-                            const SizedBox(height: 14),
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton.icon(
-                                onPressed: _reload,
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: ParkingColors.primary,
-                                  foregroundColor: Colors.white,
-                                  minimumSize: const Size.fromHeight(50),
-                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-                                ),
-                                icon: const Icon(Icons.refresh_rounded),
-                                label: const Text('Try again'),
-                              ),
-                            ),
-                          ],
-                        ),
+                      child: _RevenueCard(
+                        revenue: _mkMoney(data.revenuePerDay, decimals: 2, zeroPlaceholder: 'MK0,000.00'),
                       ),
                     ),
+                    const SizedBox(height: 18),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final cardWidth = _dashboardCardWidth(constraints.maxWidth);
+                          final cards = [
+                            _MetricCard(
+                              title: 'Today Cars',
+                              value: data.carsPerDay.toString(),
+                              footer: 'Average cars/day  ${_compactNumber(data.averageCarsPerDay)}',
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF1CD59A), Color(0xFF12B981)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              icon: Icons.directions_car_outlined,
+                            ),
+                            _MetricCard(
+                              title: 'Active Cars',
+                              value: data.activeSessions.toString(),
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFF9D6DFF), Color(0xFF6D28D9)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              icon: Icons.directions_car_filled_outlined,
+                            ),
+                            _MetricCard(
+                              title: 'Pending\nPayments',
+                              value: 'MK${NumberFormat('#,##0').format(data.pendingPayments)}',
+                              gradient: const LinearGradient(
+                                colors: [Color(0xFFFFC62A), Color(0xFFF97316)],
+                                begin: Alignment.topLeft,
+                                end: Alignment.bottomRight,
+                              ),
+                              icon: Icons.receipt_long_outlined,
+                            ),
+                          ];
+
+                          return Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            children: [
+                              for (final card in cards)
+                                SizedBox(
+                                  width: cardWidth,
+                                  child: card,
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 12),
+                      child: _SectionHeader(title: 'Quick Actions'),
+                    ),
+                    const SizedBox(height: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 12),
+                      child: LayoutBuilder(
+                        builder: (context, constraints) {
+                          final cardWidth = _actionCardWidth(constraints.maxWidth);
+                          final actions = [
+                            _ActionCard(
+                              title: 'Entry',
+                              icon: Icons.login_rounded,
+                              tint: const Color(0xFF2C6CF6),
+                              onTap: () => context.go('/entry'),
+                            ),
+                            _ActionCard(
+                              title: 'Receipts',
+                              icon: Icons.receipt_long_rounded,
+                              tint: const Color(0xFF7C3AED),
+                              onTap: () => context.go('/receipts'),
+                            ),
+                            _ActionCard(
+                              title: 'Exit',
+                              icon: Icons.logout_rounded,
+                              tint: const Color(0xFFF43F5E),
+                              onTap: () => context.go('/exit'),
+                            ),
+                          ];
+
+                          return Wrap(
+                            spacing: 16,
+                            runSpacing: 16,
+                            children: [
+                              for (final action in actions)
+                                SizedBox(
+                                  width: cardWidth,
+                                  child: action,
+                                ),
+                            ],
+                          );
+                        },
+                      ),
+                    ),
+                    if (snapshot.hasError) ...[
+                      const SizedBox(height: 18),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: SurfaceCard(
+                          radius: 24,
+                          padding: const EdgeInsets.all(16),
+                          color: Colors.white,
+                          borderColor: const Color(0xFFE5EBF5),
+                          shadow: const [
+                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                          ],
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'Unable to load dashboard',
+                                style: TextStyle(
+                                  color: Color(0xFF0F172A),
+                                  fontSize: 17,
+                                  fontWeight: FontWeight.w800,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
+                                style: const TextStyle(color: Color(0xFF64748B), height: 1.45),
+                              ),
+                              const SizedBox(height: 14),
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  onPressed: _reload,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: ParkingColors.primary,
+                                    foregroundColor: Colors.white,
+                                    minimumSize: const Size.fromHeight(50),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                  ),
+                                  icon: const Icon(Icons.refresh_rounded),
+                                  label: const Text('Try again'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               );
