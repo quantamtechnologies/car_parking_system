@@ -29,6 +29,7 @@ class _EntryScreenState extends State<EntryScreen> {
   late final TextEditingController _ownerController;
   late final TextEditingController _phoneController;
   late String _vehicleType;
+  late bool _vehicleTypeExplicit;
   late Future<List<VehicleRecord>> _recentFuture;
 
   bool _busy = false;
@@ -43,6 +44,8 @@ class _EntryScreenState extends State<EntryScreen> {
     _ownerController = TextEditingController();
     _phoneController = TextEditingController();
     _vehicleType = widget.initialVehicleType.trim().isNotEmpty ? widget.initialVehicleType : 'CAR';
+    _vehicleTypeExplicit = widget.initialVehicleType.trim().isNotEmpty &&
+        widget.initialVehicleType.trim().toUpperCase() != 'CAR';
     _recentFuture = _loadRecentEntries();
 
     if (widget.initialPlate.trim().isNotEmpty) {
@@ -115,6 +118,7 @@ class _EntryScreenState extends State<EntryScreen> {
       setState(() {
         _plateController.text = vehicle.plateNumber;
         _vehicleType = vehicle.vehicleType;
+        _vehicleTypeExplicit = true;
         _ownerController.text = vehicle.ownerName;
         _phoneController.text = vehicle.phoneNumber;
       });
@@ -243,7 +247,7 @@ class _EntryScreenState extends State<EntryScreen> {
                               const SizedBox(height: 12),
                               _SelectField(
                                 icon: Icons.directions_car_rounded,
-                                label: vehicleTypeLabel(_vehicleType),
+                                label: _vehicleTypeExplicit ? vehicleTypeLabel(_vehicleType) : '',
                                 hint: 'Select vehicle type',
                                 onTap: _pickVehicleType,
                               ),
@@ -388,7 +392,10 @@ class _EntryScreenState extends State<EntryScreen> {
     );
 
     if (result != null && mounted) {
-      setState(() => _vehicleType = result);
+      setState(() {
+        _vehicleType = result;
+        _vehicleTypeExplicit = true;
+      });
     }
   }
 }
@@ -401,99 +408,109 @@ class _EntryHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = user?.displayName ?? 'Joel Cashier';
-    final role = (user?.displayRole ?? 'Cashier').toUpperCase();
+    final role = user?.displayRole ?? 'Cashier';
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 620;
+        final backSize = compact ? 60.0 : 72.0;
+        final titleSize = compact ? 22.0 : 26.0;
+        final avatarSize = compact ? 58.0 : 70.0;
+        final nameSize = compact ? 18.0 : 22.0;
+        final roleSize = compact ? 13.0 : 15.0;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: const [
-          BoxShadow(color: Color(0x220B1630), blurRadius: 22, offset: Offset(0, 10)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: () => context.go('/'),
-              child: Container(
-                width: 72,
-                height: 72,
-                alignment: Alignment.center,
-                child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF2563EB), size: 34),
-              ),
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: const [
+              BoxShadow(color: Color(0x220B1630), blurRadius: 22, offset: Offset(0, 10)),
+            ],
           ),
-          const SizedBox(width: 18),
-          const Expanded(
-            child: Text(
-              'Vehicle Entry',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+          child: Row(
+            children: [
+              Material(
                 color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
+                borderRadius: BorderRadius.circular(18),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => context.go('/'),
+                  child: Container(
+                    width: backSize,
+                    height: backSize,
+                    alignment: Alignment.center,
+                    child: Icon(Icons.arrow_back_rounded, color: const Color(0xFF2563EB), size: compact ? 30 : 34),
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.2),
-                  ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 40),
-                ),
-                const SizedBox(width: 12),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 220),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        role,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+              SizedBox(width: compact ? 12 : 18),
+              Expanded(
+                child: Text(
+                  'Vehicle Entry',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
                   ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(width: compact ? 10 : 18),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: avatarSize,
+                      height: avatarSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                      child: const Icon(Icons.person, color: Colors.white, size: 40),
+                    ),
+                    SizedBox(width: compact ? 10 : 12),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: compact ? 130 : 220),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: nameSize,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            role,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: roleSize,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -865,6 +882,8 @@ class _RecentEntryRow extends StatelessWidget {
               children: [
                 Text(
                   record.plateNumber,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
                     color: Color(0xFF16233F),
                     fontSize: 20,
@@ -891,6 +910,8 @@ class _RecentEntryRow extends StatelessWidget {
             children: [
               Text(
                 typeLabel,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: TextStyle(
                   color: accent,
                   fontSize: 17,
@@ -900,6 +921,8 @@ class _RecentEntryRow extends StatelessWidget {
               const SizedBox(height: 3),
               Text(
                 record.phoneDisplay,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
                   color: Color(0xFF667085),
                   fontSize: 14,
@@ -911,6 +934,8 @@ class _RecentEntryRow extends StatelessWidget {
           const SizedBox(width: 14),
           Text(
             timeLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Color(0xFF1F2B5C),
               fontSize: 15,

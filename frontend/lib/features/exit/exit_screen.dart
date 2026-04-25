@@ -42,7 +42,7 @@ class _ExitScreenState extends State<ExitScreen> {
     final api = context.read<SmartParkingApi>();
     final results = await Future.wait([
       api.vehicles(),
-      api.sessions(ordering: '-exit_time', pageSize: 6),
+      api.sessions(ordering: '-exit_time', pageSize: 10),
     ]);
 
     final vehicles = (results[0] as List<VehicleRecord>).toList();
@@ -56,6 +56,7 @@ class _ExitScreenState extends State<ExitScreen> {
     }
 
     final recentExits = sessions
+        .take(2)
         .map(
           (session) => _RecentExitRowData(
             plateNumber: session.plateNumber,
@@ -150,7 +151,7 @@ class _ExitScreenState extends State<ExitScreen> {
 
   String _money0(dynamic value) {
     final amount = value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
-    return 'MK${NumberFormat('#,##0').format(amount)}';
+    return 'MK ${NumberFormat('#,##0').format(amount)}';
   }
 
   String _durationLabel(dynamic value) {
@@ -187,9 +188,10 @@ class _ExitScreenState extends State<ExitScreen> {
             final currentClock = DateFormat('hh:mm a').format(now);
             final duration = breakdown == null ? '--' : _durationLabel(breakdown['duration_minutes']);
             final rate = breakdown == null ? 'MK 0 / hr' : '${_money0(breakdown['rate_per_hour'])} / hr';
-            final total = breakdown == null ? 'MK0' : _money0(breakdown['total_fee']);
+            final total = breakdown == null ? 'MK 0' : _money0(breakdown['total_fee']);
             final plate = vehicle?['plate_number']?.toString() ?? _plateController.text.trim();
-            final type = vehicleTypeLabel(vehicle?['vehicle_type']?.toString() ?? '');
+            final rawType = vehicle?['vehicle_type']?.toString() ?? '';
+            final type = rawType.trim().isEmpty ? '' : vehicleTypeLabel(rawType);
             final owner = vehicle?['owner_name']?.toString() ?? 'Waiting';
             final phone = vehicle?['phone_number']?.toString() ?? 'Waiting';
 
@@ -386,99 +388,109 @@ class _ExitHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final name = user?.displayName ?? 'Joel Cashier';
-    final role = (user?.displayRole ?? 'Cashier').toUpperCase();
+    final role = user?.displayRole ?? 'Cashier';
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 620;
+        final backSize = compact ? 60.0 : 72.0;
+        final titleSize = compact ? 22.0 : 26.0;
+        final avatarSize = compact ? 58.0 : 70.0;
+        final nameSize = compact ? 18.0 : 22.0;
+        final roleSize = compact ? 13.0 : 15.0;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(26),
-        boxShadow: const [
-          BoxShadow(color: Color(0x220B1630), blurRadius: 22, offset: Offset(0, 10)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Material(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(18),
-            child: InkWell(
-              borderRadius: BorderRadius.circular(18),
-              onTap: () => context.go('/'),
-              child: Container(
-                width: 72,
-                height: 72,
-                alignment: Alignment.center,
-                child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF2563EB), size: 34),
-              ),
+        return Container(
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
+            borderRadius: BorderRadius.circular(26),
+            boxShadow: const [
+              BoxShadow(color: Color(0x220B1630), blurRadius: 22, offset: Offset(0, 10)),
+            ],
           ),
-          const SizedBox(width: 18),
-          const Expanded(
-            child: Text(
-              'Vehicle Exit',
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
+          child: Row(
+            children: [
+              Material(
                 color: Colors.white,
-                fontSize: 26,
-                fontWeight: FontWeight.w800,
-                letterSpacing: -0.3,
+                borderRadius: BorderRadius.circular(18),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(18),
+                  onTap: () => context.go('/'),
+                  child: Container(
+                    width: backSize,
+                    height: backSize,
+                    alignment: Alignment.center,
+                    child: Icon(Icons.arrow_back_rounded, color: const Color(0xFF2563EB), size: compact ? 30 : 34),
+                  ),
+                ),
               ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 70,
-                  height: 70,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    color: Colors.white.withOpacity(0.2),
-                  ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 40),
-                ),
-                const SizedBox(width: 12),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 220),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        role,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 15,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
+              SizedBox(width: compact ? 12 : 18),
+              Expanded(
+                child: Text(
+                  'Vehicle Exit',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: titleSize,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.3,
                   ),
                 ),
-              ],
-            ),
+              ),
+              SizedBox(width: compact ? 10 : 18),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: avatarSize,
+                      height: avatarSize,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.2),
+                      ),
+                      child: const Icon(Icons.person, color: Colors.white, size: 40),
+                    ),
+                    SizedBox(width: compact ? 10 : 12),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: compact ? 130 : 220),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: nameSize,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            role,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: roleSize,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -793,6 +805,8 @@ class _RecentExitRow extends StatelessWidget {
             flex: 3,
             child: Text(
               data.plateNumber,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: const TextStyle(
                 color: Color(0xFF16233F),
                 fontSize: 16.5,
@@ -805,6 +819,8 @@ class _RecentExitRow extends StatelessWidget {
             flex: 2,
             child: Text(
               vehicleTypeLabel(data.vehicleType),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
               style: TextStyle(
                 color: accent,
                 fontSize: 15.5,
@@ -815,6 +831,8 @@ class _RecentExitRow extends StatelessWidget {
           const SizedBox(width: 12),
           Text(
             data.timeLabel,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
             style: const TextStyle(
               color: Color(0xFF16233F),
               fontSize: 15.5,

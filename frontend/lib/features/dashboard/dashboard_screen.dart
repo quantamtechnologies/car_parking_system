@@ -16,6 +16,7 @@ class DashboardScreen extends StatefulWidget {
     this.initialPlate = '',
   });
 
+  // ignore: unused_field
   final String initialPlate;
 
   @override
@@ -49,20 +50,23 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FF),
-      body: RefreshIndicator(
-        color: ParkingColors.primary,
-        onRefresh: _reload,
-        child: FutureBuilder<DashboardMetrics>(
-          future: _future,
-          builder: (context, snapshot) {
-            final data = snapshot.data ?? _emptyMetrics();
+      body: SafeArea(
+        top: true,
+        bottom: false,
+        child: RefreshIndicator(
+          color: ParkingColors.primary,
+          onRefresh: _reload,
+          child: FutureBuilder<DashboardMetrics>(
+            future: _future,
+            builder: (context, snapshot) {
+              final data = snapshot.data ?? _emptyMetrics();
 
-            return SingleChildScrollView(
-              physics: const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(bottom: 112),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
+              return SingleChildScrollView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.only(bottom: 112),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
                   Padding(
                     padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
                     child: _DashboardHeader(user: user),
@@ -222,10 +226,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       ),
                     ),
                   ],
-                ],
-              ),
-            );
-          },
+                ),
+              );
+            },
+          ),
         ),
       ),
     );
@@ -296,91 +300,101 @@ class _DashboardHeader extends StatelessWidget {
   Widget build(BuildContext context) {
     final name = user?.displayName ?? 'Joel Ndege';
     final role = (user?.displayRole ?? 'CASHIER').toUpperCase();
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 620;
+        final brandSize = compact ? 72.0 : 96.0;
+        final avatarSize = compact ? 60.0 : 84.0;
+        final nameSize = compact ? 18.0 : 24.0;
+        final roleSize = compact ? 13.5 : 19.0;
+        final brandFontSize = compact ? 46.0 : 60.0;
 
-    return Container(
-      padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Color(0xFF07124A), Color(0xFF0C1F78), Color(0xFF1233AF)],
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-        ),
-        borderRadius: BorderRadius.circular(30),
-        boxShadow: const [
-          BoxShadow(color: Color(0x240B1630), blurRadius: 24, offset: Offset(0, 12)),
-        ],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 96,
-            height: 96,
-            decoration: BoxDecoration(
-              color: const Color(0xFF2563EB),
-              borderRadius: BorderRadius.circular(22),
+        return Container(
+          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [Color(0xFF07124A), Color(0xFF0C1F78), Color(0xFF1233AF)],
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
             ),
-            child: const Center(
-              child: Text(
-                'P',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 60,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
+            borderRadius: BorderRadius.circular(30),
+            boxShadow: const [
+              BoxShadow(color: Color(0x240B1630), blurRadius: 24, offset: Offset(0, 12)),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: brandSize,
+                height: brandSize,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2563EB),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: Center(
+                  child: Text(
+                    'P',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: brandFontSize,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
+                  ),
                 ),
               ),
-            ),
-          ),
-          const SizedBox(width: 16),
-          const Spacer(),
-          Flexible(
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 84,
-                  height: 84,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF3D73F6).withOpacity(0.95),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.person, color: Colors.white, size: 46),
-                ),
-                const SizedBox(width: 14),
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 220),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.w800,
-                          letterSpacing: -0.3,
-                        ),
+              SizedBox(width: compact ? 12 : 16),
+              const Spacer(),
+              Flexible(
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: avatarSize,
+                      height: avatarSize,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3D73F6).withOpacity(0.95),
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(height: 4),
-                      Text(
-                        role,
-                        style: TextStyle(
-                          color: Colors.white.withOpacity(0.72),
-                          fontSize: 19,
-                          fontWeight: FontWeight.w700,
-                        ),
+                      child: const Icon(Icons.person, color: Colors.white, size: 46),
+                    ),
+                    SizedBox(width: compact ? 10 : 14),
+                    ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: compact ? 150 : 220),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            name,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: nameSize,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.3,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            role,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.72),
+                              fontSize: roleSize,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -566,7 +580,7 @@ class _MetricCard extends StatelessWidget {
                     maxLines: 2,
                     style: const TextStyle(
                       color: Colors.white,
-                      fontSize: 25,
+                      fontSize: 22,
                       fontWeight: FontWeight.w800,
                       height: 1.12,
                     ),
@@ -578,7 +592,7 @@ class _MetricCard extends StatelessWidget {
                       value,
                       style: const TextStyle(
                         color: Colors.white,
-                        fontSize: 42,
+                        fontSize: 40,
                         fontWeight: FontWeight.w900,
                         letterSpacing: -1,
                       ),
@@ -654,7 +668,7 @@ class _ActionCard extends StatelessWidget {
                 textAlign: TextAlign.center,
                 style: const TextStyle(
                   color: Color(0xFF25335B),
-                  fontSize: 24,
+                  fontSize: 20,
                   fontWeight: FontWeight.w800,
                 ),
               ),
