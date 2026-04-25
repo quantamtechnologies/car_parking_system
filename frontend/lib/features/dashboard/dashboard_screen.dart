@@ -63,169 +63,160 @@ class _DashboardScreenState extends State<DashboardScreen> {
               return SingleChildScrollView(
                 physics: const AlwaysScrollableScrollPhysics(),
                 padding: const EdgeInsets.only(bottom: 112),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
-                      child: _DashboardHeader(user: user),
-                    ),
-                    const SizedBox(height: 18),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: _RevenueCard(
-                        revenue: _mkMoney(data.revenuePerDay, decimals: 2, zeroPlaceholder: 'MK0,000.00'),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final cardWidth = _dashboardCardWidth(constraints.maxWidth);
-                          final cards = [
-                            _MetricCard(
-                              title: 'Today Cars',
-                              value: data.carsPerDay.toString(),
-                              footer: 'Average cars/day  ${_compactNumber(data.averageCarsPerDay)}',
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF1CD59A), Color(0xFF12B981)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              icon: Icons.directions_car_outlined,
-                            ),
-                            _MetricCard(
-                              title: 'Active Cars',
-                              value: data.activeSessions.toString(),
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFF9D6DFF), Color(0xFF6D28D9)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              icon: Icons.directions_car_filled_outlined,
-                            ),
-                            _MetricCard(
-                              title: 'Pending\nPayments',
-                              value: 'MK${NumberFormat('#,##0').format(data.pendingPayments)}',
-                              gradient: const LinearGradient(
-                                colors: [Color(0xFFFFC62A), Color(0xFFF97316)],
-                                begin: Alignment.topLeft,
-                                end: Alignment.bottomRight,
-                              ),
-                              icon: Icons.receipt_long_outlined,
-                            ),
-                          ];
-
-                          return Wrap(
-                            spacing: 16,
-                            runSpacing: 16,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 960),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                          child: _DashboardHeader(user: user),
+                        ),
+                        const SizedBox(height: 18),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: _RevenueCard(
+                            revenue: _mkMoney(data.revenuePerDay, decimals: 2, zeroPlaceholder: 'MK0,000.00'),
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
                             children: [
-                              for (final card in cards)
-                                SizedBox(
-                                  width: cardWidth,
-                                  child: card,
-                                ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 28),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 12),
-                      child: _SectionHeader(title: 'Quick Actions'),
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 12),
-                      child: LayoutBuilder(
-                        builder: (context, constraints) {
-                          final cardWidth = _actionCardWidth(constraints.maxWidth);
-                          final actions = [
-                            _ActionCard(
-                              title: 'Entry',
-                              icon: Icons.login_rounded,
-                              tint: const Color(0xFF2C6CF6),
-                              onTap: () => context.go('/entry'),
-                            ),
-                            _ActionCard(
-                              title: 'Receipts',
-                              icon: Icons.receipt_long_rounded,
-                              tint: const Color(0xFF7C3AED),
-                              onTap: () => context.go('/receipts'),
-                            ),
-                            _ActionCard(
-                              title: 'Exit',
-                              icon: Icons.logout_rounded,
-                              tint: const Color(0xFFF43F5E),
-                              onTap: () => context.go('/exit'),
-                            ),
-                          ];
-
-                          return Wrap(
-                            spacing: 16,
-                            runSpacing: 16,
-                            children: [
-                              for (final action in actions)
-                                SizedBox(
-                                  width: cardWidth,
-                                  child: action,
-                                ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                    if (snapshot.hasError) ...[
-                      const SizedBox(height: 18),
-                      Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 12),
-                        child: SurfaceCard(
-                          radius: 24,
-                          padding: const EdgeInsets.all(16),
-                          color: Colors.white,
-                          borderColor: const Color(0xFFE5EBF5),
-                          shadow: const [
-                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
-                          ],
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              const Text(
-                                'Unable to load dashboard',
-                                style: TextStyle(
-                                  color: Color(0xFF0F172A),
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                              const SizedBox(height: 8),
-                              Text(
-                                apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
-                                style: const TextStyle(color: Color(0xFF64748B), height: 1.45),
-                              ),
-                              const SizedBox(height: 14),
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  onPressed: _reload,
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: ParkingColors.primary,
-                                    foregroundColor: Colors.white,
-                                    minimumSize: const Size.fromHeight(50),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                              Expanded(
+                                child: _MetricCard(
+                                  title: 'Today Cars',
+                                  value: data.carsPerDay.toString(),
+                                  footer: 'Average cars/day  ${_compactNumber(data.averageCarsPerDay)}',
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF1CD59A), Color(0xFF12B981)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
                                   ),
-                                  icon: const Icon(Icons.refresh_rounded),
-                                  label: const Text('Try again'),
+                                  icon: Icons.directions_car_outlined,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _MetricCard(
+                                  title: 'Active Cars',
+                                  value: data.activeSessions.toString(),
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFF9D6DFF), Color(0xFF6D28D9)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  icon: Icons.directions_car_filled_outlined,
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _MetricCard(
+                                  title: 'Pending\nPayments',
+                                  value: 'MK${NumberFormat('#,##0').format(data.pendingPayments)}',
+                                  gradient: const LinearGradient(
+                                    colors: [Color(0xFFFFC62A), Color(0xFFF97316)],
+                                    begin: Alignment.topLeft,
+                                    end: Alignment.bottomRight,
+                                  ),
+                                  icon: Icons.receipt_long_outlined,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ],
+                        const SizedBox(height: 28),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(horizontal: 12),
+                          child: _SectionHeader(title: 'Quick Actions'),
+                        ),
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _ActionCard(
+                                  title: 'Entry',
+                                  icon: Icons.login_rounded,
+                                  tint: const Color(0xFF2C6CF6),
+                                  onTap: () => context.go('/entry'),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _ActionCard(
+                                  title: 'Receipts',
+                                  icon: Icons.receipt_long_rounded,
+                                  tint: const Color(0xFF7C3AED),
+                                  onTap: () => context.go('/receipts'),
+                                ),
+                              ),
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: _ActionCard(
+                                  title: 'Exit',
+                                  icon: Icons.logout_rounded,
+                                  tint: const Color(0xFFF43F5E),
+                                  onTap: () => context.go('/exit'),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        if (snapshot.hasError) ...[
+                          const SizedBox(height: 18),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            child: SurfaceCard(
+                              radius: 24,
+                              padding: const EdgeInsets.all(16),
+                              color: Colors.white,
+                              borderColor: const Color(0xFFE5EBF5),
+                              shadow: const [
+                                BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                              ],
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  const Text(
+                                    'Unable to load dashboard',
+                                    style: TextStyle(
+                                      color: Color(0xFF0F172A),
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.w800,
+                                    ),
+                                  ),
+                                  const SizedBox(height: 8),
+                                  Text(
+                                    apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
+                                    style: const TextStyle(color: Color(0xFF64748B), height: 1.45),
+                                  ),
+                                  const SizedBox(height: 14),
+                                  SizedBox(
+                                    width: double.infinity,
+                                    child: ElevatedButton.icon(
+                                      onPressed: _reload,
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: ParkingColors.primary,
+                                        foregroundColor: Colors.white,
+                                        minimumSize: const Size.fromHeight(50),
+                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                      ),
+                                      icon: const Icon(Icons.refresh_rounded),
+                                      label: const Text('Try again'),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ),
               );
             },
@@ -249,26 +240,6 @@ DashboardMetrics _emptyMetrics() {
     peakHours: <Map<String, dynamic>>[],
     staffPerformance: <Map<String, dynamic>>[],
   );
-}
-
-double _dashboardCardWidth(double maxWidth) {
-  if (maxWidth >= 900) {
-    return (maxWidth - 32) / 3;
-  }
-  if (maxWidth >= 620) {
-    return (maxWidth - 16) / 2;
-  }
-  return maxWidth;
-}
-
-double _actionCardWidth(double maxWidth) {
-  if (maxWidth >= 900) {
-    return (maxWidth - 32) / 3;
-  }
-  if (maxWidth >= 620) {
-    return (maxWidth - 16) / 2;
-  }
-  return maxWidth;
 }
 
 String _compactNumber(double value) {
@@ -421,84 +392,93 @@ class _RevenueCard extends StatelessWidget {
             BoxShadow(color: Color(0x250B1630), blurRadius: 24, offset: Offset(0, 14)),
           ],
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              left: -60,
-              bottom: -70,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.09),
-                ),
-              ),
-            ),
-            Positioned(
-              right: -80,
-              top: 30,
-              child: Container(
-                width: 260,
-                height: 260,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.08),
-                ),
-              ),
-            ),
-            Positioned(
-              left: 0,
-              right: 0,
-              bottom: -24,
-              child: Container(
-                height: 120,
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.08),
-                  borderRadius: BorderRadius.circular(120),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: 840,
+              height: 300,
+              child: Stack(
                 children: [
-                  Container(
-                    width: 104,
-                    height: 104,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.12),
-                    ),
-                    child: const Icon(Icons.payments_outlined, color: Colors.white, size: 52),
-                  ),
-                  const SizedBox(height: 18),
-                  const Text(
-                    'Revenue',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 27,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      revenue,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 62,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1.8,
+                  Positioned(
+                    left: -60,
+                    bottom: -70,
+                    child: Container(
+                      width: 220,
+                      height: 220,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.09),
                       ),
+                    ),
+                  ),
+                  Positioned(
+                    right: -80,
+                    top: 30,
+                    child: Container(
+                      width: 260,
+                      height: 260,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.08),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: 0,
+                    right: 0,
+                    bottom: -24,
+                    child: Container(
+                      height: 120,
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.08),
+                        borderRadius: BorderRadius.circular(120),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 104,
+                          height: 104,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.12),
+                          ),
+                          child: const Icon(Icons.payments_outlined, color: Colors.white, size: 52),
+                        ),
+                        const SizedBox(height: 18),
+                        const Text(
+                          'Revenue',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 27,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            revenue,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 62,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1.8,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -533,87 +513,96 @@ class _MetricCard extends StatelessWidget {
             BoxShadow(color: Color(0x220B1630), blurRadius: 20, offset: Offset(0, 12)),
           ],
         ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -26,
-              top: -26,
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.08),
-                ),
-              ),
-            ),
-            Positioned(
-              left: -32,
-              bottom: -22,
-              child: Container(
-                width: 126,
-                height: 126,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: Colors.white.withOpacity(0.07),
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.center,
+        child: Center(
+          child: FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: 300,
+              height: 341,
+              child: Stack(
                 children: [
-                  Container(
-                    width: 96,
-                    height: 96,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: Colors.white.withOpacity(0.16),
-                    ),
-                    child: Icon(icon, color: Colors.white, size: 44),
-                  ),
-                  const SizedBox(height: 18),
-                  Text(
-                    title,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 22,
-                      fontWeight: FontWeight.w800,
-                      height: 1.12,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      value,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 40,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -1,
+                  Positioned(
+                    right: -26,
+                    top: -26,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.08),
                       ),
                     ),
                   ),
-                  if (footer != null) ...[
-                    const SizedBox(height: 12),
-                    Text(
-                      footer!,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.85),
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
+                  Positioned(
+                    left: -32,
+                    bottom: -22,
+                    child: Container(
+                      width: 126,
+                      height: 126,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: Colors.white.withOpacity(0.07),
                       ),
                     ),
-                  ],
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 96,
+                          height: 96,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.white.withOpacity(0.16),
+                          ),
+                          child: Icon(icon, color: Colors.white, size: 44),
+                        ),
+                        const SizedBox(height: 18),
+                        Text(
+                          title,
+                          textAlign: TextAlign.center,
+                          maxLines: 2,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            height: 1.12,
+                          ),
+                        ),
+                        const SizedBox(height: 12),
+                        FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Text(
+                            value,
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 40,
+                              fontWeight: FontWeight.w900,
+                              letterSpacing: -1,
+                            ),
+                          ),
+                        ),
+                        if (footer != null) ...[
+                          const SizedBox(height: 12),
+                          Text(
+                            footer!,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.85),
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -650,29 +639,38 @@ class _ActionCard extends StatelessWidget {
               BoxShadow(color: Color(0x140B1630), blurRadius: 18, offset: Offset(0, 10)),
             ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: tint.withOpacity(0.12),
+          child: Center(
+            child: FittedBox(
+              fit: BoxFit.contain,
+              child: SizedBox(
+                width: 260,
+                height: 118,
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      width: 88,
+                      height: 88,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: tint.withOpacity(0.12),
+                      ),
+                      child: Icon(icon, color: tint, size: 42),
+                    ),
+                    const SizedBox(height: 16),
+                    Text(
+                      title,
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Color(0xFF25335B),
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ],
                 ),
-                child: Icon(icon, color: tint, size: 42),
               ),
-              const SizedBox(height: 16),
-              Text(
-                title,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Color(0xFF25335B),
-                  fontSize: 20,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

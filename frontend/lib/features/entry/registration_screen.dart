@@ -78,6 +78,14 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
+    const darkInk = Color(0xFF16233F);
+    const darkMuted = Color(0xFF667085);
+    const vehicleItemStyle = TextStyle(
+      color: darkInk,
+      fontSize: 20,
+      fontWeight: FontWeight.w800,
+    );
+
     return Scaffold(
       backgroundColor: ParkingColors.scaffold,
       body: SingleChildScrollView(
@@ -140,7 +148,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                     style: TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w800,
-                                      color: ParkingColors.ink,
+                                      color: darkInk,
                                       letterSpacing: -0.4,
                                     ),
                                   ),
@@ -149,7 +157,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                     'Only the vehicle type is required. The plate number is already filled in.',
                                     style: TextStyle(
                                       fontSize: 13.5,
-                                      color: Color(0xFF667085),
+                                      color: darkMuted,
                                       height: 1.35,
                                     ),
                                   ),
@@ -162,7 +170,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                         Text(
                           'License Plate Number',
                           style: const TextStyle(
-                            color: ParkingColors.ink,
+                            color: darkInk,
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                           ),
@@ -197,7 +205,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                                 child: Text(
                                   widget.plateNumber.trim().isEmpty ? 'KCD 123A' : widget.plateNumber.trim(),
                                   style: const TextStyle(
-                                    color: ParkingColors.ink,
+                                    color: darkInk,
                                     fontSize: 22,
                                     fontWeight: FontWeight.w800,
                                     letterSpacing: 0.4,
@@ -212,7 +220,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                         Text(
                           'Vehicle Type',
                           style: const TextStyle(
-                            color: ParkingColors.ink,
+                            color: darkInk,
                             fontSize: 16,
                             fontWeight: FontWeight.w800,
                           ),
@@ -230,19 +238,16 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                             child: DropdownButton<String>(
                               value: _vehicleType,
                               isExpanded: true,
+                              dropdownColor: Colors.white,
                               icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF7780A3), size: 30),
-                              style: const TextStyle(
-                                color: ParkingColors.ink,
-                                fontSize: 20,
-                                fontWeight: FontWeight.w800,
-                              ),
+                              style: vehicleItemStyle,
                               items: const [
-                                DropdownMenuItem(value: 'CAR', child: Text('Car')),
-                                DropdownMenuItem(value: 'SUV', child: Text('SUV')),
-                                DropdownMenuItem(value: 'VAN', child: Text('Van')),
-                                DropdownMenuItem(value: 'TRUCK', child: Text('Truck')),
-                                DropdownMenuItem(value: 'BIKE', child: Text('Motorbike')),
-                                DropdownMenuItem(value: 'OTHER', child: Text('Other')),
+                                DropdownMenuItem(value: 'CAR', child: Text('Car', style: vehicleItemStyle)),
+                                DropdownMenuItem(value: 'SUV', child: Text('SUV', style: vehicleItemStyle)),
+                                DropdownMenuItem(value: 'VAN', child: Text('Van', style: vehicleItemStyle)),
+                                DropdownMenuItem(value: 'TRUCK', child: Text('Truck', style: vehicleItemStyle)),
+                                DropdownMenuItem(value: 'BIKE', child: Text('Motorbike', style: vehicleItemStyle)),
+                                DropdownMenuItem(value: 'OTHER', child: Text('Other', style: vehicleItemStyle)),
                               ],
                               onChanged: (value) {
                                 if (value == null) return;

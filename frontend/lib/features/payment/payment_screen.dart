@@ -358,41 +358,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
             child: Center(
               child: ConstrainedBox(
                 constraints: const BoxConstraints(maxWidth: 960),
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    final wide = constraints.maxWidth >= 920;
-                    final compact = constraints.maxWidth < 760;
-                    final overviewColumn = Column(
-                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                      children: [
-                        summaryCard,
-                        const SizedBox(height: 12),
-                        sessionSnapshotCard,
-                      ],
-                    );
-
-                    if (wide || !compact) {
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Expanded(child: overviewColumn),
-                          const SizedBox(width: 10),
-                          Expanded(child: formCard),
-                        ],
-                      );
-                    }
-
-                    final tileWidth = (constraints.maxWidth - 10) / 2;
-
-                    return Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: [
-                        SizedBox(width: tileWidth, child: overviewColumn),
-                        SizedBox(width: tileWidth, child: formCard),
-                      ],
-                    );
-                  },
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    summaryCard,
+                    const SizedBox(height: 12),
+                    sessionSnapshotCard,
+                    const SizedBox(height: 12),
+                    formCard,
+                  ],
                 ),
               ),
             ),
