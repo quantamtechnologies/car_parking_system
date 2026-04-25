@@ -18,15 +18,13 @@ class ExitScreen extends StatefulWidget {
 }
 
 class _ExitScreenState extends State<ExitScreen> {
-  final _plate = TextEditingController();
+  final _plateController = TextEditingController();
   late Future<_ExitPageData> _future;
-  bool _loading = false;
-  bool _expandedVehicles = false;
   Map<String, dynamic>? _session;
   Map<String, dynamic>? _breakdown;
-  String? _scanSummary;
-  int? _exitScanId;
-  String? _selectedPlate;
+  int? _scanId;
+  bool _busy = false;
+  bool _scanBusy = false;
 
   @override
   void initState() {
@@ -36,7 +34,7 @@ class _ExitScreenState extends State<ExitScreen> {
 
   @override
   void dispose() {
-    _plate.dispose();
+    _plateController.dispose();
     super.dispose();
   }
 
@@ -44,61 +42,77 @@ class _ExitScreenState extends State<ExitScreen> {
     final api = context.read<SmartParkingApi>();
     final results = await Future.wait([
       api.vehicles(),
-      api.activeSessions(),
+      api.sessions(ordering: '-exit_time', pageSize: 6),
     ]);
 
-    final activePlates = results[1]
-        .cast<ParkingSessionSummary>()
-        .map((session) => session.plateNumber)
-        .where((plate) => plate.isNotEmpty)
-        .toSet();
+    final vehicles = (results[0] as List<VehicleRecord>).toList();
+    final sessions = (results[1] as List<ParkingSessionSummary>)
+        .where((session) => session.exitTime != null)
+        .toList();
 
-    final vehicles = results[0]
-        .cast<VehicleRecord>()
-        .where((vehicle) => vehicle.isActive && activePlates.contains(vehicle.plateNumber))
-        .toList()
-      ..sort(
-        (a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-            .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)),
-      );
+    final typeByPlate = <String, String>{};
+    for (final vehicle in vehicles) {
+      typeByPlate[vehicle.plateNumber.toUpperCase()] = vehicle.vehicleType;
+    }
+
+    final recentExits = sessions
+        .map(
+          (session) => _RecentExitRowData(
+            plateNumber: session.plateNumber,
+            vehicleType: typeByPlate[session.plateNumber.toUpperCase()] ?? 'CAR',
+            timeLabel: DateFormat('hh:mm a').format(session.exitTime!),
+          ),
+        )
+        .toList();
 
     return _ExitPageData(
-      vehicles: vehicles,
-      activePlates: activePlates,
+      recentExits: recentExits,
     );
+  }
+
+  Future<void> _refresh() async {
+    setState(() => _future = _load());
+    await _future;
   }
 
   Future<void> _scanPlate() async {
-    final result = await context.push<Map<String, dynamic>?>(
-      '/camera-exit',
-      extra: {'source': 'EXIT', 'plate': _plate.text},
-    );
-    if (result == null) return;
+    if (_scanBusy) return;
+    setState(() => _scanBusy = true);
+    try {
+      final result = await context.push<Map<String, dynamic>?>(
+        '/camera-exit',
+        extra: {'source': 'EXIT', 'plate': _plateController.text},
+      );
+      if (result == null) return;
 
-    final plate = result['plate']?.toString() ?? '';
-    final scan = result['scan'] as OcrResult?;
-    setState(() {
-      _plate.text = plate;
-      _exitScanId = result['scan_id'] as int?;
-      _scanSummary = scan == null
-          ? null
-          : '${scan.detectedPlate.isEmpty ? 'Manual' : scan.detectedPlate} (${scan.confidence.toStringAsFixed(0)}%)';
-      _selectedPlate = plate;
-    });
+      final plate = result['plate']?.toString() ?? '';
+      if (plate.trim().isEmpty) return;
+
+      setState(() {
+        _plateController.text = plate.trim().toUpperCase();
+        _scanId = result['scan_id'] as int?;
+      });
+      await _fetchVehicleInfo(autoTriggered: true);
+    } finally {
+      if (mounted) setState(() => _scanBusy = false);
+    }
   }
 
-  Future<void> _prepareExit([String? plate]) async {
-    final targetPlate = (plate ?? _plate.text).trim();
-    if (targetPlate.isEmpty) return;
+  Future<void> _fetchVehicleInfo({bool autoTriggered = false}) async {
+    final plate = _plateController.text.trim().toUpperCase();
+    if (plate.isEmpty) return;
 
-    setState(() => _loading = true);
+    final payload = <String, dynamic>{
+      'plate_number': plate,
+      if (_scanId != null) 'exit_scan_id': _scanId,
+    };
+
+    setState(() => _busy = true);
     try {
-      final response = await context.read<SmartParkingApi>().prepareExit({
-        'plate_number': targetPlate,
-        if (_exitScanId != null) 'exit_scan_id': _exitScanId,
-      });
+      final response = await context.read<SmartParkingApi>().prepareExit(payload);
+      if (!mounted) return;
+
       setState(() {
-        _selectedPlate = targetPlate;
         _session = Map<String, dynamic>.from(response['session'] as Map);
         _breakdown = Map<String, dynamic>.from(response['fee_breakdown'] as Map);
       });
@@ -112,576 +126,233 @@ class _ExitScreenState extends State<ExitScreen> {
         ),
       );
       if (isOfflineDioError(e)) {
-        await context.read<AuthController>().queueIfOffline('exit', {'plate_number': targetPlate});
+        await context.read<AuthController>().queueIfOffline('exit', {'plate_number': plate});
+      }
+      if (!autoTriggered) {
+        setState(() {
+          _session = null;
+          _breakdown = null;
+        });
       }
     } finally {
-      if (mounted) setState(() => _loading = false);
+      if (mounted) setState(() => _busy = false);
     }
   }
 
-  String _formatDateTime(String? raw, {String fallback = 'Now'}) {
-    final dt = raw == null ? null : DateTime.tryParse(raw);
-    if (dt == null) return fallback;
-    return DateFormat('HH:mm').format(dt);
+  void _payAndExit() {
+    final session = _session;
+    if (session == null) {
+      _fetchVehicleInfo();
+      return;
+    }
+    context.go('/payment', extra: session);
   }
 
-  String _formatDuration(int minutes) {
+  String _money0(dynamic value) {
+    final amount = value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
+    return 'MK${NumberFormat('#,##0').format(amount)}';
+  }
+
+  String _durationLabel(dynamic value) {
+    final minutes = value is num ? value.toInt() : int.tryParse(value?.toString() ?? '') ?? 0;
     final hours = minutes ~/ 60;
     final remaining = minutes % 60;
-    if (hours <= 0) return '$remaining min';
-    if (remaining <= 0) return '$hours hr';
-    return '$hours hr ${remaining} min';
-  }
-
-  double _asDouble(dynamic value) => value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
-
-  Widget _buildHeader(UserProfile? user) {
-    return ParkingScreenHeader(
-      title: 'Vehicle Exit',
-      subtitle: 'Record vehicle departure',
-      user: user,
-      onLeadingTap: () => context.go('/'),
-      leadingIcon: Icons.arrow_back_rounded,
-      dark: true,
-      backgroundGradient: const LinearGradient(
-        colors: [Color(0xFF5B21B6), Color(0xFF7C3AED), Color(0xFF8B5CF6)],
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-      ),
-      titleColor: Colors.white,
-      subtitleColor: const Color(0xFFE4D9FF),
-      leadingBackground: Colors.white.withOpacity(0.16),
-      leadingIconColor: Colors.white,
-      trailingIcon: Icons.qr_code_scanner_rounded,
-      trailingOnTap: () {
-        _scanPlate();
-      },
-      trailingBackground: Colors.white.withOpacity(0.16),
-      trailingIconColor: Colors.white,
-      padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-      titleSize: 26,
-      subtitleSize: 13.5,
-      bottomRadius: 26,
-    );
-  }
-
-  Widget _buildLoading(UserProfile? user) {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 122),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildHeader(user),
-          const SizedBox(height: 160),
-          const Center(child: CircularProgressIndicator()),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildError(UserProfile? user, Object? error) {
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 122),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildHeader(user),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-            child: SurfaceCard(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('Unable to load exit data', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w800)),
-                  const SizedBox(height: 8),
-                  Text(
-                    apiErrorMessage(error, fallback: 'Please try again in a moment.'),
-                    style: const TextStyle(color: Color(0xFF667085), height: 1.45),
-                  ),
-                  const SizedBox(height: 16),
-                  SizedBox(
-                    width: double.infinity,
-                    child: GradientActionButton(
-                      label: 'Try again',
-                      icon: Icons.refresh_rounded,
-                      onPressed: () => setState(() => _future = _load()),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildSuccess(UserProfile? user, _ExitPageData data) {
-    final currentSession = _session;
-    final breakdown = _breakdown;
-    final vehicle = currentSession?['vehicle'] as Map?;
-    final plate = vehicle?['plate_number']?.toString() ?? _selectedPlate ?? _plate.text.trim();
-    final entryAt = DateTime.tryParse(currentSession?['entry_time']?.toString() ?? '');
-    final now = DateTime.now();
-    final hasSession = currentSession != null && breakdown != null;
-    final activeVehicleCount = data.activePlates.length;
-    final entryDate = entryAt == null ? 'Waiting' : DateFormat('d MMM y').format(entryAt);
-    final entryClock = entryAt == null ? '--:--' : DateFormat('hh:mm a').format(entryAt);
-    final exitDate = DateFormat('d MMM y').format(now);
-    final exitClock = DateFormat('hh:mm a').format(now);
-    final durationLabel = hasSession ? _formatDuration((breakdown!['duration_minutes'] as num?)?.toInt() ?? 0) : '--';
-    final double amountDue = hasSession ? _asDouble(breakdown!['total_fee']) : 0.0;
-    final actionLabel = hasSession ? 'Continue to Payment' : 'Process Exit';
-
-    Widget buildInfoCard({
-      required String title,
-      required String subtitle,
-      required List<Widget> cells,
-    }) {
-      return SurfaceCard(
-        radius: 28,
-        padding: const EdgeInsets.all(18),
-        color: const Color(0xFF0F1B3A),
-        borderColor: const Color(0xFF1E2B4D),
-        shadow: const [
-          BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
-        ],
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              title,
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w800,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              subtitle,
-              style: const TextStyle(
-                color: Color(0xFF9EABC9),
-                fontSize: 12.5,
-                height: 1.35,
-              ),
-            ),
-            const SizedBox(height: 18),
-            LayoutBuilder(
-              builder: (context, constraints) {
-                final stacked = constraints.maxWidth < 720;
-                if (stacked) {
-                  return Column(
-                    children: [
-                      for (var index = 0; index < cells.length; index++) ...[
-                        cells[index],
-                        if (index != cells.length - 1) const SizedBox(height: 12),
-                      ],
-                    ],
-                  );
-                }
-
-                return Row(
-                  children: [
-                    for (var index = 0; index < cells.length; index++) ...[
-                      if (index > 0) Container(width: 1, height: 54, color: const Color(0xFF1E2B4D)),
-                      Expanded(child: cells[index]),
-                    ],
-                  ],
-                );
-              },
-            ),
-          ],
-        ),
-      );
+    if (hours == 0) {
+      return '$remaining m';
     }
-
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.only(bottom: 122),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          _buildHeader(user),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
-            child: Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 960),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    LayoutBuilder(
-                      builder: (context, constraints) {
-                        final wide = constraints.maxWidth >= 1040;
-                        final compact = constraints.maxWidth < 760;
-
-                        final plateCard = SurfaceCard(
-                          radius: 28,
-                          padding: const EdgeInsets.all(18),
-                          color: const Color(0xFF0F1B3A),
-                          borderColor: const Color(0xFF1E2B4D),
-                          shadow: const [
-                            BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
-                          ],
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
-                                children: [
-                                  Container(
-                                    width: 42,
-                                    height: 42,
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF1A294C),
-                                      borderRadius: BorderRadius.circular(14),
-                                    ),
-                                    child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF8FB5FF), size: 22),
-                                  ),
-                                  const SizedBox(width: 12),
-                                  const Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'Exit Plate Number',
-                                          style: TextStyle(
-                                            color: Colors.white,
-                                            fontSize: 16,
-                                            fontWeight: FontWeight.w800,
-                                          ),
-                                        ),
-                                        SizedBox(height: 4),
-                                        Text(
-                                          'Type the plate or use the scanner to load the exit fee.',
-                                          style: TextStyle(
-                                            color: Color(0xFF9EABC9),
-                                            fontSize: 12.5,
-                                            height: 1.35,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 16),
-                              Container(
-                                height: 64,
-                                padding: const EdgeInsets.symmetric(horizontal: 14),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF101C38),
-                                  borderRadius: BorderRadius.circular(18),
-                                  border: Border.all(color: const Color(0xFF243559)),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 26,
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(6),
-                                        border: Border.all(color: const Color(0xFF31446B)),
-                                      ),
-                                      child: Stack(
-                                        fit: StackFit.expand,
-                                        children: [
-                                          Column(
-                                            children: const [
-                                              Expanded(child: ColoredBox(color: Color(0xFF000000))),
-                                              Expanded(child: ColoredBox(color: Color(0xFFD71F2A))),
-                                              Expanded(child: ColoredBox(color: Color(0xFF006A44))),
-                                            ],
-                                          ),
-                                          Center(
-                                            child: Container(
-                                              width: 8,
-                                              height: 20,
-                                              decoration: BoxDecoration(
-                                                color: Colors.white,
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    const SizedBox(width: 8),
-                                    const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF9EABC9), size: 24),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: TextField(
-                                        controller: _plate,
-                                        decoration: const InputDecoration(
-                                          border: InputBorder.none,
-                                          isDense: true,
-                                          hintText: 'Enter or scan the plate',
-                                          hintStyle: TextStyle(color: Color(0xFF7280A5)),
-                                          contentPadding: EdgeInsets.zero,
-                                        ),
-                                        textCapitalization: TextCapitalization.characters,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 18,
-                                          fontWeight: FontWeight.w800,
-                                          letterSpacing: 0.4,
-                                        ),
-                                        onSubmitted: (_) => _prepareExit(),
-                                      ),
-                                    ),
-                                    Material(
-                                      color: Colors.transparent,
-                                      child: InkWell(
-                                        borderRadius: BorderRadius.circular(14),
-                                        onTap: _prepareExit,
-                                        child: Container(
-                                          width: 38,
-                                          height: 38,
-                                          decoration: BoxDecoration(
-                                            color: const Color(0xFF142348),
-                                            borderRadius: BorderRadius.circular(14),
-                                          ),
-                                          child: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                              if (_scanSummary != null) ...[
-                                const SizedBox(height: 14),
-                                Align(
-                                  alignment: Alignment.centerLeft,
-                                  child: StatusBadge(label: _scanSummary!, color: const Color(0xFF8B5CF6)),
-                                ),
-                              ],
-                            ],
-                          ),
-                        );
-
-                        final entryInfoCard = buildInfoCard(
-                          title: 'Entry Information',
-                          subtitle: hasSession
-                              ? 'Details captured when the vehicle entered the parking lot.'
-                              : 'Scan a plate to load the entry details.',
-                          cells: [
-                            _InfoCell(
-                              icon: Icons.calendar_month_rounded,
-                              label: 'Entry Date',
-                              value: entryDate,
-                            ),
-                            _InfoCell(
-                              icon: Icons.schedule_rounded,
-                              label: 'Entry Time',
-                              value: entryClock,
-                            ),
-                            _InfoCell(
-                              icon: Icons.receipt_long_rounded,
-                              label: 'Plate',
-                              value: plate.isEmpty ? 'Waiting' : plate,
-                            ),
-                          ],
-                        );
-
-                        final exitInfoCard = buildInfoCard(
-                          title: 'Exit Information',
-                          subtitle: hasSession
-                              ? 'Review the exit snapshot before moving to payment.'
-                              : 'Exit date, time, and fee will appear here once processed.',
-                          cells: [
-                            _InfoCell(
-                              icon: Icons.event_available_rounded,
-                              label: 'Exit Date',
-                              value: exitDate,
-                            ),
-                            _InfoCell(
-                              icon: Icons.schedule_rounded,
-                              label: 'Exit Time',
-                              value: exitClock,
-                            ),
-                            _InfoCell(
-                              icon: Icons.payments_rounded,
-                              label: 'Amount Due',
-                              value: hasSession ? money(amountDue) : 'Pending',
-                            ),
-                          ],
-                        );
-
-                        final inactiveNote = !hasSession
-                            ? SurfaceCard(
-                                radius: 22,
-                                padding: const EdgeInsets.all(14),
-                                color: const Color(0xFF101C38),
-                                borderColor: const Color(0xFF1E2B4D),
-                                shadow: const [
-                                  BoxShadow(color: Color(0x40050A15), blurRadius: 18, offset: Offset(0, 10)),
-                                ],
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 38,
-                                      height: 38,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF142348),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: const Icon(Icons.info_outline_rounded, color: Colors.white, size: 20),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Expanded(
-                                      child: Text(
-                                        '$activeVehicleCount vehicles are currently active. Scan a plate to load the exit fee.',
-                                        style: const TextStyle(
-                                          color: Color(0xFF9EABC9),
-                                          fontSize: 12.5,
-                                          height: 1.35,
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              )
-                            : const SizedBox.shrink();
-
-                        final actionButton = SizedBox(
-                          width: double.infinity,
-                          child: GradientActionButton(
-                            label: actionLabel,
-                            icon: hasSession ? Icons.payments_rounded : Icons.arrow_forward_rounded,
-                            minHeight: 48,
-                            isBusy: _loading,
-                            onPressed: _loading
-                                ? null
-                                : () {
-                                    if (hasSession) {
-                                      context.go('/payment', extra: currentSession);
-                                    } else {
-                                      _prepareExit();
-                                    }
-                                  },
-                          ),
-                        );
-
-                        if (wide) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(flex: 5, child: plateCard),
-                                  const SizedBox(width: 16),
-                                  Expanded(
-                                    flex: 5,
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.stretch,
-                                      children: [
-                                        entryInfoCard,
-                                        const SizedBox(height: 16),
-                                        exitInfoCard,
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              if (!hasSession) ...[
-                                const SizedBox(height: 16),
-                                inactiveNote,
-                              ],
-                              const SizedBox(height: 16),
-                              actionButton,
-                            ],
-                          );
-                        }
-
-                        if (compact) {
-                          return Column(
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              plateCard,
-                              const SizedBox(height: 10),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Expanded(child: entryInfoCard),
-                                  const SizedBox(width: 10),
-                                  Expanded(child: exitInfoCard),
-                                ],
-                              ),
-                              if (!hasSession) ...[
-                                const SizedBox(height: 10),
-                                inactiveNote,
-                              ],
-                              const SizedBox(height: 10),
-                              actionButton,
-                            ],
-                          );
-                        }
-
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(flex: 5, child: plateCard),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  flex: 5,
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      entryInfoCard,
-                                      const SizedBox(height: 10),
-                                      exitInfoCard,
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            if (!hasSession) ...[
-                              const SizedBox(height: 10),
-                              inactiveNote,
-                            ],
-                            const SizedBox(height: 10),
-                            actionButton,
-                          ],
-                        );
-                      },
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
+    if (remaining == 0) {
+      return '${hours}h';
+    }
+    return '${hours}h ${remaining}m';
   }
 
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthController>().user;
+    final now = DateTime.now();
 
     return Scaffold(
-      backgroundColor: ParkingColors.scaffold,
+      backgroundColor: const Color(0xFFF4F7FF),
       body: RefreshIndicator(
-        onRefresh: () async {
-          setState(() => _future = _load());
-          await _future;
-        },
+        color: ParkingColors.primary,
+        onRefresh: _refresh,
         child: FutureBuilder<_ExitPageData>(
           future: _future,
           builder: (context, snapshot) {
-            if (snapshot.connectionState != ConnectionState.done) {
-              return _buildLoading(user);
-            }
-            if (snapshot.hasError) {
-              return _buildError(user, snapshot.error);
-            }
-            return _buildSuccess(user, snapshot.data!);
+            final data = snapshot.data ?? _ExitPageData(recentExits: const []);
+            final vehicle = _session?['vehicle'] as Map?;
+            final breakdown = _breakdown;
+            final entryTime = DateTime.tryParse(_session?['entry_time']?.toString() ?? '');
+            final entryClock = entryTime == null ? '--:--' : DateFormat('hh:mm a').format(entryTime);
+            final currentClock = DateFormat('hh:mm a').format(now);
+            final duration = breakdown == null ? '--' : _durationLabel(breakdown['duration_minutes']);
+            final rate = breakdown == null ? 'MK 0 / hr' : '${_money0(breakdown['rate_per_hour'])} / hr';
+            final total = breakdown == null ? 'MK0' : _money0(breakdown['total_fee']);
+            final plate = vehicle?['plate_number']?.toString() ?? _plateController.text.trim();
+            final type = vehicleTypeLabel(vehicle?['vehicle_type']?.toString() ?? '');
+            final owner = vehicle?['owner_name']?.toString() ?? 'Waiting';
+            final phone = vehicle?['phone_number']?.toString() ?? 'Waiting';
+
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 112),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 960),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                        child: _ExitHeader(user: user),
+                      ),
+                      const SizedBox(height: 18),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: SurfaceCard(
+                          radius: 26,
+                          padding: const EdgeInsets.all(16),
+                          color: Colors.white,
+                          borderColor: const Color(0xFFE5EBF5),
+                          shadow: const [
+                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                          ],
+                          child: Column(
+                            children: [
+                              _PlateSearchField(
+                                controller: _plateController,
+                                isBusy: _scanBusy,
+                                onScan: _scanPlate,
+                                onSubmitted: () => _fetchVehicleInfo(),
+                              ),
+                              const SizedBox(height: 14),
+                              _PrimaryButton(
+                                label: _busy ? 'FETCHING' : 'FETCH VEHICLE INFO',
+                                icon: Icons.search_rounded,
+                                isBusy: _busy,
+                                onPressed: _busy ? null : _fetchVehicleInfo,
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: _DetailCard(
+                          title: 'Vehicle Info',
+                          children: [
+                            _ValueRow(label: 'Plate', value: plate.isEmpty ? 'Waiting' : plate),
+                            _ValueRow(label: 'Type', value: type.isEmpty ? 'Waiting' : type),
+                            _ValueRow(label: 'Owner', value: owner),
+                            _ValueRow(label: 'Phone', value: phone),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: _DetailCard(
+                          title: 'Parking Info',
+                          children: [
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _MiniInfoCell(label: 'Entry Time', value: entryClock),
+                                ),
+                                Container(width: 1, height: 52, color: const Color(0xFFE2E8F4)),
+                                Expanded(
+                                  child: _MiniInfoCell(label: 'Current Time', value: currentClock),
+                                ),
+                                Container(width: 1, height: 52, color: const Color(0xFFE2E8F4)),
+                                Expanded(
+                                  child: _MiniInfoCell(label: 'Duration', value: duration),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: _DetailCard(
+                          title: 'Charges',
+                          children: [
+                            _ValueRow(label: 'Rate', value: rate),
+                            _ValueRow(label: 'Total', value: total),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: _PrimaryButton(
+                          label: 'PAY & EXIT',
+                          icon: Icons.payments_rounded,
+                          onPressed: _busy ? null : _payAndExit,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: _SectionHeader(title: 'Recent Exits'),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: SurfaceCard(
+                          radius: 24,
+                          padding: EdgeInsets.zero,
+                          color: Colors.white,
+                          borderColor: const Color(0xFFE5EBF5),
+                          shadow: const [
+                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                          ],
+                          child: Column(
+                            children: [
+                              if (data.recentExits.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.all(18),
+                                  child: Text(
+                                    'No recent exits yet.',
+                                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                  ),
+                                )
+                              else
+                                for (var index = 0; index < data.recentExits.length; index++) ...[
+                                  _RecentExitRow(data: data.recentExits[index]),
+                                  if (index != data.recentExits.length - 1)
+                                    const Divider(height: 1, thickness: 1, color: Color(0xFFE7EDF7)),
+                                ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (snapshot.hasError) ...[
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: SurfaceCard(
+                            radius: 22,
+                            padding: const EdgeInsets.all(14),
+                            color: Colors.white,
+                            borderColor: const Color(0xFFE5EBF5),
+                            shadow: const [
+                              BoxShadow(color: Color(0x150B1630), blurRadius: 16, offset: Offset(0, 10)),
+                            ],
+                            child: Text(
+                              apiErrorMessage(snapshot.error, fallback: 'Unable to load recent exits.'),
+                              style: const TextStyle(color: Color(0xFF64748B), height: 1.4),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              ),
+            );
           },
         ),
       ),
@@ -690,58 +361,117 @@ class _ExitScreenState extends State<ExitScreen> {
 }
 
 class _ExitPageData {
-  _ExitPageData({
-    required this.vehicles,
-    required this.activePlates,
-  });
+  const _ExitPageData({required this.recentExits});
 
-  final List<VehicleRecord> vehicles;
-  final Set<String> activePlates;
+  final List<_RecentExitRowData> recentExits;
 }
 
-class _InfoCell extends StatelessWidget {
-  const _InfoCell({
-    required this.icon,
-    required this.label,
-    required this.value,
+class _RecentExitRowData {
+  const _RecentExitRowData({
+    required this.plateNumber,
+    required this.vehicleType,
+    required this.timeLabel,
   });
 
-  final IconData icon;
-  final String label;
-  final String value;
+  final String plateNumber;
+  final String vehicleType;
+  final String timeLabel;
+}
+
+class _ExitHeader extends StatelessWidget {
+  const _ExitHeader({required this.user});
+
+  final UserProfile? user;
 
   @override
   Widget build(BuildContext context) {
-    final textAlign = MediaQuery.of(context).size.width < 720 ? TextAlign.left : TextAlign.left;
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+    final name = user?.displayName ?? 'Joel Cashier';
+    final role = (user?.displayRole ?? 'Cashier').toUpperCase();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: const [
+          BoxShadow(color: Color(0x220B1630), blurRadius: 22, offset: Offset(0, 10)),
+        ],
+      ),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF7B8AB1), size: 30),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => context.go('/'),
+              child: Container(
+                width: 72,
+                height: 72,
+                alignment: Alignment.center,
+                child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF2563EB), size: 34),
+              ),
+            ),
+          ),
+          const SizedBox(width: 18),
+          const Expanded(
+            child: Text(
+              'Vehicle Exit',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
               children: [
-                Text(
-                  label,
-                  textAlign: textAlign,
-                  style: const TextStyle(
-                    color: Color(0xFF9EABC9),
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w700,
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.2),
                   ),
+                  child: const Icon(Icons.person, color: Colors.white, size: 40),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  value,
-                  textAlign: textAlign,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.5,
-                    fontWeight: FontWeight.w800,
+                const SizedBox(width: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 220),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        role,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
@@ -750,5 +480,397 @@ class _InfoCell extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+class _PlateSearchField extends StatelessWidget {
+  const _PlateSearchField({
+    required this.controller,
+    required this.onScan,
+    required this.onSubmitted,
+    required this.isBusy,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onScan;
+  final VoidCallback onSubmitted;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    return _FieldShell(
+      prefix: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF1FF),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: const Icon(Icons.search_rounded, color: Color(0xFF2563EB), size: 28),
+      ),
+      child: TextField(
+        controller: controller,
+        textCapitalization: TextCapitalization.characters,
+        style: const TextStyle(
+          color: Color(0xFF16233F),
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
+        ),
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: 'Enter plate number',
+          hintStyle: TextStyle(color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
+          contentPadding: EdgeInsets.zero,
+        ),
+        onSubmitted: (_) => onSubmitted(),
+      ),
+      suffix: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: isBusy ? null : onScan,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF1FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2563EB), size: 26),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _FieldShell extends StatelessWidget {
+  const _FieldShell({
+    required this.prefix,
+    required this.child,
+    this.suffix,
+  });
+
+  final Widget prefix;
+  final Widget child;
+  final Widget? suffix;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 66,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E1F2)),
+      ),
+      child: Row(
+        children: [
+          prefix,
+          const SizedBox(width: 12),
+          Container(width: 1, height: 36, color: const Color(0xFFE2E8F4)),
+          const SizedBox(width: 12),
+          Expanded(child: child),
+          if (suffix != null) ...[
+            const SizedBox(width: 12),
+            suffix!,
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _DetailCard extends StatelessWidget {
+  const _DetailCard({
+    required this.title,
+    required this.children,
+  });
+
+  final String title;
+  final List<Widget> children;
+
+  @override
+  Widget build(BuildContext context) {
+    return SurfaceCard(
+      radius: 24,
+      padding: const EdgeInsets.all(16),
+      color: Colors.white,
+      borderColor: const Color(0xFFE5EBF5),
+      shadow: const [
+        BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+      ],
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              color: Color(0xFF16233F),
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1, thickness: 1, color: Color(0xFFE7EDF7)),
+          const SizedBox(height: 12),
+          ...children,
+        ],
+      ),
+    );
+  }
+}
+
+class _ValueRow extends StatelessWidget {
+  const _ValueRow({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 7),
+      child: Row(
+        children: [
+          Expanded(
+            child: Text(
+              label,
+              style: const TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 14.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 14),
+          Text(
+            value,
+            style: const TextStyle(
+              color: Color(0xFF16233F),
+              fontSize: 16.5,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MiniInfoCell extends StatelessWidget {
+  const _MiniInfoCell({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
+      child: Column(
+        children: [
+          Text(
+            label,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF64748B),
+              fontSize: 13.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(height: 5),
+          Text(
+            value,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              color: Color(0xFF16233F),
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrimaryButton extends StatelessWidget {
+  const _PrimaryButton({
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.isBusy = false,
+  });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null && !isBusy;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2D6CF6), Color(0xFF184DE1)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(color: Color(0x262D6CF6), blurRadius: 20, offset: Offset(0, 10)),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 68,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          ),
+          onPressed: enabled ? onPressed : null,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: isBusy
+                ? const SizedBox(
+                    key: ValueKey('busy'),
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                  )
+                : Row(
+                    key: ValueKey(label),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 24),
+                        const SizedBox(width: 12),
+                      ],
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentExitRow extends StatelessWidget {
+  const _RecentExitRow({required this.data});
+
+  final _RecentExitRowData data;
+
+  @override
+  Widget build(BuildContext context) {
+    final accent = _vehicleAccent(data.vehicleType);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Expanded(
+            flex: 3,
+            child: Text(
+              data.plateNumber,
+              style: const TextStyle(
+                color: Color(0xFF16233F),
+                fontSize: 16.5,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            flex: 2,
+            child: Text(
+              vehicleTypeLabel(data.vehicleType),
+              style: TextStyle(
+                color: accent,
+                fontSize: 15.5,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Text(
+            data.timeLabel,
+            style: const TextStyle(
+              color: Color(0xFF16233F),
+              fontSize: 15.5,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 28,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2D6CF6),
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF16233F),
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+Color _vehicleAccent(String vehicleType) {
+  switch (vehicleType.toUpperCase()) {
+    case 'SUV':
+      return const Color(0xFF16A34A);
+    case 'VAN':
+    case 'TRUCK':
+      return const Color(0xFF7C3AED);
+    case 'BIKE':
+      return const Color(0xFFF97316);
+    case 'OTHER':
+      return const Color(0xFF64748B);
+    case 'CAR':
+    default:
+      return const Color(0xFF2563EB);
   }
 }

@@ -26,21 +26,29 @@ class EntryScreen extends StatefulWidget {
 
 class _EntryScreenState extends State<EntryScreen> {
   late final TextEditingController _plateController;
+  late final TextEditingController _ownerController;
+  late final TextEditingController _phoneController;
   late String _vehicleType;
-  VehicleRecord? _resolvedVehicle;
+  late Future<List<VehicleRecord>> _recentFuture;
+
   bool _busy = false;
+  bool _lookupBusy = false;
 
   @override
   void initState() {
     super.initState();
     _plateController = TextEditingController(
-      text: widget.initialPlate.isNotEmpty ? widget.initialPlate : 'KCD 123A',
+      text: widget.initialPlate.trim().isNotEmpty ? widget.initialPlate.trim().toUpperCase() : '',
     );
-    _vehicleType = widget.initialVehicleType.isNotEmpty ? widget.initialVehicleType : 'CAR';
+    _ownerController = TextEditingController();
+    _phoneController = TextEditingController();
+    _vehicleType = widget.initialVehicleType.trim().isNotEmpty ? widget.initialVehicleType : 'CAR';
+    _recentFuture = _loadRecentEntries();
+
     if (widget.initialPlate.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (!mounted) return;
-        _lookupVehicle(redirectToRegistration: true);
+        _lookupVehicle(silent: true);
       });
     }
   }
@@ -48,7 +56,25 @@ class _EntryScreenState extends State<EntryScreen> {
   @override
   void dispose() {
     _plateController.dispose();
+    _ownerController.dispose();
+    _phoneController.dispose();
     super.dispose();
+  }
+
+  Future<List<VehicleRecord>> _loadRecentEntries() async {
+    final api = context.read<SmartParkingApi>();
+    final vehicles = await api.vehicles();
+    final sorted = vehicles.toList()
+      ..sort(
+        (a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
+            .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)),
+      );
+    return sorted;
+  }
+
+  Future<void> _refreshRecent() async {
+    setState(() => _recentFuture = _loadRecentEntries());
+    await _recentFuture;
   }
 
   Future<void> _openCamera() async {
@@ -62,36 +88,35 @@ class _EntryScreenState extends State<EntryScreen> {
     if (plate.trim().isEmpty) return;
 
     setState(() {
-      _plateController.text = plate.trim();
+      _plateController.text = plate.trim().toUpperCase();
     });
-    await _lookupVehicle(redirectToRegistration: true);
+    await _lookupVehicle(silent: true);
   }
 
-  Future<void> _lookupVehicle({required bool redirectToRegistration}) async {
+  Future<void> _lookupVehicle({required bool silent}) async {
     final plate = _plateController.text.trim();
     if (plate.isEmpty) return;
 
-    final api = context.read<SmartParkingApi>();
+    setState(() => _lookupBusy = true);
     try {
-      final vehicle = await api.vehicleByPlate(plate);
+      final vehicle = await context.read<SmartParkingApi>().vehicleByPlate(plate);
       if (!mounted) return;
       if (vehicle == null) {
-        setState(() => _resolvedVehicle = null);
-        if (redirectToRegistration) {
-          context.go(
-            '/entry/register',
-            extra: {
-              'plate': plate,
-              'vehicle_type': _vehicleType,
-            },
+        if (!silent) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Vehicle not found yet. Fill the form and press ENTER to register it.'),
+            ),
           );
         }
         return;
       }
 
       setState(() {
-        _resolvedVehicle = vehicle;
+        _plateController.text = vehicle.plateNumber;
         _vehicleType = vehicle.vehicleType;
+        _ownerController.text = vehicle.ownerName;
+        _phoneController.text = vehicle.phoneNumber;
       });
     } catch (e) {
       if (!mounted) return;
@@ -102,53 +127,53 @@ class _EntryScreenState extends State<EntryScreen> {
           ),
         ),
       );
+    } finally {
+      if (mounted) setState(() => _lookupBusy = false);
     }
   }
 
-  Future<void> _startSession() async {
-    final plate = _plateController.text.trim();
+  Future<void> _submitEntry() async {
+    final plate = _plateController.text.trim().toUpperCase();
     if (plate.isEmpty) return;
+
+    final payload = <String, dynamic>{
+      'plate_number': plate,
+      'vehicle_type': _vehicleType,
+      'owner_name': _ownerController.text.trim(),
+      'phone_number': _phoneController.text.trim(),
+    };
 
     setState(() => _busy = true);
     try {
-      if (_resolvedVehicle == null) {
-        final lookup = await context.read<SmartParkingApi>().vehicleByPlate(plate);
-        if (lookup == null) {
-          if (!mounted) return;
-          context.go(
-            '/entry/register',
-            extra: {
-              'plate': plate,
-              'vehicle_type': _vehicleType,
-            },
-          );
-          return;
-        }
-        _resolvedVehicle = lookup;
-        _vehicleType = lookup.vehicleType;
-      }
+      final api = context.read<SmartParkingApi>();
+      var response = await api.createEntry(payload);
+      var registeredNow = false;
 
-      final response = await context.read<SmartParkingApi>().createEntry({
-        'plate_number': plate,
-        'vehicle_type': _vehicleType,
-      });
+      if (response['needs_registration'] == true) {
+        registeredNow = true;
+        await api.quickRegister(payload);
+        response = await api.createEntry(payload);
+      }
 
       if (!mounted) return;
 
       if (response['needs_registration'] == true) {
-        context.go(
-          '/entry/register',
-          extra: {
-            'plate': plate,
-            'vehicle_type': _vehicleType,
-          },
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Vehicle still needs registration.')),
         );
         return;
       }
 
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Parking session started successfully.')),
+        SnackBar(
+          content: Text(
+            registeredNow
+                ? 'Vehicle registered and parking session started.'
+                : 'Parking session started successfully.',
+          ),
+        ),
       );
+      await _refreshRecent();
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -159,10 +184,7 @@ class _EntryScreenState extends State<EntryScreen> {
         ),
       );
       if (isOfflineDioError(e)) {
-        await context.read<AuthController>().queueIfOffline('entry', {
-          'plate_number': plate,
-          'vehicle_type': _vehicleType,
-        });
+        await context.read<AuthController>().queueIfOffline('entry', payload);
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -175,465 +197,507 @@ class _EntryScreenState extends State<EntryScreen> {
     final now = DateTime.now();
     final dateLabel = DateFormat('d MMM y').format(now);
     final timeLabel = DateFormat('hh:mm a').format(now);
-    final recordedBy = user?.displayName ?? 'Joel Ndege';
 
     return Scaffold(
-      backgroundColor: ParkingColors.scaffold,
-      body: SingleChildScrollView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.only(bottom: 122),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ParkingScreenHeader(
-              title: 'Vehicle Entry',
-              subtitle: 'Record new vehicle entry',
-              user: user,
-              onLeadingTap: () => context.go('/'),
-              leadingIcon: Icons.arrow_back_rounded,
-              dark: true,
-              backgroundGradient: ParkingColors.entryHeaderGradient,
-              titleColor: Colors.white,
-              subtitleColor: const Color(0xFFE4E8FF),
-              leadingBackground: Colors.white.withOpacity(0.16),
-              leadingIconColor: Colors.white,
-              trailingIcon: Icons.qr_code_scanner_rounded,
-              trailingOnTap: () {
-                _openCamera();
-              },
-              trailingBackground: Colors.white.withOpacity(0.16),
-              trailingIconColor: Colors.white,
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
-              titleSize: 26,
-              subtitleSize: 13.5,
-              bottomRadius: 26,
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
+      backgroundColor: const Color(0xFFF4F7FF),
+      body: RefreshIndicator(
+        color: ParkingColors.primary,
+        onRefresh: _refreshRecent,
+        child: FutureBuilder<List<VehicleRecord>>(
+          future: _recentFuture,
+          builder: (context, snapshot) {
+            final recent = (snapshot.data ?? const <VehicleRecord>[]).take(4).toList();
+
+            return SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.only(bottom: 112),
               child: Center(
                 child: ConstrainedBox(
                   constraints: const BoxConstraints(maxWidth: 960),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final wide = constraints.maxWidth >= 1040;
-                      final compact = constraints.maxWidth < 760;
-                      final plateCard = SurfaceCard(
-                        radius: 28,
-                        padding: const EdgeInsets.all(18),
-                        color: const Color(0xFF0F1B3A),
-                        borderColor: const Color(0xFF1E2B4D),
-                        shadow: const [
-                          BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
-                        ],
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1A294C),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: const Icon(Icons.local_parking_rounded, color: Color(0xFF7FB2FF), size: 22),
-                                ),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'License Plate Number',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Type the plate or use the small scanner button to capture it.',
-                                        style: TextStyle(
-                                          color: Color(0xFF9EABC9),
-                                          fontSize: 12.5,
-                                          height: 1.35,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Material(
-                                  color: Colors.transparent,
-                                  child: InkWell(
-                                    borderRadius: BorderRadius.circular(16),
-                                    onTap: _openCamera,
-                                    child: Container(
-                                      width: 48,
-                                      height: 48,
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF132246),
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(color: const Color(0xFF243559)),
-                                      ),
-                                      child: const Icon(Icons.qr_code_scanner_rounded, color: Colors.white, size: 22),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              height: 64,
-                              padding: const EdgeInsets.symmetric(horizontal: 14),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF101C38),
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: const Color(0xFF243559)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: 40,
-                                    height: 26,
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(6),
-                                      border: Border.all(color: const Color(0xFF31446B)),
-                                    ),
-                                    child: Stack(
-                                      fit: StackFit.expand,
-                                      children: [
-                                        Column(
-                                          children: const [
-                                            Expanded(child: ColoredBox(color: Color(0xFF000000))),
-                                            Expanded(child: ColoredBox(color: Color(0xFFD71F2A))),
-                                            Expanded(child: ColoredBox(color: Color(0xFF006A44))),
-                                          ],
-                                        ),
-                                        Center(
-                                          child: Container(
-                                            width: 8,
-                                            height: 20,
-                                            decoration: BoxDecoration(
-                                              color: Colors.white,
-                                              borderRadius: BorderRadius.circular(6),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8),
-                                  const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF9EABC9), size: 24),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: TextField(
-                                      controller: _plateController,
-                                      textCapitalization: TextCapitalization.characters,
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 20,
-                                        fontWeight: FontWeight.w800,
-                                        letterSpacing: 0.4,
-                                      ),
-                                      decoration: const InputDecoration(
-                                        border: InputBorder.none,
-                                        isDense: true,
-                                        contentPadding: EdgeInsets.zero,
-                                      ),
-                                      onSubmitted: (_) => _lookupVehicle(redirectToRegistration: true),
-                                    ),
-                                  ),
-                                  Material(
-                                    color: Colors.transparent,
-                                    child: InkWell(
-                                      borderRadius: BorderRadius.circular(14),
-                                      onTap: () => _lookupVehicle(redirectToRegistration: true),
-                                      child: Container(
-                                        width: 38,
-                                        height: 38,
-                                        decoration: BoxDecoration(
-                                          color: const Color(0xFF142348),
-                                          borderRadius: BorderRadius.circular(14),
-                                        ),
-                                        child: const Icon(Icons.search_rounded, color: Colors.white, size: 20),
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                        child: _EntryHeader(user: user),
+                      ),
+                      const SizedBox(height: 18),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: SurfaceCard(
+                          radius: 26,
+                          padding: const EdgeInsets.all(16),
+                          color: Colors.white,
+                          borderColor: const Color(0xFFE5EBF5),
+                          shadow: const [
+                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
                           ],
-                        ),
-                      );
-
-                      final vehicleCard = SurfaceCard(
-                        radius: 28,
-                        padding: const EdgeInsets.all(18),
-                        color: const Color(0xFF0F1B3A),
-                        borderColor: const Color(0xFF1E2B4D),
-                        shadow: const [
-                          BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
-                        ],
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFF1A294C),
-                                    borderRadius: BorderRadius.circular(14),
-                                  ),
-                                  child: const Icon(Icons.directions_car_rounded, color: Color(0xFF7FB2FF), size: 22),
-                                ),
-                                const SizedBox(width: 12),
-                                const Expanded(
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'Vehicle Type',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w800,
-                                        ),
-                                      ),
-                                      SizedBox(height: 4),
-                                      Text(
-                                        'Select type',
-                                        style: TextStyle(
-                                          color: Color(0xFF9EABC9),
-                                          fontSize: 12.5,
-                                          height: 1.2,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            _SelectionField(
-                              value: vehicleTypeLabel(_vehicleType),
-                              onTap: () async {
-                                final result = await showModalBottomSheet<String>(
-                                  context: context,
-                                  backgroundColor: Colors.transparent,
-                                  isScrollControlled: true,
-                                  builder: (context) {
-                                    return _TypePicker(
-                                      currentValue: _vehicleType,
-                                    );
-                                  },
-                                );
-                                if (result != null && mounted) {
-                                  setState(() => _vehicleType = result);
-                                }
-                              },
-                              trailing: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF9EABC9), size: 28),
-                              textColor: Colors.white,
-                            ),
-                          ],
-                        ),
-                      );
-
-                      final infoCard = SurfaceCard(
-                        radius: 28,
-                        padding: const EdgeInsets.all(18),
-                        color: const Color(0xFF0F1B3A),
-                        borderColor: const Color(0xFF1E2B4D),
-                        shadow: const [
-                          BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
-                        ],
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const Text(
-                              'Entry Information',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: 16,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            const SizedBox(height: 18),
-                            LayoutBuilder(
-                              builder: (context, constraints) {
-                                final stacked = constraints.maxWidth < 720;
-                                final cells = [
-                                  _InfoCell(
-                                    icon: Icons.calendar_month_rounded,
-                                    label: 'Entry Date',
-                                    value: dateLabel,
-                                  ),
-                                  _InfoCell(
-                                    icon: Icons.schedule_rounded,
-                                    label: 'Entry Time',
-                                    value: timeLabel,
-                                  ),
-                                  _InfoCell(
-                                    icon: Icons.person_outline_rounded,
-                                    label: 'Recorded By',
-                                    value: recordedBy,
-                                  ),
-                                ];
-
-                                if (stacked) {
-                                  return Column(
-                                    children: [
-                                      for (var i = 0; i < cells.length; i++) ...[
-                                        cells[i],
-                                        if (i != cells.length - 1) const SizedBox(height: 12),
-                                      ],
-                                    ],
-                                  );
-                                }
-
-                                return Row(
-                                  children: [
-                                    Expanded(child: cells[0]),
-                                    Container(width: 1, height: 54, color: const Color(0xFF1E2B4D)),
-                                    Expanded(child: cells[1]),
-                                    Container(width: 1, height: 54, color: const Color(0xFF1E2B4D)),
-                                    Expanded(child: cells[2]),
-                                  ],
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                      );
-
-                      final startButton = SizedBox(
-                        width: double.infinity,
-                        child: GradientActionButton(
-                          label: _busy ? 'Starting Parking Session' : 'Start Parking Session',
-                          icon: Icons.arrow_forward_rounded,
-                          minHeight: 48,
-                          isBusy: _busy,
-                          onPressed: _busy ? null : _startSession,
-                        ),
-                      );
-
-                      if (wide) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(flex: 5, child: plateCard),
-                                const SizedBox(width: 16),
-                                Expanded(flex: 4, child: vehicleCard),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            infoCard,
-                            const SizedBox(height: 16),
-                            startButton,
-                          ],
-                        );
-                      }
-
-                      if (compact) {
-                        return Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            plateCard,
-                            const SizedBox(height: 10),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Expanded(child: vehicleCard),
-                                const SizedBox(width: 10),
-                                Expanded(child: infoCard),
-                              ],
-                            ),
-                            const SizedBox(height: 10),
-                            startButton,
-                          ],
-                        );
-                      }
-
-                      return Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          Row(
-                            crossAxisAlignment: CrossAxisAlignment.start,
+                          child: Column(
                             children: [
-                              Expanded(flex: 5, child: plateCard),
-                              const SizedBox(width: 10),
-                              Expanded(flex: 4, child: vehicleCard),
+                              _PlateField(
+                                controller: _plateController,
+                                isBusy: _lookupBusy,
+                                onScan: _openCamera,
+                                onSearch: () => _lookupVehicle(silent: false),
+                              ),
+                              const SizedBox(height: 12),
+                              _SelectField(
+                                icon: Icons.directions_car_rounded,
+                                label: vehicleTypeLabel(_vehicleType),
+                                hint: 'Select vehicle type',
+                                onTap: _pickVehicleType,
+                              ),
+                              const SizedBox(height: 12),
+                              _TextFieldShell(
+                                controller: _ownerController,
+                                hintText: 'Owner name',
+                                icon: Icons.person_outline_rounded,
+                                textInputAction: TextInputAction.next,
+                              ),
+                              const SizedBox(height: 12),
+                              _TextFieldShell(
+                                controller: _phoneController,
+                                hintText: 'Owner phone number',
+                                icon: Icons.phone_outlined,
+                                keyboardType: TextInputType.phone,
+                                textInputAction: TextInputAction.done,
+                              ),
                             ],
                           ),
-                          const SizedBox(height: 10),
-                          infoCard,
-                          const SizedBox(height: 10),
-                          startButton,
-                        ],
-                      );
-                    },
+                        ),
+                      ),
+                      const SizedBox(height: 18),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: _SectionHeader(title: 'Entry Info'),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F6FF),
+                            borderRadius: BorderRadius.circular(18),
+                            border: Border.all(color: const Color(0xFFE3E9F8)),
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: _InfoCell(
+                                  icon: Icons.calendar_month_rounded,
+                                  label: 'Date',
+                                  value: dateLabel,
+                                ),
+                              ),
+                              Container(width: 1, height: 68, color: const Color(0xFFDCE3F3)),
+                              Expanded(
+                                child: _InfoCell(
+                                  icon: Icons.schedule_rounded,
+                                  label: 'Time (Auto)',
+                                  value: timeLabel,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: _PrimaryButton(
+                          label: _busy ? 'ENTERING' : 'ENTER',
+                          icon: Icons.login_rounded,
+                          isBusy: _busy,
+                          onPressed: _busy ? null : _submitEntry,
+                        ),
+                      ),
+                      const SizedBox(height: 22),
+                      const Padding(
+                        padding: EdgeInsets.symmetric(horizontal: 12),
+                        child: _SectionHeader(title: 'Entries'),
+                      ),
+                      const SizedBox(height: 12),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12),
+                        child: SurfaceCard(
+                          radius: 24,
+                          padding: EdgeInsets.zero,
+                          color: Colors.white,
+                          borderColor: const Color(0xFFE5EBF5),
+                          shadow: const [
+                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                          ],
+                          child: Column(
+                            children: [
+                              if (recent.isEmpty)
+                                const Padding(
+                                  padding: EdgeInsets.all(18),
+                                  child: Text(
+                                    'No recent entries yet.',
+                                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                  ),
+                                )
+                              else
+                                for (var index = 0; index < recent.length; index++) ...[
+                                  _RecentEntryRow(record: recent[index]),
+                                  if (index != recent.length - 1)
+                                    const Divider(height: 1, thickness: 1, color: Color(0xFFE7EDF7)),
+                                ],
+                            ],
+                          ),
+                        ),
+                      ),
+                      if (snapshot.hasError) ...[
+                        const SizedBox(height: 16),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 12),
+                          child: SurfaceCard(
+                            radius: 22,
+                            padding: const EdgeInsets.all(14),
+                            color: Colors.white,
+                            borderColor: const Color(0xFFE5EBF5),
+                            shadow: const [
+                              BoxShadow(color: Color(0x150B1630), blurRadius: 16, offset: Offset(0, 10)),
+                            ],
+                            child: Text(
+                              apiErrorMessage(snapshot.error, fallback: 'Unable to load recent entries.'),
+                              style: const TextStyle(color: Color(0xFF64748B), height: 1.4),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
                   ),
                 ),
               ),
+            );
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickVehicleType() async {
+    final result = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return _VehicleTypePicker(currentValue: _vehicleType);
+      },
+    );
+
+    if (result != null && mounted) {
+      setState(() => _vehicleType = result);
+    }
+  }
+}
+
+class _EntryHeader extends StatelessWidget {
+  const _EntryHeader({required this.user});
+
+  final UserProfile? user;
+
+  @override
+  Widget build(BuildContext context) {
+    final name = user?.displayName ?? 'Joel Cashier';
+    final role = (user?.displayRole ?? 'Cashier').toUpperCase();
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(26),
+        boxShadow: const [
+          BoxShadow(color: Color(0x220B1630), blurRadius: 22, offset: Offset(0, 10)),
+        ],
+      ),
+      child: Row(
+        children: [
+          Material(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(18),
+              onTap: () => context.go('/'),
+              child: Container(
+                width: 72,
+                height: 72,
+                alignment: Alignment.center,
+                child: const Icon(Icons.arrow_back_rounded, color: Color(0xFF2563EB), size: 34),
+              ),
             ),
-          ],
+          ),
+          const SizedBox(width: 18),
+          const Expanded(
+            child: Text(
+              'Vehicle Entry',
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 26,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.3,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Flexible(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 70,
+                  height: 70,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    color: Colors.white.withOpacity(0.2),
+                  ),
+                  child: const Icon(Icons.person, color: Colors.white, size: 40),
+                ),
+                const SizedBox(width: 12),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 220),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        role,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PlateField extends StatelessWidget {
+  const _PlateField({
+    required this.controller,
+    required this.onScan,
+    required this.onSearch,
+    required this.isBusy,
+  });
+
+  final TextEditingController controller;
+  final VoidCallback onScan;
+  final VoidCallback onSearch;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    return _FieldShell(
+      prefix: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: const Color(0xFF2563EB),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        alignment: Alignment.center,
+        child: const Text(
+          'P',
+          style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900),
+        ),
+      ),
+      child: TextField(
+        controller: controller,
+        textCapitalization: TextCapitalization.characters,
+        style: const TextStyle(
+          color: Color(0xFF16233F),
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+          letterSpacing: 0.3,
+        ),
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: 'Enter plate number',
+          hintStyle: TextStyle(color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
+          contentPadding: EdgeInsets.zero,
+        ),
+        onSubmitted: (_) => onSearch(),
+      ),
+      suffix: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: isBusy ? null : onScan,
+          child: Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: const Color(0xFFEAF1FF),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2563EB), size: 26),
+          ),
         ),
       ),
     );
   }
 }
 
-class _SelectionField extends StatelessWidget {
-  const _SelectionField({
-    required this.value,
+class _SelectField extends StatelessWidget {
+  const _SelectField({
+    required this.icon,
+    required this.label,
+    required this.hint,
     required this.onTap,
-    this.trailing,
-    this.textColor = ParkingColors.ink,
   });
 
-  final String value;
+  final IconData icon;
+  final String label;
+  final String hint;
   final VoidCallback onTap;
-  final Widget? trailing;
-  final Color textColor;
 
   @override
   Widget build(BuildContext context) {
+    return _FieldShell(
+      onTap: onTap,
+      prefix: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF1FF),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(icon, color: const Color(0xFF2563EB), size: 28),
+      ),
+      child: Text(
+        label.isEmpty ? hint : label,
+        style: TextStyle(
+          color: label.isEmpty ? const Color(0xFF8A93A8) : const Color(0xFF16233F),
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+      suffix: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF8A93A8), size: 30),
+    );
+  }
+}
+
+class _TextFieldShell extends StatelessWidget {
+  const _TextFieldShell({
+    required this.controller,
+    required this.hintText,
+    required this.icon,
+    this.keyboardType,
+    this.textInputAction,
+  });
+
+  final TextEditingController controller;
+  final String hintText;
+  final IconData icon;
+  final TextInputType? keyboardType;
+  final TextInputAction? textInputAction;
+
+  @override
+  Widget build(BuildContext context) {
+    return _FieldShell(
+      prefix: Container(
+        width: 52,
+        height: 52,
+        decoration: BoxDecoration(
+          color: const Color(0xFFEAF1FF),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Icon(icon, color: const Color(0xFF2563EB), size: 26),
+      ),
+      child: TextField(
+        controller: controller,
+        keyboardType: keyboardType,
+        textInputAction: textInputAction,
+        style: const TextStyle(
+          color: Color(0xFF16233F),
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+        decoration: InputDecoration(
+          border: InputBorder.none,
+          hintText: hintText,
+          hintStyle: const TextStyle(color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
+          contentPadding: EdgeInsets.zero,
+        ),
+      ),
+    );
+  }
+}
+
+class _FieldShell extends StatelessWidget {
+  const _FieldShell({
+    required this.prefix,
+    required this.child,
+    this.suffix,
+    this.onTap,
+  });
+
+  final Widget prefix;
+  final Widget child;
+  final Widget? suffix;
+  final VoidCallback? onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final field = Container(
+      height: 66,
+      padding: const EdgeInsets.symmetric(horizontal: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD8E1F2)),
+      ),
+      child: Row(
+        children: [
+          prefix,
+          const SizedBox(width: 12),
+          Container(width: 1, height: 36, color: const Color(0xFFE2E8F4)),
+          const SizedBox(width: 12),
+          Expanded(child: child),
+          if (suffix != null) ...[
+            const SizedBox(width: 12),
+            suffix!,
+          ],
+        ],
+      ),
+    );
+
+    if (onTap == null) {
+      return field;
+    }
+
     return Material(
       color: Colors.transparent,
       child: InkWell(
         borderRadius: BorderRadius.circular(16),
         onTap: onTap,
-        child: Container(
-          height: 62,
-          padding: const EdgeInsets.symmetric(horizontal: 16),
-          decoration: BoxDecoration(
-            color: const Color(0xFF101C38),
-            borderRadius: BorderRadius.circular(16),
-            border: Border.all(color: const Color(0xFF243559)),
-          ),
-          child: Row(
-            children: [
-              Expanded(
-                child: Text(
-                  value,
-                  style: TextStyle(
-                    color: textColor,
-                    fontSize: 17,
-                    fontWeight: FontWeight.w800,
-                  ),
-                ),
-              ),
-              if (trailing != null) trailing!,
-            ],
-          ),
-        ),
+        child: field,
       ),
     );
   }
@@ -652,35 +716,38 @@ class _InfoCell extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final textAlign = MediaQuery.of(context).size.width < 720 ? TextAlign.left : TextAlign.left;
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 0, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
       child: Row(
         children: [
-          Icon(icon, color: const Color(0xFF7B8AB1), size: 30),
-          const SizedBox(width: 16),
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              color: Colors.white.withOpacity(0.88),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Icon(icon, color: const Color(0xFF2563EB), size: 28),
+          ),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label,
-                  textAlign: textAlign,
                   style: const TextStyle(
-                    color: Color(0xFF9EABC9),
-                    fontSize: 13.5,
+                    color: Color(0xFF64748B),
+                    fontSize: 14,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   value,
-                  textAlign: textAlign,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 16.5,
+                    color: Color(0xFF16233F),
+                    fontSize: 20,
                     fontWeight: FontWeight.w800,
                   ),
                 ),
@@ -693,10 +760,204 @@ class _InfoCell extends StatelessWidget {
   }
 }
 
-class _TypePicker extends StatelessWidget {
-  const _TypePicker({
-    required this.currentValue,
+class _PrimaryButton extends StatelessWidget {
+  const _PrimaryButton({
+    required this.label,
+    required this.onPressed,
+    this.icon,
+    this.isBusy = false,
   });
+
+  final String label;
+  final VoidCallback? onPressed;
+  final IconData? icon;
+  final bool isBusy;
+
+  @override
+  Widget build(BuildContext context) {
+    final enabled = onPressed != null && !isBusy;
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2D6CF6), Color(0xFF184DE1)],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(18),
+        boxShadow: const [
+          BoxShadow(color: Color(0x262D6CF6), blurRadius: 20, offset: Offset(0, 10)),
+        ],
+      ),
+      child: SizedBox(
+        width: double.infinity,
+        height: 68,
+        child: ElevatedButton(
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+          ),
+          onPressed: enabled ? onPressed : null,
+          child: AnimatedSwitcher(
+            duration: const Duration(milliseconds: 200),
+            child: isBusy
+                ? const SizedBox(
+                    key: ValueKey('busy'),
+                    width: 22,
+                    height: 22,
+                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                  )
+                : Row(
+                    key: ValueKey(label),
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (icon != null) ...[
+                        Icon(icon, size: 24),
+                        const SizedBox(width: 12),
+                      ],
+                      Text(
+                        label,
+                        style: const TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.w800,
+                          letterSpacing: 0.3,
+                        ),
+                      ),
+                    ],
+                  ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _RecentEntryRow extends StatelessWidget {
+  const _RecentEntryRow({required this.record});
+
+  final VehicleRecord record;
+
+  @override
+  Widget build(BuildContext context) {
+    final created = record.createdAt;
+    final timeLabel = created == null ? '--:--' : DateFormat('hh:mm a').format(created);
+    final typeLabel = vehicleTypeLabel(record.vehicleType);
+    final accent = _vehicleAccent(record.vehicleType);
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      child: Row(
+        children: [
+          Container(
+            width: 52,
+            height: 52,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: accent.withOpacity(0.12),
+            ),
+            child: Icon(_vehicleIcon(record.vehicleType), color: accent, size: 28),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  record.plateNumber,
+                  style: const TextStyle(
+                    color: Color(0xFF16233F),
+                    fontSize: 20,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  record.ownerDisplay,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF667085),
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 14),
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                typeLabel,
+                style: TextStyle(
+                  color: accent,
+                  fontSize: 17,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 3),
+              Text(
+                record.phoneDisplay,
+                style: const TextStyle(
+                  color: Color(0xFF667085),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(width: 14),
+          Text(
+            timeLabel,
+            style: const TextStyle(
+              color: Color(0xFF1F2B5C),
+              fontSize: 15,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
+          const SizedBox(width: 12),
+          const Icon(Icons.chevron_right_rounded, color: Color(0xFF97A2B8), size: 30),
+        ],
+      ),
+    );
+  }
+}
+
+class _SectionHeader extends StatelessWidget {
+  const _SectionHeader({required this.title});
+
+  final String title;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Container(
+          width: 4,
+          height: 28,
+          decoration: BoxDecoration(
+            color: const Color(0xFF2D6CF6),
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFF16233F),
+            fontSize: 22,
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _VehicleTypePicker extends StatelessWidget {
+  const _VehicleTypePicker({required this.currentValue});
 
   final String currentValue;
 
@@ -717,10 +978,10 @@ class _TypePicker extends StatelessWidget {
         margin: const EdgeInsets.fromLTRB(14, 0, 14, 14),
         padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: const Color(0xFF0F1B3A),
-          borderRadius: BorderRadius.circular(28),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
           boxShadow: const [
-            BoxShadow(color: Color(0x40050A15), blurRadius: 26, offset: Offset(0, 14)),
+            BoxShadow(color: Color(0x250B1630), blurRadius: 24, offset: Offset(0, 12)),
           ],
         ),
         child: Column(
@@ -730,7 +991,7 @@ class _TypePicker extends StatelessWidget {
             const Text(
               'Choose Vehicle Type',
               style: TextStyle(
-                color: Colors.white,
+                color: Color(0xFF16233F),
                 fontSize: 18,
                 fontWeight: FontWeight.w800,
               ),
@@ -743,25 +1004,58 @@ class _TypePicker extends StatelessWidget {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: option.$1 == currentValue ? const Color(0xFF142348) : const Color(0xFF101C38),
+                    color: option.$1 == currentValue ? const Color(0xFFEAF1FF) : const Color(0xFFF5F7FD),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(option.$3, color: Colors.white, size: 22),
+                  child: Icon(option.$3, color: const Color(0xFF2563EB), size: 22),
                 ),
                 title: Text(
                   option.$2,
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: Colors.white),
+                  style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF16233F)),
                 ),
                 trailing: option.$1 == currentValue
-                    ? const Icon(Icons.check_circle_rounded, color: Color(0xFF7FB2FF))
+                    ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2563EB))
                     : null,
                 onTap: () => Navigator.of(context).pop(option.$1),
               ),
-              if (option != options.last) const Divider(height: 1, color: Color(0xFF1E2B4D)),
+              if (option != options.last) const Divider(height: 1, color: Color(0xFFE7EDF7)),
             ],
           ],
         ),
       ),
     );
+  }
+}
+
+Color _vehicleAccent(String vehicleType) {
+  switch (vehicleType.toUpperCase()) {
+    case 'SUV':
+      return const Color(0xFF16A34A);
+    case 'VAN':
+    case 'TRUCK':
+      return const Color(0xFF7C3AED);
+    case 'BIKE':
+      return const Color(0xFFF97316);
+    case 'OTHER':
+      return const Color(0xFF64748B);
+    case 'CAR':
+    default:
+      return const Color(0xFF2563EB);
+  }
+}
+
+IconData _vehicleIcon(String vehicleType) {
+  switch (vehicleType.toUpperCase()) {
+    case 'SUV':
+    case 'CAR':
+      return Icons.directions_car_rounded;
+    case 'VAN':
+      return Icons.airport_shuttle_rounded;
+    case 'TRUCK':
+      return Icons.local_shipping_rounded;
+    case 'BIKE':
+      return Icons.two_wheeler_rounded;
+    default:
+      return Icons.local_parking_rounded;
   }
 }

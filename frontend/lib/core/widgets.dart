@@ -1946,12 +1946,12 @@ class ParkingBottomNav extends StatelessWidget {
       child: Padding(
         padding: EdgeInsets.fromLTRB(compact ? 12 : 18, 0, compact ? 12 : 18, compact ? 12 : 16),
         child: SurfaceCard(
-          radius: compact ? 24 : 28,
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-          color: const Color(0xFF0F1B3A),
-          borderColor: const Color(0xFF1E2B4D),
+          radius: compact ? 26 : 30,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          color: Colors.white,
+          borderColor: const Color(0xFFE5EBF5),
           shadow: const [
-            BoxShadow(color: Color(0x40050A15), blurRadius: 24, offset: Offset(0, 12)),
+            BoxShadow(color: Color(0x180B1630), blurRadius: 24, offset: Offset(0, 12)),
           ],
           child: Row(
             children: [
@@ -1984,36 +1984,40 @@ class _ParkingBottomNavItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = selected ? const Color(0xFF63A0FF) : const Color(0xFF8F9BB7);
-    final background = selected ? const Color(0xFF122856) : Colors.transparent;
-    final borderColor = selected ? const Color(0xFF21438A) : Colors.transparent;
+    final foreground = selected ? const Color(0xFF2563EB) : const Color(0xFF8B96AD);
     final compact = MediaQuery.sizeOf(context).width < _compactWidthBreakpoint;
     return Material(
       color: Colors.transparent,
       child: InkWell(
-        borderRadius: BorderRadius.circular(compact ? 14 : 16),
+        borderRadius: BorderRadius.circular(compact ? 16 : 18),
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
-          margin: EdgeInsets.symmetric(horizontal: compact ? 2 : 4),
-          padding: EdgeInsets.symmetric(vertical: compact ? 6 : 8),
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(compact ? 14 : 16),
-            border: Border.all(color: borderColor),
-          ),
+          margin: EdgeInsets.symmetric(horizontal: compact ? 2 : 4, vertical: 2),
+          padding: EdgeInsets.symmetric(vertical: compact ? 8 : 10),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(item.icon, color: foreground, size: compact ? 22 : 24),
-              SizedBox(height: compact ? 4 : 6),
+              Icon(item.icon, color: foreground, size: compact ? 24 : 26),
+              SizedBox(height: compact ? 5 : 6),
               Text(
                 item.label,
                 style: TextStyle(
                   color: foreground,
                   fontSize: compact ? 11.5 : 12,
                   fontWeight: selected ? FontWeight.w800 : FontWeight.w700,
+                ),
+              ),
+              const SizedBox(height: 6),
+              AnimatedContainer(
+                duration: const Duration(milliseconds: 180),
+                curve: Curves.easeOutCubic,
+                width: selected ? (compact ? 28 : 34) : (compact ? 10 : 12),
+                height: 4,
+                decoration: BoxDecoration(
+                  color: selected ? const Color(0xFF2563EB) : Colors.transparent,
+                  borderRadius: BorderRadius.circular(999),
                 ),
               ),
             ],

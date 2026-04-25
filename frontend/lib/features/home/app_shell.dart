@@ -18,17 +18,17 @@ class AppShell extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final items = <ParkingBottomNavItem>[
-      const ParkingBottomNavItem(path: '/', icon: Icons.dashboard_rounded, label: 'Dashboard'),
+      const ParkingBottomNavItem(path: '/', icon: Icons.home_rounded, label: 'Home'),
       const ParkingBottomNavItem(path: '/entry', icon: Icons.directions_car_rounded, label: 'Entry'),
       const ParkingBottomNavItem(path: '/exit', icon: Icons.exit_to_app_rounded, label: 'Exit'),
-      const ParkingBottomNavItem(path: '/payment', icon: Icons.payments_rounded, label: 'Payment'),
+      const ParkingBottomNavItem(path: '/payment', icon: Icons.payments_rounded, label: 'Payments'),
       const ParkingBottomNavItem(path: '/reports', icon: Icons.bar_chart_rounded, label: 'Reports'),
     ];
     final normalizedPath = _normalizePath(currentPath);
     final selectedIndex = _selectedIndexForPath(normalizedPath);
 
     return Scaffold(
-      backgroundColor: ParkingColors.scaffold,
+      backgroundColor: const Color(0xFFF4F7FF),
       body: child,
       bottomNavigationBar: ParkingBottomNav(
         items: items,
