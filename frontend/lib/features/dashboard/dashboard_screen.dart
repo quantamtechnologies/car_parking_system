@@ -69,10 +69,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                          child: _DashboardHeader(user: user),
-                        ),
+                        _DashboardHeader(user: user),
                         const SizedBox(height: 18),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
@@ -315,13 +312,18 @@ class _DashboardHeader extends StatelessWidget {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
         final brandSize = compact ? 64.0 : 82.0;
-        final avatarSize = compact ? 54.0 : 72.0;
-        final nameSize = compact ? 17.0 : 22.0;
+        final avatarSize = compact ? 52.0 : 72.0;
+        final nameSize = compact ? 15.5 : 22.0;
         final roleSize = compact ? 12.5 : 16.0;
         final brandFontSize = compact ? 40.0 : 52.0;
 
         return Container(
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
+          padding: EdgeInsets.fromLTRB(
+            compact ? 18 : 22,
+            compact ? 14 : 18,
+            compact ? 12 : 22,
+            compact ? 16 : 20,
+          ),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF07124A), Color(0xFF0C1F78), Color(0xFF1233AF)],
@@ -355,10 +357,9 @@ class _DashboardHeader extends StatelessWidget {
                 ),
               ),
               SizedBox(width: compact ? 12 : 16),
-              const Spacer(),
-              Flexible(
+              Expanded(
                 child: Row(
-                  mainAxisSize: MainAxisSize.min,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Container(
                       width: avatarSize,
@@ -371,27 +372,30 @@ class _DashboardHeader extends StatelessWidget {
                           color: Colors.white, size: 46),
                     ),
                     SizedBox(width: compact ? 10 : 14),
-                    ConstrainedBox(
-                      constraints:
-                          BoxConstraints(maxWidth: compact ? 150 : 220),
+                    Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: nameSize,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.3,
+                          FittedBox(
+                            fit: BoxFit.scaleDown,
+                            alignment: Alignment.centerLeft,
+                            child: Text(
+                              name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: nameSize,
+                                fontWeight: FontWeight.w800,
+                              ),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             role,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.72),
                               fontSize: roleSize,
@@ -509,13 +513,17 @@ class _RevenueCard extends StatelessWidget {
                         const SizedBox(height: 14),
                         FittedBox(
                           fit: BoxFit.scaleDown,
-                          child: Text(
-                            revenue,
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 62,
-                              fontWeight: FontWeight.w900,
-                              letterSpacing: -1.8,
+                          child: SizedBox(
+                            width: 720,
+                            child: Text(
+                              revenue,
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 62,
+                                fontWeight: FontWeight.w900,
+                                letterSpacing: -1.2,
+                              ),
                             ),
                           ),
                         ),
@@ -608,14 +616,17 @@ class _MetricCard extends StatelessWidget {
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: compact ? 74 : 96,
-                          height: compact ? 74 : 96,
+                          width: compact ? 76 : 96,
+                          height: compact ? 76 : 96,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white.withOpacity(0.16),
                           ),
-                          child: Icon(icon,
-                              color: Colors.white, size: compact ? 34 : 44),
+                          child: Icon(
+                            icon,
+                            color: Colors.white,
+                            size: compact ? 36 : 44,
+                          ),
                         ),
                         SizedBox(height: compact ? 12 : 18),
                         Text(
@@ -624,7 +635,7 @@ class _MetricCard extends StatelessWidget {
                           maxLines: 2,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: compact ? 16 : 22,
+                            fontSize: compact ? 17.5 : 22,
                             fontWeight: FontWeight.w800,
                             height: 1.12,
                           ),
@@ -636,7 +647,7 @@ class _MetricCard extends StatelessWidget {
                             value,
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: compact ? 28 : 40,
+                              fontSize: compact ? 31 : 40,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
@@ -648,7 +659,7 @@ class _MetricCard extends StatelessWidget {
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.85),
-                              fontSize: compact ? 12 : 16,
+                              fontSize: compact ? 12.5 : 16,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -726,7 +737,7 @@ class _ActionCard extends StatelessWidget {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF25335B),
-                        fontSize: compact ? 17 : 20,
+                        fontSize: compact ? 18.5 : 20,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
@@ -773,9 +784,8 @@ class _SectionHeader extends StatelessWidget {
           title,
           style: const TextStyle(
             color: Color(0xFF1F2B5C),
-            fontSize: 30,
+            fontSize: 22,
             fontWeight: FontWeight.w900,
-            letterSpacing: -0.4,
           ),
         ),
         const SizedBox(width: 14),

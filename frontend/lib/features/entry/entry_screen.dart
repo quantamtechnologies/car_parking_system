@@ -215,10 +215,16 @@ class _EntryScreenState extends State<EntryScreen> {
       await _refreshRecent();
     } catch (e) {
       if (!mounted) return;
+      final message = apiErrorMessage(
+        e,
+        fallback: 'Unable to start the session right now.',
+      );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            'Entry failed: ${apiErrorMessage(e, fallback: 'Unable to start the session right now.')}',
+            message.toLowerCase().contains('slot')
+                ? 'Entry failed: parking space assignment is automatic now. Please try again.'
+                : 'Entry failed: $message',
           ),
         ),
       );

@@ -34,6 +34,38 @@ def pricing_snapshot(policy: PricingPolicy) -> dict:
     return policy.to_snapshot()
 
 
+def _reserve_overflow_slot() -> ParkingSlot:
+    zone, _ = ParkingZone.objects.get_or_create(
+        name="Overflow",
+        defaults={
+            "zone_type": ParkingZone.ZoneType.REGULAR,
+            "priority": 999,
+            "is_active": True,
+            "notes": "Auto-created fallback zone for entry sessions.",
+        },
+    )
+
+    next_index = zone.slots.count() + 1
+    while True:
+        code = f"AUTO-{next_index}"
+        slot, created = ParkingSlot.objects.get_or_create(
+            zone=zone,
+            code=code,
+            defaults={
+                "status": ParkingSlot.SlotStatus.OCCUPIED,
+                "is_manual_only": True,
+                "notes": "Auto-created fallback slot.",
+            },
+        )
+        if created:
+            return slot
+        if slot.status == ParkingSlot.SlotStatus.AVAILABLE:
+            slot.status = ParkingSlot.SlotStatus.OCCUPIED
+            slot.save(update_fields=["status", "updated_at"])
+            return slot
+        next_index += 1
+
+
 def assign_slot(*, zone_preference: str | None = None) -> ParkingSlot:
     slots = ParkingSlot.objects.select_related("zone").select_for_update().filter(
         status=ParkingSlot.SlotStatus.AVAILABLE,
@@ -45,7 +77,7 @@ def assign_slot(*, zone_preference: str | None = None) -> ParkingSlot:
             slots = preferred
     slot = slots.order_by("zone__priority", "zone__name", "code").first()
     if not slot:
-        raise ValidationError({"slot": "No available parking slot found."})
+        return _reserve_overflow_slot()
     slot.status = ParkingSlot.SlotStatus.OCCUPIED
     slot.save(update_fields=["status", "updated_at"])
     return slot
