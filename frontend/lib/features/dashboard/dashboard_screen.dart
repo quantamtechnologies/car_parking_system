@@ -359,7 +359,7 @@ class _DashboardHeader extends StatelessWidget {
               SizedBox(width: compact ? 12 : 16),
               Expanded(
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.end,
                   children: [
                     Container(
                       width: avatarSize,
