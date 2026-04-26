@@ -113,6 +113,7 @@ class _AdminScreenState extends State<AdminScreen> {
   @override
   Widget build(BuildContext context) {
     final user = context.watch<AuthController>().user;
+    const darkInk = Color(0xFF16233F);
 
     return Scaffold(
       backgroundColor: ParkingColors.scaffold,
@@ -259,7 +260,7 @@ class _AdminScreenState extends State<AdminScreen> {
                                           style: TextStyle(
                                             fontSize: 24,
                                             fontWeight: FontWeight.w800,
-                                            color: ParkingColors.ink,
+                                            color: darkInk,
                                             letterSpacing: -0.4,
                                           ),
                                         ),

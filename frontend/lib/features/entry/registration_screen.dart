@@ -143,19 +143,19 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(
+                                  const Text(
                                     'Quick Registration',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 24,
                                       fontWeight: FontWeight.w800,
                                       color: darkInk,
                                       letterSpacing: -0.4,
                                     ),
                                   ),
-                                  SizedBox(height: 5),
-                                  Text(
+                                  const SizedBox(height: 5),
+                                  const Text(
                                     'Only the vehicle type is required. The plate number is already filled in.',
-                                    style: TextStyle(
+                                    style: const TextStyle(
                                       fontSize: 13.5,
                                       color: darkMuted,
                                       height: 1.35,

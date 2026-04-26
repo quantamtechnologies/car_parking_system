@@ -1,6 +1,7 @@
 [build]
-  command = "bash frontend/scripts/netlify-build.sh"
-  publish = "frontend/build/web"
+  base = "frontend"
+  command = "bash scripts/netlify-build.sh"
+  publish = "build/web"
 
 [[redirects]]
   from = "/*"
