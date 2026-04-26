@@ -577,8 +577,8 @@ class _MetricCard extends StatelessWidget {
           child: FittedBox(
             fit: BoxFit.contain,
             child: SizedBox(
-              width: compact ? 232 : 300,
-              height: compact ? 258 : 341,
+              width: compact ? 180 : 300,
+              height: compact ? 210 : 341,
               child: Stack(
                 children: [
                   Positioned(
@@ -607,18 +607,18 @@ class _MetricCard extends StatelessWidget {
                   ),
                   Padding(
                     padding: EdgeInsets.fromLTRB(
+                      compact ? 8 : 18,
                       compact ? 10 : 18,
-                      compact ? 12 : 18,
+                      compact ? 8 : 18,
                       compact ? 10 : 18,
-                      compact ? 12 : 18,
                     ),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: compact ? 62 : 96,
-                          height: compact ? 62 : 96,
+                          width: compact ? 48 : 96,
+                          height: compact ? 48 : 96,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white.withOpacity(0.16),
@@ -626,41 +626,41 @@ class _MetricCard extends StatelessWidget {
                           child: Icon(
                             icon,
                             color: Colors.white,
-                            size: compact ? 30 : 44,
+                            size: compact ? 22 : 44,
                           ),
                         ),
-                        SizedBox(height: compact ? 8 : 18),
+                        SizedBox(height: compact ? 4 : 18),
                         Text(
                           title,
                           textAlign: TextAlign.center,
                           maxLines: 2,
                           style: TextStyle(
                             color: Colors.white,
-                            fontSize: compact ? 18.5 : 22,
+                            fontSize: compact ? 26 : 22,
                             fontWeight: FontWeight.w800,
                             height: 1.12,
                           ),
                         ),
-                        SizedBox(height: compact ? 6 : 12),
+                        SizedBox(height: compact ? 4 : 12),
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
                             value,
                             style: TextStyle(
                               color: Colors.white,
-                              fontSize: compact ? 34 : 40,
+                              fontSize: compact ? 52 : 40,
                               fontWeight: FontWeight.w900,
                             ),
                           ),
                         ),
                         if (footer != null) ...[
-                          SizedBox(height: compact ? 6 : 12),
+                          SizedBox(height: compact ? 4 : 12),
                           Text(
                             footer!,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.85),
-                              fontSize: compact ? 13 : 16,
+                              fontSize: compact ? 21 : 16,
                               fontWeight: FontWeight.w700,
                               height: 1.15,
                             ),
@@ -719,27 +719,27 @@ class _ActionCard extends StatelessWidget {
             child: FittedBox(
               fit: BoxFit.contain,
               child: SizedBox(
-                width: compact ? 190 : 260,
-                height: compact ? 110 : 118,
+                width: compact ? 138 : 260,
+                height: compact ? 92 : 118,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: compact ? 54 : 88,
-                      height: compact ? 54 : 88,
+                      width: compact ? 34 : 88,
+                      height: compact ? 34 : 88,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: tint.withOpacity(0.12),
                       ),
-                      child: Icon(icon, color: tint, size: compact ? 26 : 42),
+                      child: Icon(icon, color: tint, size: compact ? 16 : 42),
                     ),
-                    SizedBox(height: compact ? 10 : 16),
+                    SizedBox(height: compact ? 6 : 16),
                     Text(
                       title,
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         color: Color(0xFF25335B),
-                        fontSize: compact ? 21 : 20,
+                        fontSize: compact ? 34 : 20,
                         fontWeight: FontWeight.w800,
                       ),
                     ),
