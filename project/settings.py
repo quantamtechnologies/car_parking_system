@@ -56,10 +56,6 @@ SECRET_KEY = _validate_secret_key(env("SECRET_KEY"), debug=DEBUG)
 RAILWAY_PUBLIC_DOMAIN = env("RAILWAY_PUBLIC_DOMAIN", default="").strip()
 RAILWAY_PRIVATE_DOMAIN = env("RAILWAY_PRIVATE_DOMAIN", default="").strip()
 NETLIFY_FRONTEND_ORIGIN = env("NETLIFY_FRONTEND_ORIGIN").strip()
-NETLIFY_FRONTEND_ORIGINS = _merge_unique(
-    env.list("NETLIFY_FRONTEND_ORIGINS", default=[]),
-    [NETLIFY_FRONTEND_ORIGIN] if NETLIFY_FRONTEND_ORIGIN else [],
-)
 AUTO_CREATE_DEFAULT_SUPERUSER = env.bool("AUTO_CREATE_DEFAULT_SUPERUSER")
 AUTO_RESET_DEFAULT_SUPERUSER_PASSWORD = env.bool("AUTO_RESET_DEFAULT_SUPERUSER_PASSWORD")
 DEFAULT_SUPERUSER_USERNAME = env("DEFAULT_SUPERUSER_USERNAME", default="admin").strip()
@@ -75,6 +71,11 @@ def _merge_unique(*groups: list[str]) -> list[str]:
                 merged.append(value)
     return merged
 
+
+NETLIFY_FRONTEND_ORIGINS = _merge_unique(
+    env.list("NETLIFY_FRONTEND_ORIGINS", default=[]),
+    [NETLIFY_FRONTEND_ORIGIN] if NETLIFY_FRONTEND_ORIGIN else [],
+)
 
 ALLOWED_HOSTS = _merge_unique(
     env.list("ALLOWED_HOSTS", default=["localhost", "127.0.0.1"]),
