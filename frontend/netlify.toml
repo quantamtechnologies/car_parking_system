@@ -2,6 +2,9 @@
   command = "bash scripts/netlify-build.sh"
   publish = "build/web"
 
+[build.environment]
+  API_BASE_URL = "https://savingsutl-production.up.railway.app/api"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

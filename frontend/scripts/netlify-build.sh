@@ -7,11 +7,10 @@ FLUTTER_HOME="${FLUTTER_HOME:-$HOME/flutter}"
 
 cd "$PROJECT_ROOT"
 
-API_BASE_URL="${API_BASE_URL:-}"
+DEFAULT_API_BASE_URL="https://savingsutl-production.up.railway.app/api"
+API_BASE_URL="${API_BASE_URL:-$DEFAULT_API_BASE_URL}"
 
-if [ -z "$API_BASE_URL" ]; then
-  echo "WARNING: API_BASE_URL is not set. The deployed app will show the missing API warning screen."
-fi
+echo "Building web app with API_BASE_URL=$API_BASE_URL"
 
 if ! command -v flutter >/dev/null 2>&1; then
   if [ ! -x "$FLUTTER_HOME/bin/flutter" ]; then
@@ -27,7 +26,5 @@ flutter config --enable-web
 flutter clean
 flutter pub get
 build_args=(build web --release --pwa-strategy=none)
-if [ -n "$API_BASE_URL" ]; then
-  build_args+=("--dart-define=API_BASE_URL=$API_BASE_URL")
-fi
+build_args+=("--dart-define=API_BASE_URL=$API_BASE_URL")
 flutter "${build_args[@]}"

@@ -12,7 +12,7 @@ import 'core/services/offline_queue.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  if (kReleaseMode && !AppEnv.hasExplicitApiBaseUrl) {
+  if (kReleaseMode && !AppEnv.hasApiBaseUrl) {
     runApp(const _MissingApiBaseUrlApp());
     return;
   }
