@@ -3,7 +3,7 @@
   publish = "build/web"
 
 [build.environment]
-  API_BASE_URL = "https://savingsutl-production.up.railway.app/api"
+  API_BASE_URL = "https://smart-parking-backend-production-18b7.up.railway.app/api"
 
 [[redirects]]
   from = "/*"

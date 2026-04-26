@@ -7,7 +7,7 @@ FLUTTER_HOME="${FLUTTER_HOME:-$HOME/flutter}"
 
 cd "$PROJECT_ROOT"
 
-DEFAULT_API_BASE_URL="https://savingsutl-production.up.railway.app/api"
+DEFAULT_API_BASE_URL="https://smart-parking-backend-production-18b7.up.railway.app/api"
 API_BASE_URL="${API_BASE_URL:-$DEFAULT_API_BASE_URL}"
 
 echo "Building web app with API_BASE_URL=$API_BASE_URL"

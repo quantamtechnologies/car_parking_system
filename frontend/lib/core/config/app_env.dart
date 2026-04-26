@@ -1,6 +1,6 @@
 class AppEnv {
   static const _rawApiBaseUrl = String.fromEnvironment('API_BASE_URL', defaultValue: '');
-  static const _defaultApiBaseUrl = 'https://savingsutl-production.up.railway.app/api';
+  static const _defaultApiBaseUrl = 'https://smart-parking-backend-production-18b7.up.railway.app/api';
 
   static String get apiBaseUrl => _rawApiBaseUrl.isNotEmpty ? _rawApiBaseUrl : _defaultApiBaseUrl;
   static bool get hasApiBaseUrl => apiBaseUrl.isNotEmpty;
