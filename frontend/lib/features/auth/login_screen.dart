@@ -185,6 +185,7 @@ class _LoginScreenState extends State<LoginScreen> {
     final cardPadding = compact ? 20.0 : 28.0;
     final cardRadius = compact ? 28.0 : 30.0;
     final buttonHeight = compact ? 52.0 : 58.0;
+    final inputTheme = Theme.of(context).inputDecorationTheme;
 
     return Center(
       child: Container(
@@ -200,58 +201,98 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
         child: Form(
           key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(
-                'Sign in',
-                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                      fontWeight: FontWeight.w900,
-                      fontSize: compact ? 28 : null,
-                    ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Use your staff credentials to open the POS.',
-                style: Theme.of(context)
-                    .textTheme
-                    .bodyMedium
-                    ?.copyWith(color: Colors.black54),
-              ),
-              SizedBox(height: compact ? 18 : 24),
-              TextFormField(
-                controller: _username,
-                decoration: const InputDecoration(labelText: 'Username'),
-                validator: (value) => value == null || value.trim().isEmpty
-                    ? 'Enter your username'
-                    : null,
-              ),
-              SizedBox(height: compact ? 12 : 16),
-              TextFormField(
-                controller: _password,
-                obscureText: _obscure,
-                decoration: InputDecoration(
-                  labelText: 'Password',
-                  suffixIcon: IconButton(
-                    onPressed: () => setState(() => _obscure = !_obscure),
-                    icon: Icon(
-                        _obscure ? Icons.visibility : Icons.visibility_off),
-                  ),
+          child: Theme(
+            data: Theme.of(context).copyWith(
+              inputDecorationTheme: inputTheme.copyWith(
+                fillColor: const Color(0xFFF5F8FF),
+                labelStyle: const TextStyle(
+                  color: Color(0xFF64748B),
+                  fontWeight: FontWeight.w600,
                 ),
-                validator: (value) => value == null || value.isEmpty
-                    ? 'Enter your password'
-                    : null,
+                floatingLabelStyle: const TextStyle(
+                  color: Color(0xFF2563EB),
+                  fontWeight: FontWeight.w700,
+                ),
+                hintStyle: const TextStyle(
+                  color: Color(0xFF94A3B8),
+                  fontWeight: FontWeight.w500,
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide: const BorderSide(color: Color(0xFFD7E3F7)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(18),
+                  borderSide:
+                      const BorderSide(color: Color(0xFF2563EB), width: 1.4),
+                ),
               ),
-              SizedBox(height: compact ? 18 : 24),
-              GradientActionButton(
-                label: 'Login',
-                icon: Icons.lock_open_rounded,
-                isBusy: auth.loading,
-                minHeight: buttonHeight,
-                onPressed: _submit,
-              ),
-            ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  'Sign in',
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w900,
+                        fontSize: compact ? 28 : null,
+                      ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Use your staff credentials to open the POS.',
+                  style: Theme.of(context)
+                      .textTheme
+                      .bodyMedium
+                      ?.copyWith(color: Colors.black54),
+                ),
+                SizedBox(height: compact ? 18 : 24),
+                TextFormField(
+                  controller: _username,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: 'Username',
+                    hintText: 'Enter your username',
+                  ),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Enter your username'
+                      : null,
+                ),
+                SizedBox(height: compact ? 12 : 16),
+                TextFormField(
+                  controller: _password,
+                  obscureText: _obscure,
+                  style: const TextStyle(
+                    color: Color(0xFF0F172A),
+                    fontWeight: FontWeight.w700,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: 'Password',
+                    hintText: 'Enter your password',
+                    suffixIcon: IconButton(
+                      onPressed: () => setState(() => _obscure = !_obscure),
+                      icon: Icon(
+                          _obscure ? Icons.visibility : Icons.visibility_off),
+                    ),
+                  ),
+                  validator: (value) => value == null || value.isEmpty
+                      ? 'Enter your password'
+                      : null,
+                ),
+                SizedBox(height: compact ? 18 : 24),
+                GradientActionButton(
+                  label: 'Login',
+                  icon: Icons.lock_open_rounded,
+                  isBusy: auth.loading,
+                  minHeight: buttonHeight,
+                  onPressed: _submit,
+                ),
+              ],
+            ),
           ),
         ),
       ),

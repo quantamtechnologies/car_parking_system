@@ -52,7 +52,8 @@ ThemeData parkingTheme() {
   const bg = ParkingColors.scaffold;
   const surface = ParkingColors.surfaceMuted;
 
-  final baseTextTheme = GoogleFonts.manropeTextTheme(ThemeData.dark().textTheme);
+  final baseTextTheme =
+      GoogleFonts.manropeTextTheme(ThemeData.dark().textTheme);
 
   return ThemeData(
     useMaterial3: true,
@@ -84,7 +85,7 @@ ThemeData parkingTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: ParkingColors.surface,
+      fillColor: const Color(0xFF0F1B35),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: BorderSide(color: const Color(0xFF243559)),
@@ -97,23 +98,35 @@ ThemeData parkingTheme() {
         borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: primary, width: 1.4),
       ),
-      labelStyle: const TextStyle(color: Color(0xFF93A1C4), fontWeight: FontWeight.w600),
-      floatingLabelStyle: const TextStyle(color: primary, fontWeight: FontWeight.w700),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 18),
+      hintStyle: const TextStyle(
+        color: Color(0xFF7E8CAD),
+        fontWeight: FontWeight.w500,
+      ),
+      labelStyle: const TextStyle(
+          color: Color(0xFF93A1C4), fontWeight: FontWeight.w600),
+      floatingLabelStyle:
+          const TextStyle(color: primary, fontWeight: FontWeight.w700),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
     ),
     navigationBarTheme: NavigationBarThemeData(
       backgroundColor: const Color(0xFF0C1731).withOpacity(0.96),
       indicatorColor: primary.withOpacity(0.18),
       labelTextStyle: MaterialStateProperty.resolveWith(
         (states) => TextStyle(
-          fontWeight: states.contains(MaterialState.selected) ? FontWeight.w800 : FontWeight.w600,
-          color: states.contains(MaterialState.selected) ? primary : const Color(0xFF8A97B7),
+          fontWeight: states.contains(MaterialState.selected)
+              ? FontWeight.w800
+              : FontWeight.w600,
+          color: states.contains(MaterialState.selected)
+              ? primary
+              : const Color(0xFF8A97B7),
           fontSize: 12,
         ),
       ),
       iconTheme: MaterialStateProperty.resolveWith(
         (states) => IconThemeData(
-          color: states.contains(MaterialState.selected) ? primary : const Color(0xFF8C96A8),
+          color: states.contains(MaterialState.selected)
+              ? primary
+              : const Color(0xFF8C96A8),
           size: 22,
         ),
       ),

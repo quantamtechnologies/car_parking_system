@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -20,6 +22,9 @@ class ExitScreen extends StatefulWidget {
 class _ExitScreenState extends State<ExitScreen> {
   final _plateController = TextEditingController();
   late Future<_ExitPageData> _future;
+  Timer? _plateLookupDebounce;
+  String _lastPreparedPlate = '';
+  bool _syncingPlateText = false;
   Map<String, dynamic>? _session;
   Map<String, dynamic>? _breakdown;
   int? _scanId;
@@ -30,12 +35,29 @@ class _ExitScreenState extends State<ExitScreen> {
   void initState() {
     super.initState();
     _future = _load();
+    _plateController.addListener(_handlePlateChanged);
   }
 
   @override
   void dispose() {
+    _plateLookupDebounce?.cancel();
     _plateController.dispose();
     super.dispose();
+  }
+
+  void _handlePlateChanged() {
+    if (_syncingPlateText) return;
+
+    final plate = _plateController.text.trim().toUpperCase();
+    if (plate.length < 4 || plate == _lastPreparedPlate) return;
+
+    _plateLookupDebounce?.cancel();
+    _plateLookupDebounce = Timer(const Duration(milliseconds: 420), () {
+      if (!mounted) return;
+      final latest = _plateController.text.trim().toUpperCase();
+      if (latest.length < 4 || latest == _lastPreparedPlate) return;
+      _fetchVehicleInfo(autoTriggered: true);
+    });
   }
 
   Future<_ExitPageData> _load() async {
@@ -60,7 +82,8 @@ class _ExitScreenState extends State<ExitScreen> {
         .map(
           (session) => _RecentExitRowData(
             plateNumber: session.plateNumber,
-            vehicleType: typeByPlate[session.plateNumber.toUpperCase()] ?? 'CAR',
+            vehicleType:
+                typeByPlate[session.plateNumber.toUpperCase()] ?? 'CAR',
             timeLabel: DateFormat('hh:mm a').format(session.exitTime!),
           ),
         )
@@ -90,8 +113,12 @@ class _ExitScreenState extends State<ExitScreen> {
       if (plate.trim().isEmpty) return;
 
       setState(() {
+        _syncingPlateText = true;
         _plateController.text = plate.trim().toUpperCase();
+        _plateController.selection =
+            TextSelection.collapsed(offset: _plateController.text.length);
         _scanId = result['scan_id'] as int?;
+        _syncingPlateText = false;
       });
       await _fetchVehicleInfo(autoTriggered: true);
     } finally {
@@ -110,12 +137,15 @@ class _ExitScreenState extends State<ExitScreen> {
 
     setState(() => _busy = true);
     try {
-      final response = await context.read<SmartParkingApi>().prepareExit(payload);
+      final response =
+          await context.read<SmartParkingApi>().prepareExit(payload);
       if (!mounted) return;
 
       setState(() {
         _session = Map<String, dynamic>.from(response['session'] as Map);
-        _breakdown = Map<String, dynamic>.from(response['fee_breakdown'] as Map);
+        _breakdown =
+            Map<String, dynamic>.from(response['fee_breakdown'] as Map);
+        _lastPreparedPlate = plate;
       });
     } catch (e) {
       if (!mounted) return;
@@ -127,7 +157,9 @@ class _ExitScreenState extends State<ExitScreen> {
         ),
       );
       if (isOfflineDioError(e)) {
-        await context.read<AuthController>().queueIfOffline('exit', {'plate_number': plate});
+        await context
+            .read<AuthController>()
+            .queueIfOffline('exit', {'plate_number': plate});
       }
       if (!autoTriggered) {
         setState(() {
@@ -150,12 +182,16 @@ class _ExitScreenState extends State<ExitScreen> {
   }
 
   String _money0(dynamic value) {
-    final amount = value is num ? value.toDouble() : double.tryParse(value?.toString() ?? '') ?? 0;
+    final amount = value is num
+        ? value.toDouble()
+        : double.tryParse(value?.toString() ?? '') ?? 0;
     return 'MK ${NumberFormat('#,##0').format(amount)}';
   }
 
   String _durationLabel(dynamic value) {
-    final minutes = value is num ? value.toInt() : int.tryParse(value?.toString() ?? '') ?? 0;
+    final minutes = value is num
+        ? value.toInt()
+        : int.tryParse(value?.toString() ?? '') ?? 0;
     final hours = minutes ~/ 60;
     final remaining = minutes % 60;
     if (hours == 0) {
@@ -183,15 +219,25 @@ class _ExitScreenState extends State<ExitScreen> {
             final data = snapshot.data ?? _ExitPageData(recentExits: const []);
             final vehicle = _session?['vehicle'] as Map?;
             final breakdown = _breakdown;
-            final entryTime = DateTime.tryParse(_session?['entry_time']?.toString() ?? '');
-            final entryClock = entryTime == null ? '--:--' : DateFormat('hh:mm a').format(entryTime);
+            final entryTime =
+                DateTime.tryParse(_session?['entry_time']?.toString() ?? '');
+            final entryClock = entryTime == null
+                ? '--:--'
+                : DateFormat('hh:mm a').format(entryTime);
             final currentClock = DateFormat('hh:mm a').format(now);
-            final duration = breakdown == null ? '--' : _durationLabel(breakdown['duration_minutes']);
-            final rate = breakdown == null ? 'MK 0 / hr' : '${_money0(breakdown['rate_per_hour'])} / hr';
-            final total = breakdown == null ? 'MK 0' : _money0(breakdown['total_fee']);
-            final plate = vehicle?['plate_number']?.toString() ?? _plateController.text.trim();
+            final duration = breakdown == null
+                ? '--'
+                : _durationLabel(breakdown['duration_minutes']);
+            final rate = breakdown == null
+                ? 'MK 0 / hr'
+                : '${_money0(breakdown['rate_per_hour'])} / hr';
+            final total =
+                breakdown == null ? 'MK 0' : _money0(breakdown['total_fee']);
+            final plate = vehicle?['plate_number']?.toString() ??
+                _plateController.text.trim();
             final rawType = vehicle?['vehicle_type']?.toString() ?? '';
-            final type = rawType.trim().isEmpty ? '' : vehicleTypeLabel(rawType);
+            final type =
+                rawType.trim().isEmpty ? '' : vehicleTypeLabel(rawType);
             final owner = vehicle?['owner_name']?.toString() ?? 'Waiting';
             final phone = vehicle?['phone_number']?.toString() ?? 'Waiting';
 
@@ -205,7 +251,7 @@ class _ExitScreenState extends State<ExitScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
                         child: _ExitHeader(user: user),
                       ),
                       const SizedBox(height: 18),
@@ -217,7 +263,10 @@ class _ExitScreenState extends State<ExitScreen> {
                           color: Colors.white,
                           borderColor: const Color(0xFFE5EBF5),
                           shadow: const [
-                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                            BoxShadow(
+                                color: Color(0x150B1630),
+                                blurRadius: 20,
+                                offset: Offset(0, 12)),
                           ],
                           child: Column(
                             children: [
@@ -229,7 +278,8 @@ class _ExitScreenState extends State<ExitScreen> {
                               ),
                               const SizedBox(height: 14),
                               _PrimaryButton(
-                                label: _busy ? 'FETCHING' : 'FETCH VEHICLE INFO',
+                                label:
+                                    _busy ? 'FETCHING' : 'FETCH VEHICLE INFO',
                                 icon: Icons.search_rounded,
                                 isBusy: _busy,
                                 onPressed: _busy ? null : _fetchVehicleInfo,
@@ -244,8 +294,12 @@ class _ExitScreenState extends State<ExitScreen> {
                         child: _DetailCard(
                           title: 'Vehicle Info',
                           children: [
-                            _ValueRow(label: 'Plate', value: plate.isEmpty ? 'Waiting' : plate),
-                            _ValueRow(label: 'Type', value: type.isEmpty ? 'Waiting' : type),
+                            _ValueRow(
+                                label: 'Plate',
+                                value: plate.isEmpty ? 'Waiting' : plate),
+                            _ValueRow(
+                                label: 'Type',
+                                value: type.isEmpty ? 'Waiting' : type),
                             _ValueRow(label: 'Owner', value: owner),
                             _ValueRow(label: 'Phone', value: phone),
                           ],
@@ -260,15 +314,25 @@ class _ExitScreenState extends State<ExitScreen> {
                             Row(
                               children: [
                                 Expanded(
-                                  child: _MiniInfoCell(label: 'Entry Time', value: entryClock),
+                                  child: _MiniInfoCell(
+                                      label: 'Entry Time', value: entryClock),
                                 ),
-                                Container(width: 1, height: 52, color: const Color(0xFFE2E8F4)),
+                                Container(
+                                    width: 1,
+                                    height: 52,
+                                    color: const Color(0xFFE2E8F4)),
                                 Expanded(
-                                  child: _MiniInfoCell(label: 'Current Time', value: currentClock),
+                                  child: _MiniInfoCell(
+                                      label: 'Current Time',
+                                      value: currentClock),
                                 ),
-                                Container(width: 1, height: 52, color: const Color(0xFFE2E8F4)),
+                                Container(
+                                    width: 1,
+                                    height: 52,
+                                    color: const Color(0xFFE2E8F4)),
                                 Expanded(
-                                  child: _MiniInfoCell(label: 'Duration', value: duration),
+                                  child: _MiniInfoCell(
+                                      label: 'Duration', value: duration),
                                 ),
                               ],
                             ),
@@ -309,7 +373,10 @@ class _ExitScreenState extends State<ExitScreen> {
                           color: Colors.white,
                           borderColor: const Color(0xFFE5EBF5),
                           shadow: const [
-                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                            BoxShadow(
+                                color: Color(0x150B1630),
+                                blurRadius: 20,
+                                offset: Offset(0, 12)),
                           ],
                           child: Column(
                             children: [
@@ -318,14 +385,21 @@ class _ExitScreenState extends State<ExitScreen> {
                                   padding: EdgeInsets.all(18),
                                   child: Text(
                                     'No recent exits yet.',
-                                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                    style: TextStyle(
+                                        color: Color(0xFF64748B),
+                                        fontWeight: FontWeight.w600),
                                   ),
                                 )
                               else
-                                for (var index = 0; index < data.recentExits.length; index++) ...[
+                                for (var index = 0;
+                                    index < data.recentExits.length;
+                                    index++) ...[
                                   _RecentExitRow(data: data.recentExits[index]),
                                   if (index != data.recentExits.length - 1)
-                                    const Divider(height: 1, thickness: 1, color: Color(0xFFE7EDF7)),
+                                    const Divider(
+                                        height: 1,
+                                        thickness: 1,
+                                        color: Color(0xFFE7EDF7)),
                                 ],
                             ],
                           ),
@@ -341,11 +415,16 @@ class _ExitScreenState extends State<ExitScreen> {
                             color: Colors.white,
                             borderColor: const Color(0xFFE5EBF5),
                             shadow: const [
-                              BoxShadow(color: Color(0x150B1630), blurRadius: 16, offset: Offset(0, 10)),
+                              BoxShadow(
+                                  color: Color(0x150B1630),
+                                  blurRadius: 16,
+                                  offset: Offset(0, 10)),
                             ],
                             child: Text(
-                              apiErrorMessage(snapshot.error, fallback: 'Unable to load recent exits.'),
-                              style: const TextStyle(color: Color(0xFF64748B), height: 1.4),
+                              apiErrorMessage(snapshot.error,
+                                  fallback: 'Unable to load recent exits.'),
+                              style: const TextStyle(
+                                  color: Color(0xFF64748B), height: 1.4),
                             ),
                           ),
                         ),
@@ -392,24 +471,22 @@ class _ExitHeader extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
-        final backSize = compact ? 60.0 : 72.0;
-        final titleSize = compact ? 22.0 : 26.0;
-        final avatarSize = compact ? 58.0 : 70.0;
-        final nameSize = compact ? 18.0 : 22.0;
-        final roleSize = compact ? 13.0 : 15.0;
+        final backSize = compact ? 52.0 : 60.0;
+        final titleSize = compact ? 20.0 : 24.0;
+        final avatarSize = compact ? 50.0 : 60.0;
+        final nameSize = compact ? 16.0 : 19.0;
+        final roleSize = compact ? 12.0 : 13.0;
 
         return Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: const [
-              BoxShadow(color: Color(0x220B1630), blurRadius: 22, offset: Offset(0, 10)),
-            ],
+            borderRadius:
+                const BorderRadius.vertical(bottom: Radius.circular(24)),
           ),
           child: Row(
             children: [
@@ -423,7 +500,9 @@ class _ExitHeader extends StatelessWidget {
                     width: backSize,
                     height: backSize,
                     alignment: Alignment.center,
-                    child: Icon(Icons.arrow_back_rounded, color: const Color(0xFF2563EB), size: compact ? 30 : 34),
+                    child: Icon(Icons.arrow_back_rounded,
+                        color: const Color(0xFF2563EB),
+                        size: compact ? 26 : 30),
                   ),
                 ),
               ),
@@ -453,11 +532,13 @@ class _ExitHeader extends StatelessWidget {
                         shape: BoxShape.circle,
                         color: Colors.white.withOpacity(0.2),
                       ),
-                      child: const Icon(Icons.person, color: Colors.white, size: 40),
+                      child: const Icon(Icons.person,
+                          color: Colors.white, size: 40),
                     ),
                     SizedBox(width: compact ? 10 : 12),
                     ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: compact ? 130 : 220),
+                      constraints:
+                          BoxConstraints(maxWidth: compact ? 130 : 220),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -518,24 +599,8 @@ class _PlateSearchField extends StatelessWidget {
           color: const Color(0xFFEAF1FF),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: const Icon(Icons.search_rounded, color: Color(0xFF2563EB), size: 28),
-      ),
-      child: TextField(
-        controller: controller,
-        textCapitalization: TextCapitalization.characters,
-        style: const TextStyle(
-          color: Color(0xFF16233F),
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.3,
-        ),
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          hintText: 'Enter plate number',
-          hintStyle: TextStyle(color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
-          contentPadding: EdgeInsets.zero,
-        ),
-        onSubmitted: (_) => onSubmitted(),
+        child: const Icon(Icons.search_rounded,
+            color: Color(0xFF2563EB), size: 28),
       ),
       suffix: Material(
         color: Colors.transparent,
@@ -549,9 +614,27 @@ class _PlateSearchField extends StatelessWidget {
               color: const Color(0xFFEAF1FF),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2563EB), size: 26),
+            child: const Icon(Icons.qr_code_scanner_rounded,
+                color: Color(0xFF2563EB), size: 26),
           ),
         ),
+      ),
+      child: TextField(
+        controller: controller,
+        textCapitalization: TextCapitalization.characters,
+        style: const TextStyle(
+          color: Color(0xFF16233F),
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: 'Enter plate number',
+          hintStyle:
+              TextStyle(color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
+          contentPadding: EdgeInsets.zero,
+        ),
+        onSubmitted: (_) => onSubmitted(),
       ),
     );
   }
@@ -612,7 +695,8 @@ class _DetailCard extends StatelessWidget {
       color: Colors.white,
       borderColor: const Color(0xFFE5EBF5),
       shadow: const [
-        BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+        BoxShadow(
+            color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -740,7 +824,8 @@ class _PrimaryButton extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [
-          BoxShadow(color: Color(0x262D6CF6), blurRadius: 20, offset: Offset(0, 10)),
+          BoxShadow(
+              color: Color(0x262D6CF6), blurRadius: 20, offset: Offset(0, 10)),
         ],
       ),
       child: SizedBox(
@@ -750,7 +835,8 @@ class _PrimaryButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
           onPressed: enabled ? onPressed : null,
           child: AnimatedSwitcher(
@@ -760,7 +846,8 @@ class _PrimaryButton extends StatelessWidget {
                     key: ValueKey('busy'),
                     width: 22,
                     height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: Colors.white),
                   )
                 : Row(
                     key: ValueKey(label),

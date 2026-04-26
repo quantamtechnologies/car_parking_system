@@ -70,61 +70,83 @@ class _DashboardScreenState extends State<DashboardScreen> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         Padding(
-                          padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                          padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
                           child: _DashboardHeader(user: user),
                         ),
                         const SizedBox(height: 18),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
                           child: _RevenueCard(
-                            revenue: _mkMoney(data.revenuePerDay, decimals: 2, zeroPlaceholder: 'MK0,000.00'),
+                            revenue: _mkMoney(data.revenuePerDay,
+                                decimals: 2, zeroPlaceholder: 'MK0,000.00'),
                           ),
                         ),
                         const SizedBox(height: 18),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _MetricCard(
-                                  title: 'Today Cars',
-                                  value: data.carsPerDay.toString(),
-                                  footer: 'Average cars/day  ${_compactNumber(data.averageCarsPerDay)}',
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF1CD59A), Color(0xFF12B981)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final compact = constraints.maxWidth < 640;
+                              final gap = compact ? 10.0 : 16.0;
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: _MetricCard(
+                                      title: 'Today Cars',
+                                      value: data.carsPerDay.toString(),
+                                      footer:
+                                          'Average cars/day  ${_compactNumber(data.averageCarsPerDay)}',
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF1CD59A),
+                                          Color(0xFF12B981)
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      icon: Icons.directions_car_outlined,
+                                      compact: compact,
+                                    ),
                                   ),
-                                  icon: Icons.directions_car_outlined,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _MetricCard(
-                                  title: 'Active Cars',
-                                  value: data.activeSessions.toString(),
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFF9D6DFF), Color(0xFF6D28D9)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
+                                  SizedBox(width: gap),
+                                  Expanded(
+                                    child: _MetricCard(
+                                      title: 'Active Cars',
+                                      value: data.activeSessions.toString(),
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFF9D6DFF),
+                                          Color(0xFF6D28D9)
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      icon:
+                                          Icons.directions_car_filled_outlined,
+                                      compact: compact,
+                                    ),
                                   ),
-                                  icon: Icons.directions_car_filled_outlined,
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _MetricCard(
-                                  title: 'Pending\nPayments',
-                                  value: 'MK${NumberFormat('#,##0').format(data.pendingPayments)}',
-                                  gradient: const LinearGradient(
-                                    colors: [Color(0xFFFFC62A), Color(0xFFF97316)],
-                                    begin: Alignment.topLeft,
-                                    end: Alignment.bottomRight,
+                                  SizedBox(width: gap),
+                                  Expanded(
+                                    child: _MetricCard(
+                                      title: 'Pending\nPayments',
+                                      value:
+                                          'MK${NumberFormat('#,##0').format(data.pendingPayments)}',
+                                      gradient: const LinearGradient(
+                                        colors: [
+                                          Color(0xFFFFC62A),
+                                          Color(0xFFF97316)
+                                        ],
+                                        begin: Alignment.topLeft,
+                                        end: Alignment.bottomRight,
+                                      ),
+                                      icon: Icons.receipt_long_outlined,
+                                      compact: compact,
+                                    ),
                                   ),
-                                  icon: Icons.receipt_long_outlined,
-                                ),
-                              ),
-                            ],
+                                ],
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(height: 28),
@@ -135,35 +157,44 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         const SizedBox(height: 16),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 12),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: _ActionCard(
-                                  title: 'Entry',
-                                  icon: Icons.login_rounded,
-                                  tint: const Color(0xFF2C6CF6),
-                                  onTap: () => context.go('/entry'),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _ActionCard(
-                                  title: 'Receipts',
-                                  icon: Icons.receipt_long_rounded,
-                                  tint: const Color(0xFF7C3AED),
-                                  onTap: () => context.go('/receipts'),
-                                ),
-                              ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: _ActionCard(
-                                  title: 'Exit',
-                                  icon: Icons.logout_rounded,
-                                  tint: const Color(0xFFF43F5E),
-                                  onTap: () => context.go('/exit'),
-                                ),
-                              ),
-                            ],
+                          child: LayoutBuilder(
+                            builder: (context, constraints) {
+                              final compact = constraints.maxWidth < 640;
+                              final gap = compact ? 10.0 : 16.0;
+                              return Row(
+                                children: [
+                                  Expanded(
+                                    child: _ActionCard(
+                                      title: 'Entry',
+                                      icon: Icons.login_rounded,
+                                      tint: const Color(0xFF2C6CF6),
+                                      compact: compact,
+                                      onTap: () => context.go('/entry'),
+                                    ),
+                                  ),
+                                  SizedBox(width: gap),
+                                  Expanded(
+                                    child: _ActionCard(
+                                      title: 'Receipts',
+                                      icon: Icons.receipt_long_rounded,
+                                      tint: const Color(0xFF7C3AED),
+                                      compact: compact,
+                                      onTap: () => context.go('/receipts'),
+                                    ),
+                                  ),
+                                  SizedBox(width: gap),
+                                  Expanded(
+                                    child: _ActionCard(
+                                      title: 'Exit',
+                                      icon: Icons.logout_rounded,
+                                      tint: const Color(0xFFF43F5E),
+                                      compact: compact,
+                                      onTap: () => context.go('/exit'),
+                                    ),
+                                  ),
+                                ],
+                              );
+                            },
                           ),
                         ),
                         if (snapshot.hasError) ...[
@@ -176,7 +207,10 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               color: Colors.white,
                               borderColor: const Color(0xFFE5EBF5),
                               shadow: const [
-                                BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                                BoxShadow(
+                                    color: Color(0x150B1630),
+                                    blurRadius: 20,
+                                    offset: Offset(0, 12)),
                               ],
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -191,8 +225,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    apiErrorMessage(snapshot.error, fallback: 'Please try again in a moment.'),
-                                    style: const TextStyle(color: Color(0xFF64748B), height: 1.45),
+                                    apiErrorMessage(snapshot.error,
+                                        fallback:
+                                            'Please try again in a moment.'),
+                                    style: const TextStyle(
+                                        color: Color(0xFF64748B), height: 1.45),
                                   ),
                                   const SizedBox(height: 14),
                                   SizedBox(
@@ -203,7 +240,9 @@ class _DashboardScreenState extends State<DashboardScreen> {
                                         backgroundColor: ParkingColors.primary,
                                         foregroundColor: Colors.white,
                                         minimumSize: const Size.fromHeight(50),
-                                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                                        shape: RoundedRectangleBorder(
+                                            borderRadius:
+                                                BorderRadius.circular(18)),
                                       ),
                                       icon: const Icon(Icons.refresh_rounded),
                                       label: const Text('Try again'),
@@ -258,7 +297,8 @@ String _mkMoney(
     return zeroPlaceholder;
   }
 
-  final pattern = decimals <= 0 ? '#,##0' : '#,##0.${List.filled(decimals, '0').join()}';
+  final pattern =
+      decimals <= 0 ? '#,##0' : '#,##0.${List.filled(decimals, '0').join()}';
   return 'MK${NumberFormat(pattern).format(value)}';
 }
 
@@ -274,33 +314,33 @@ class _DashboardHeader extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
-        final brandSize = compact ? 72.0 : 96.0;
-        final avatarSize = compact ? 60.0 : 84.0;
-        final nameSize = compact ? 18.0 : 24.0;
-        final roleSize = compact ? 13.5 : 19.0;
-        final brandFontSize = compact ? 46.0 : 60.0;
+        final brandSize = compact ? 64.0 : 82.0;
+        final avatarSize = compact ? 54.0 : 72.0;
+        final nameSize = compact ? 17.0 : 22.0;
+        final roleSize = compact ? 12.5 : 16.0;
+        final brandFontSize = compact ? 40.0 : 52.0;
 
         return Container(
-          padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 16),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF07124A), Color(0xFF0C1F78), Color(0xFF1233AF)],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
-            borderRadius: BorderRadius.circular(30),
-            boxShadow: const [
-              BoxShadow(color: Color(0x240B1630), blurRadius: 24, offset: Offset(0, 12)),
-            ],
+            borderRadius: const BorderRadius.vertical(
+              bottom: Radius.circular(28),
+            ),
           ),
           child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Container(
                 width: brandSize,
                 height: brandSize,
                 decoration: BoxDecoration(
                   color: const Color(0xFF2563EB),
-                  borderRadius: BorderRadius.circular(22),
+                  borderRadius: BorderRadius.circular(20),
                 ),
                 child: Center(
                   child: Text(
@@ -327,11 +367,13 @@ class _DashboardHeader extends StatelessWidget {
                         color: const Color(0xFF3D73F6).withOpacity(0.95),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.person, color: Colors.white, size: 46),
+                      child: const Icon(Icons.person,
+                          color: Colors.white, size: 46),
                     ),
                     SizedBox(width: compact ? 10 : 14),
                     ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: compact ? 150 : 220),
+                      constraints:
+                          BoxConstraints(maxWidth: compact ? 150 : 220),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -389,7 +431,10 @@ class _RevenueCard extends StatelessWidget {
             end: Alignment.bottomRight,
           ),
           boxShadow: const [
-            BoxShadow(color: Color(0x250B1630), blurRadius: 24, offset: Offset(0, 14)),
+            BoxShadow(
+                color: Color(0x250B1630),
+                blurRadius: 24,
+                offset: Offset(0, 14)),
           ],
         ),
         child: Center(
@@ -437,7 +482,8 @@ class _RevenueCard extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 22),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 20, vertical: 22),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -448,7 +494,8 @@ class _RevenueCard extends StatelessWidget {
                             shape: BoxShape.circle,
                             color: Colors.white.withOpacity(0.12),
                           ),
-                          child: const Icon(Icons.payments_outlined, color: Colors.white, size: 52),
+                          child: const Icon(Icons.payments_outlined,
+                              color: Colors.white, size: 52),
                         ),
                         const SizedBox(height: 18),
                         const Text(
@@ -491,6 +538,7 @@ class _MetricCard extends StatelessWidget {
     required this.value,
     required this.gradient,
     required this.icon,
+    required this.compact,
     this.footer,
   });
 
@@ -498,19 +546,23 @@ class _MetricCard extends StatelessWidget {
   final String value;
   final Gradient gradient;
   final IconData icon;
+  final bool compact;
   final String? footer;
 
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 0.88,
+      aspectRatio: compact ? 0.74 : 0.88,
       child: Container(
         clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           gradient: gradient,
           borderRadius: BorderRadius.circular(28),
           boxShadow: const [
-            BoxShadow(color: Color(0x220B1630), blurRadius: 20, offset: Offset(0, 12)),
+            BoxShadow(
+                color: Color(0x220B1630),
+                blurRadius: 20,
+                offset: Offset(0, 12)),
           ],
         ),
         child: Center(
@@ -546,52 +598,57 @@ class _MetricCard extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 18, 18, 18),
+                    padding: EdgeInsets.fromLTRB(
+                        compact ? 12 : 18,
+                        compact ? 14 : 18,
+                        compact ? 12 : 18,
+                        compact ? 14 : 18),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.center,
+                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
                         Container(
-                          width: 96,
-                          height: 96,
+                          width: compact ? 74 : 96,
+                          height: compact ? 74 : 96,
                           decoration: BoxDecoration(
                             shape: BoxShape.circle,
                             color: Colors.white.withOpacity(0.16),
                           ),
-                          child: Icon(icon, color: Colors.white, size: 44),
+                          child: Icon(icon,
+                              color: Colors.white, size: compact ? 34 : 44),
                         ),
-                        const SizedBox(height: 18),
+                        SizedBox(height: compact ? 12 : 18),
                         Text(
                           title,
                           textAlign: TextAlign.center,
                           maxLines: 2,
-                          style: const TextStyle(
+                          style: TextStyle(
                             color: Colors.white,
-                            fontSize: 22,
+                            fontSize: compact ? 16 : 22,
                             fontWeight: FontWeight.w800,
                             height: 1.12,
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        SizedBox(height: compact ? 8 : 12),
                         FittedBox(
                           fit: BoxFit.scaleDown,
                           child: Text(
                             value,
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: Colors.white,
-                              fontSize: 40,
+                              fontSize: compact ? 28 : 40,
                               fontWeight: FontWeight.w900,
-                              letterSpacing: -1,
                             ),
                           ),
                         ),
                         if (footer != null) ...[
-                          const SizedBox(height: 12),
+                          SizedBox(height: compact ? 8 : 12),
                           Text(
                             footer!,
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.85),
-                              fontSize: 16,
+                              fontSize: compact ? 12 : 16,
                               fontWeight: FontWeight.w700,
                             ),
                           ),
@@ -614,12 +671,14 @@ class _ActionCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.tint,
+    required this.compact,
     required this.onTap,
   });
 
   final String title;
   final IconData icon;
   final Color tint;
+  final bool compact;
   final VoidCallback onTap;
 
   @override
@@ -630,13 +689,17 @@ class _ActionCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(26),
         onTap: onTap,
         child: Container(
-          height: 154,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
+          height: compact ? 136 : 154,
+          padding: EdgeInsets.symmetric(
+              horizontal: compact ? 12 : 16, vertical: compact ? 14 : 18),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(26),
             boxShadow: const [
-              BoxShadow(color: Color(0x140B1630), blurRadius: 18, offset: Offset(0, 10)),
+              BoxShadow(
+                  color: Color(0x140B1630),
+                  blurRadius: 18,
+                  offset: Offset(0, 10)),
             ],
           ),
           child: Center(
@@ -649,21 +712,21 @@ class _ActionCard extends StatelessWidget {
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Container(
-                      width: 88,
-                      height: 88,
+                      width: compact ? 72 : 88,
+                      height: compact ? 72 : 88,
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
                         color: tint.withOpacity(0.12),
                       ),
-                      child: Icon(icon, color: tint, size: 42),
+                      child: Icon(icon, color: tint, size: compact ? 34 : 42),
                     ),
-                    const SizedBox(height: 16),
+                    SizedBox(height: compact ? 12 : 16),
                     Text(
                       title,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: Color(0xFF25335B),
-                        fontSize: 20,
+                        fontSize: compact ? 17 : 20,
                         fontWeight: FontWeight.w800,
                       ),
                     ),

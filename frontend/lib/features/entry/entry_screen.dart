@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
@@ -31,6 +33,9 @@ class _EntryScreenState extends State<EntryScreen> {
   late String _vehicleType;
   late bool _vehicleTypeExplicit;
   late Future<List<VehicleRecord>> _recentFuture;
+  Timer? _plateLookupDebounce;
+  String _lastLookupPlate = '';
+  bool _syncingPlateText = false;
 
   bool _busy = false;
   bool _lookupBusy = false;
@@ -39,14 +44,19 @@ class _EntryScreenState extends State<EntryScreen> {
   void initState() {
     super.initState();
     _plateController = TextEditingController(
-      text: widget.initialPlate.trim().isNotEmpty ? widget.initialPlate.trim().toUpperCase() : '',
+      text: widget.initialPlate.trim().isNotEmpty
+          ? widget.initialPlate.trim().toUpperCase()
+          : '',
     );
     _ownerController = TextEditingController();
     _phoneController = TextEditingController();
-    _vehicleType = widget.initialVehicleType.trim().isNotEmpty ? widget.initialVehicleType : 'CAR';
+    _vehicleType = widget.initialVehicleType.trim().isNotEmpty
+        ? widget.initialVehicleType
+        : 'CAR';
     _vehicleTypeExplicit = widget.initialVehicleType.trim().isNotEmpty &&
         widget.initialVehicleType.trim().toUpperCase() != 'CAR';
     _recentFuture = _loadRecentEntries();
+    _plateController.addListener(_handlePlateChanged);
 
     if (widget.initialPlate.trim().isNotEmpty) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -58,10 +68,26 @@ class _EntryScreenState extends State<EntryScreen> {
 
   @override
   void dispose() {
+    _plateLookupDebounce?.cancel();
     _plateController.dispose();
     _ownerController.dispose();
     _phoneController.dispose();
     super.dispose();
+  }
+
+  void _handlePlateChanged() {
+    if (_syncingPlateText) return;
+
+    final plate = _plateController.text.trim().toUpperCase();
+    if (plate.length < 4 || plate == _lastLookupPlate) return;
+
+    _plateLookupDebounce?.cancel();
+    _plateLookupDebounce = Timer(const Duration(milliseconds: 420), () {
+      if (!mounted) return;
+      final latest = _plateController.text.trim().toUpperCase();
+      if (latest.length < 4 || latest == _lastLookupPlate) return;
+      _lookupVehicle(silent: true);
+    });
   }
 
   Future<List<VehicleRecord>> _loadRecentEntries() async {
@@ -87,7 +113,9 @@ class _EntryScreenState extends State<EntryScreen> {
     );
     if (result == null) return;
 
-    final plate = result['plate']?.toString() ?? result['confirmed_plate']?.toString() ?? '';
+    final plate = result['plate']?.toString() ??
+        result['confirmed_plate']?.toString() ??
+        '';
     if (plate.trim().isEmpty) return;
 
     setState(() {
@@ -102,13 +130,15 @@ class _EntryScreenState extends State<EntryScreen> {
 
     setState(() => _lookupBusy = true);
     try {
-      final vehicle = await context.read<SmartParkingApi>().vehicleByPlate(plate);
+      final vehicle =
+          await context.read<SmartParkingApi>().vehicleByPlate(plate);
       if (!mounted) return;
       if (vehicle == null) {
         if (!silent) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Vehicle not found yet. Fill the form and press ENTER to register it.'),
+              content: Text(
+                  'Vehicle not found yet. Fill the form and press ENTER to register it.'),
             ),
           );
         }
@@ -116,11 +146,16 @@ class _EntryScreenState extends State<EntryScreen> {
       }
 
       setState(() {
+        _syncingPlateText = true;
         _plateController.text = vehicle.plateNumber;
+        _plateController.selection =
+            TextSelection.collapsed(offset: _plateController.text.length);
         _vehicleType = vehicle.vehicleType;
         _vehicleTypeExplicit = true;
         _ownerController.text = vehicle.ownerName;
         _phoneController.text = vehicle.phoneNumber;
+        _lastLookupPlate = vehicle.plateNumber.toUpperCase();
+        _syncingPlateText = false;
       });
     } catch (e) {
       if (!mounted) return;
@@ -210,7 +245,8 @@ class _EntryScreenState extends State<EntryScreen> {
         child: FutureBuilder<List<VehicleRecord>>(
           future: _recentFuture,
           builder: (context, snapshot) {
-            final recent = (snapshot.data ?? const <VehicleRecord>[]).take(4).toList();
+            final recent =
+                (snapshot.data ?? const <VehicleRecord>[]).take(4).toList();
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -222,7 +258,7 @@ class _EntryScreenState extends State<EntryScreen> {
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
                       Padding(
-                        padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
                         child: _EntryHeader(user: user),
                       ),
                       const SizedBox(height: 18),
@@ -234,7 +270,10 @@ class _EntryScreenState extends State<EntryScreen> {
                           color: Colors.white,
                           borderColor: const Color(0xFFE5EBF5),
                           shadow: const [
-                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                            BoxShadow(
+                                color: Color(0x150B1630),
+                                blurRadius: 20,
+                                offset: Offset(0, 12)),
                           ],
                           child: Column(
                             children: [
@@ -247,7 +286,9 @@ class _EntryScreenState extends State<EntryScreen> {
                               const SizedBox(height: 12),
                               _SelectField(
                                 icon: Icons.directions_car_rounded,
-                                label: _vehicleTypeExplicit ? vehicleTypeLabel(_vehicleType) : '',
+                                label: _vehicleTypeExplicit
+                                    ? vehicleTypeLabel(_vehicleType)
+                                    : '',
                                 hint: 'Select vehicle type',
                                 onTap: _pickVehicleType,
                               ),
@@ -293,7 +334,10 @@ class _EntryScreenState extends State<EntryScreen> {
                                   value: dateLabel,
                                 ),
                               ),
-                              Container(width: 1, height: 68, color: const Color(0xFFDCE3F3)),
+                              Container(
+                                  width: 1,
+                                  height: 68,
+                                  color: const Color(0xFFDCE3F3)),
                               Expanded(
                                 child: _InfoCell(
                                   icon: Icons.schedule_rounded,
@@ -329,7 +373,10 @@ class _EntryScreenState extends State<EntryScreen> {
                           color: Colors.white,
                           borderColor: const Color(0xFFE5EBF5),
                           shadow: const [
-                            BoxShadow(color: Color(0x150B1630), blurRadius: 20, offset: Offset(0, 12)),
+                            BoxShadow(
+                                color: Color(0x150B1630),
+                                blurRadius: 20,
+                                offset: Offset(0, 12)),
                           ],
                           child: Column(
                             children: [
@@ -338,14 +385,21 @@ class _EntryScreenState extends State<EntryScreen> {
                                   padding: EdgeInsets.all(18),
                                   child: Text(
                                     'No recent entries yet.',
-                                    style: TextStyle(color: Color(0xFF64748B), fontWeight: FontWeight.w600),
+                                    style: TextStyle(
+                                        color: Color(0xFF64748B),
+                                        fontWeight: FontWeight.w600),
                                   ),
                                 )
                               else
-                                for (var index = 0; index < recent.length; index++) ...[
+                                for (var index = 0;
+                                    index < recent.length;
+                                    index++) ...[
                                   _RecentEntryRow(record: recent[index]),
                                   if (index != recent.length - 1)
-                                    const Divider(height: 1, thickness: 1, color: Color(0xFFE7EDF7)),
+                                    const Divider(
+                                        height: 1,
+                                        thickness: 1,
+                                        color: Color(0xFFE7EDF7)),
                                 ],
                             ],
                           ),
@@ -361,11 +415,16 @@ class _EntryScreenState extends State<EntryScreen> {
                             color: Colors.white,
                             borderColor: const Color(0xFFE5EBF5),
                             shadow: const [
-                              BoxShadow(color: Color(0x150B1630), blurRadius: 16, offset: Offset(0, 10)),
+                              BoxShadow(
+                                  color: Color(0x150B1630),
+                                  blurRadius: 16,
+                                  offset: Offset(0, 10)),
                             ],
                             child: Text(
-                              apiErrorMessage(snapshot.error, fallback: 'Unable to load recent entries.'),
-                              style: const TextStyle(color: Color(0xFF64748B), height: 1.4),
+                              apiErrorMessage(snapshot.error,
+                                  fallback: 'Unable to load recent entries.'),
+                              style: const TextStyle(
+                                  color: Color(0xFF64748B), height: 1.4),
                             ),
                           ),
                         ),
@@ -412,24 +471,22 @@ class _EntryHeader extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
-        final backSize = compact ? 60.0 : 72.0;
-        final titleSize = compact ? 22.0 : 26.0;
-        final avatarSize = compact ? 58.0 : 70.0;
-        final nameSize = compact ? 18.0 : 22.0;
-        final roleSize = compact ? 13.0 : 15.0;
+        final backSize = compact ? 52.0 : 60.0;
+        final titleSize = compact ? 20.0 : 24.0;
+        final avatarSize = compact ? 50.0 : 60.0;
+        final nameSize = compact ? 16.0 : 19.0;
+        final roleSize = compact ? 12.0 : 13.0;
 
         return Container(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 16),
+          padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
           decoration: BoxDecoration(
             gradient: const LinearGradient(
               colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
               begin: Alignment.centerLeft,
               end: Alignment.centerRight,
             ),
-            borderRadius: BorderRadius.circular(26),
-            boxShadow: const [
-              BoxShadow(color: Color(0x220B1630), blurRadius: 22, offset: Offset(0, 10)),
-            ],
+            borderRadius:
+                const BorderRadius.vertical(bottom: Radius.circular(24)),
           ),
           child: Row(
             children: [
@@ -443,7 +500,9 @@ class _EntryHeader extends StatelessWidget {
                     width: backSize,
                     height: backSize,
                     alignment: Alignment.center,
-                    child: Icon(Icons.arrow_back_rounded, color: const Color(0xFF2563EB), size: compact ? 30 : 34),
+                    child: Icon(Icons.arrow_back_rounded,
+                        color: const Color(0xFF2563EB),
+                        size: compact ? 26 : 30),
                   ),
                 ),
               ),
@@ -473,11 +532,13 @@ class _EntryHeader extends StatelessWidget {
                         shape: BoxShape.circle,
                         color: Colors.white.withOpacity(0.2),
                       ),
-                      child: const Icon(Icons.person, color: Colors.white, size: 40),
+                      child: const Icon(Icons.person,
+                          color: Colors.white, size: 40),
                     ),
                     SizedBox(width: compact ? 10 : 12),
                     ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: compact ? 130 : 220),
+                      constraints:
+                          BoxConstraints(maxWidth: compact ? 130 : 220),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisSize: MainAxisSize.min,
@@ -541,25 +602,9 @@ class _PlateField extends StatelessWidget {
         alignment: Alignment.center,
         child: const Text(
           'P',
-          style: TextStyle(color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900),
+          style: TextStyle(
+              color: Colors.white, fontSize: 28, fontWeight: FontWeight.w900),
         ),
-      ),
-      child: TextField(
-        controller: controller,
-        textCapitalization: TextCapitalization.characters,
-        style: const TextStyle(
-          color: Color(0xFF16233F),
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-          letterSpacing: 0.3,
-        ),
-        decoration: const InputDecoration(
-          border: InputBorder.none,
-          hintText: 'Enter plate number',
-          hintStyle: TextStyle(color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
-          contentPadding: EdgeInsets.zero,
-        ),
-        onSubmitted: (_) => onSearch(),
       ),
       suffix: Material(
         color: Colors.transparent,
@@ -573,9 +618,27 @@ class _PlateField extends StatelessWidget {
               color: const Color(0xFFEAF1FF),
               borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(Icons.qr_code_scanner_rounded, color: Color(0xFF2563EB), size: 26),
+            child: const Icon(Icons.qr_code_scanner_rounded,
+                color: Color(0xFF2563EB), size: 26),
           ),
         ),
+      ),
+      child: TextField(
+        controller: controller,
+        textCapitalization: TextCapitalization.characters,
+        style: const TextStyle(
+          color: Color(0xFF16233F),
+          fontSize: 18,
+          fontWeight: FontWeight.w700,
+        ),
+        decoration: const InputDecoration(
+          border: InputBorder.none,
+          hintText: 'Enter plate number',
+          hintStyle:
+              TextStyle(color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
+          contentPadding: EdgeInsets.zero,
+        ),
+        onSubmitted: (_) => onSearch(),
       ),
     );
   }
@@ -607,15 +670,17 @@ class _SelectField extends StatelessWidget {
         ),
         child: Icon(icon, color: const Color(0xFF2563EB), size: 28),
       ),
+      suffix: const Icon(Icons.keyboard_arrow_down_rounded,
+          color: Color(0xFF8A93A8), size: 30),
       child: Text(
         label.isEmpty ? hint : label,
         style: TextStyle(
-          color: label.isEmpty ? const Color(0xFF8A93A8) : const Color(0xFF16233F),
+          color:
+              label.isEmpty ? const Color(0xFF8A93A8) : const Color(0xFF16233F),
           fontSize: 18,
           fontWeight: FontWeight.w700,
         ),
       ),
-      suffix: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFF8A93A8), size: 30),
     );
   }
 }
@@ -659,7 +724,8 @@ class _TextFieldShell extends StatelessWidget {
         decoration: InputDecoration(
           border: InputBorder.none,
           hintText: hintText,
-          hintStyle: const TextStyle(color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
+          hintStyle: const TextStyle(
+              color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
           contentPadding: EdgeInsets.zero,
         ),
       ),
@@ -802,7 +868,8 @@ class _PrimaryButton extends StatelessWidget {
         ),
         borderRadius: BorderRadius.circular(18),
         boxShadow: const [
-          BoxShadow(color: Color(0x262D6CF6), blurRadius: 20, offset: Offset(0, 10)),
+          BoxShadow(
+              color: Color(0x262D6CF6), blurRadius: 20, offset: Offset(0, 10)),
         ],
       ),
       child: SizedBox(
@@ -812,7 +879,8 @@ class _PrimaryButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
           onPressed: enabled ? onPressed : null,
           child: AnimatedSwitcher(
@@ -822,7 +890,8 @@ class _PrimaryButton extends StatelessWidget {
                     key: ValueKey('busy'),
                     width: 22,
                     height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.5, color: Colors.white),
                   )
                 : Row(
                     key: ValueKey(label),
@@ -858,7 +927,8 @@ class _RecentEntryRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final created = record.createdAt;
-    final timeLabel = created == null ? '--:--' : DateFormat('hh:mm a').format(created);
+    final timeLabel =
+        created == null ? '--:--' : DateFormat('hh:mm a').format(created);
     final typeLabel = vehicleTypeLabel(record.vehicleType);
     final accent = _vehicleAccent(record.vehicleType);
 
@@ -873,7 +943,8 @@ class _RecentEntryRow extends StatelessWidget {
               shape: BoxShape.circle,
               color: accent.withOpacity(0.12),
             ),
-            child: Icon(_vehicleIcon(record.vehicleType), color: accent, size: 28),
+            child:
+                Icon(_vehicleIcon(record.vehicleType), color: accent, size: 28),
           ),
           const SizedBox(width: 14),
           Expanded(
@@ -943,7 +1014,8 @@ class _RecentEntryRow extends StatelessWidget {
             ),
           ),
           const SizedBox(width: 12),
-          const Icon(Icons.chevron_right_rounded, color: Color(0xFF97A2B8), size: 30),
+          const Icon(Icons.chevron_right_rounded,
+              color: Color(0xFF97A2B8), size: 30),
         ],
       ),
     );
@@ -1006,7 +1078,10 @@ class _VehicleTypePicker extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(24),
           boxShadow: const [
-            BoxShadow(color: Color(0x250B1630), blurRadius: 24, offset: Offset(0, 12)),
+            BoxShadow(
+                color: Color(0x250B1630),
+                blurRadius: 24,
+                offset: Offset(0, 12)),
           ],
         ),
         child: Column(
@@ -1029,21 +1104,27 @@ class _VehicleTypePicker extends StatelessWidget {
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: option.$1 == currentValue ? const Color(0xFFEAF1FF) : const Color(0xFFF5F7FD),
+                    color: option.$1 == currentValue
+                        ? const Color(0xFFEAF1FF)
+                        : const Color(0xFFF5F7FD),
                     borderRadius: BorderRadius.circular(14),
                   ),
-                  child: Icon(option.$3, color: const Color(0xFF2563EB), size: 22),
+                  child:
+                      Icon(option.$3, color: const Color(0xFF2563EB), size: 22),
                 ),
                 title: Text(
                   option.$2,
-                  style: const TextStyle(fontWeight: FontWeight.w700, color: Color(0xFF16233F)),
+                  style: const TextStyle(
+                      fontWeight: FontWeight.w700, color: Color(0xFF16233F)),
                 ),
                 trailing: option.$1 == currentValue
-                    ? const Icon(Icons.check_circle_rounded, color: Color(0xFF2563EB))
+                    ? const Icon(Icons.check_circle_rounded,
+                        color: Color(0xFF2563EB))
                     : null,
                 onTap: () => Navigator.of(context).pop(option.$1),
               ),
-              if (option != options.last) const Divider(height: 1, color: Color(0xFFE7EDF7)),
+              if (option != options.last)
+                const Divider(height: 1, color: Color(0xFFE7EDF7)),
             ],
           ],
         ),

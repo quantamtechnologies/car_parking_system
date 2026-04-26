@@ -1,4 +1,4 @@
-﻿import 'dart:math' as math;
+import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
@@ -41,7 +41,8 @@ class SurfaceCard extends StatelessWidget {
     this.gradient,
     this.borderColor = const Color(0xFF1F2D4D),
     this.shadow = const [
-      BoxShadow(color: Color(0x40050A15), blurRadius: 28, offset: Offset(0, 16)),
+      BoxShadow(
+          color: Color(0x40050A15), blurRadius: 28, offset: Offset(0, 16)),
     ],
     this.onTap,
   });
@@ -57,8 +58,9 @@ class SurfaceCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final effectivePadding =
-        _isCompactWidth(context) ? _compactInsets(context, padding) : padding.resolve(Directionality.of(context));
+    final effectivePadding = _isCompactWidth(context)
+        ? _compactInsets(context, padding)
+        : padding.resolve(Directionality.of(context));
     final decorated = Container(
       decoration: BoxDecoration(
         color: gradient == null ? color : null,
@@ -112,7 +114,10 @@ class GradientActionButton extends StatelessWidget {
           gradient: ParkingColors.primaryGradient,
           borderRadius: BorderRadius.circular(18),
           boxShadow: const [
-            BoxShadow(color: Color(0x264A35E8), blurRadius: 20, offset: Offset(0, 10)),
+            BoxShadow(
+                color: Color(0x264A35E8),
+                blurRadius: 20,
+                offset: Offset(0, 10)),
           ],
         ),
         child: ElevatedButton(
@@ -120,7 +125,8 @@ class GradientActionButton extends StatelessWidget {
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
             minimumSize: Size.fromHeight(minHeight),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
           ),
           onPressed: enabled ? onPressed : null,
           child: AnimatedSwitcher(
@@ -129,7 +135,8 @@ class GradientActionButton extends StatelessWidget {
                 ? const SizedBox(
                     width: 22,
                     height: 22,
-                    child: CircularProgressIndicator(strokeWidth: 2.4, color: Colors.white),
+                    child: CircularProgressIndicator(
+                        strokeWidth: 2.4, color: Colors.white),
                   )
                 : Row(
                     key: ValueKey(label),
@@ -140,7 +147,9 @@ class GradientActionButton extends StatelessWidget {
                         Icon(icon, size: 20),
                         const SizedBox(width: 10),
                       ],
-                      Text(label, style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+                      Text(label,
+                          style: const TextStyle(
+                              fontWeight: FontWeight.w700, fontSize: 15)),
                     ],
                   ),
           ),
@@ -179,10 +188,22 @@ class MetricCard extends StatelessWidget {
     return SurfaceCard(
       gradient: gradient,
       color: gradient == null ? const Color(0xFF101C38) : Colors.transparent,
-      borderColor: gradient == null ? const Color(0xFF1E2B4D) : Colors.white.withOpacity(0.08),
+      borderColor: gradient == null
+          ? const Color(0xFF1E2B4D)
+          : Colors.white.withOpacity(0.08),
       shadow: gradient == null
-          ? const [BoxShadow(color: Color(0x40050A15), blurRadius: 22, offset: Offset(0, 12))]
-          : const [BoxShadow(color: Color(0x300F1D3C), blurRadius: 26, offset: Offset(0, 16))],
+          ? const [
+              BoxShadow(
+                  color: Color(0x40050A15),
+                  blurRadius: 22,
+                  offset: Offset(0, 12))
+            ]
+          : const [
+              BoxShadow(
+                  color: Color(0x300F1D3C),
+                  blurRadius: 26,
+                  offset: Offset(0, 16))
+            ],
       padding: const EdgeInsets.all(16),
       child: ConstrainedBox(
         constraints: BoxConstraints(minHeight: compact ? 122 : 134),
@@ -196,12 +217,16 @@ class MetricCard extends StatelessWidget {
                     width: 42,
                     height: 42,
                     decoration: BoxDecoration(
-                      color: gradient == null ? const Color(0xFF1A294C) : Colors.white.withOpacity(0.16),
+                      color: gradient == null
+                          ? const Color(0xFF1A294C)
+                          : Colors.white.withOpacity(0.16),
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: Icon(
                       icon,
-                      color: gradient == null ? (iconColor ?? const Color(0xFF7FB2FF)) : Colors.white,
+                      color: gradient == null
+                          ? (iconColor ?? const Color(0xFF7FB2FF))
+                          : Colors.white,
                       size: 22,
                     ),
                   ),
@@ -217,7 +242,7 @@ class MetricCard extends StatelessWidget {
                     Icons.more_vert_rounded,
                     color: const Color(0xFFB7BDD1),
                     size: 20,
-                ),
+                  ),
               ],
             ),
             SizedBox(height: compact ? 14 : 18),
@@ -233,7 +258,9 @@ class MetricCard extends StatelessWidget {
             Text(
               value,
               style: TextStyle(
-                fontSize: compact ? (gradient == null ? 24 : 26) : (gradient == null ? 26 : 28),
+                fontSize: compact
+                    ? (gradient == null ? 24 : 26)
+                    : (gradient == null ? 26 : 28),
                 fontWeight: FontWeight.w900,
                 letterSpacing: -0.7,
                 color: foreground,
@@ -377,14 +404,22 @@ class _QuickActionCardState extends State<QuickActionCard> {
   @override
   Widget build(BuildContext context) {
     final compact = _isCompactWidth(context);
-    final background = _hovered ? const Color(0xFF132246) : const Color(0xFF101C38);
-    final borderColor = _hovered ? const Color(0xFF2A3C68) : const Color(0xFF1D2B4C);
+    final background =
+        _hovered ? const Color(0xFF132246) : const Color(0xFF101C38);
+    final borderColor =
+        _hovered ? const Color(0xFF2A3C68) : const Color(0xFF1D2B4C);
     final shadow = _hovered
         ? [
-            const BoxShadow(color: Color(0x300F1D3C), blurRadius: 22, offset: Offset(0, 12)),
+            const BoxShadow(
+                color: Color(0x300F1D3C),
+                blurRadius: 22,
+                offset: Offset(0, 12)),
           ]
         : [
-            const BoxShadow(color: Color(0x40050A15), blurRadius: 18, offset: Offset(0, 10)),
+            const BoxShadow(
+                color: Color(0x40050A15),
+                blurRadius: 18,
+                offset: Offset(0, 10)),
           ];
 
     return MouseRegion(
@@ -406,7 +441,8 @@ class _QuickActionCardState extends State<QuickActionCard> {
             borderRadius: BorderRadius.circular(compact ? 20 : 22),
             onTap: widget.onTap,
             child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: compact ? 12 : 14, vertical: compact ? 10 : 12),
+              padding: EdgeInsets.symmetric(
+                  horizontal: compact ? 12 : 14, vertical: compact ? 10 : 12),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.center,
@@ -418,7 +454,8 @@ class _QuickActionCardState extends State<QuickActionCard> {
                       color: widget.accentColor.withOpacity(0.14),
                       borderRadius: BorderRadius.circular(compact ? 13 : 14),
                     ),
-                    child: Icon(widget.icon, color: widget.accentColor, size: compact ? 20 : 22),
+                    child: Icon(widget.icon,
+                        color: widget.accentColor, size: compact ? 20 : 22),
                   ),
                   SizedBox(height: compact ? 8 : 10),
                   Text(
@@ -482,7 +519,8 @@ class CameraPreviewCard extends StatelessWidget {
       ),
       borderColor: Colors.white.withOpacity(0.06),
       shadow: const [
-        BoxShadow(color: Color(0x300B1630), blurRadius: 30, offset: Offset(0, 18)),
+        BoxShadow(
+            color: Color(0x300B1630), blurRadius: 30, offset: Offset(0, 18)),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -501,10 +539,14 @@ class CameraPreviewCard extends StatelessWidget {
                   ),
                   borderRadius: BorderRadius.circular(26),
                   boxShadow: const [
-                    BoxShadow(color: Color(0x264A35E8), blurRadius: 22, offset: Offset(0, 10)),
+                    BoxShadow(
+                        color: Color(0x264A35E8),
+                        blurRadius: 22,
+                        offset: Offset(0, 10)),
                   ],
                 ),
-                child: const Icon(Icons.photo_camera_rounded, color: Colors.white, size: 42),
+                child: const Icon(Icons.photo_camera_rounded,
+                    color: Colors.white, size: 42),
               ),
               const SizedBox(width: 16),
               Expanded(
@@ -545,12 +587,14 @@ class CameraPreviewCard extends StatelessWidget {
                     style: TextButton.styleFrom(
                       foregroundColor: Colors.white,
                       padding: const EdgeInsets.symmetric(horizontal: 18),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
+                      shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18)),
                     ),
                     icon: const Icon(Icons.swap_horiz_rounded, size: 24),
                     label: Text(
                       actionLabel,
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+                      style: const TextStyle(
+                          fontSize: 16, fontWeight: FontWeight.w700),
                     ),
                   ),
                 ),
@@ -568,7 +612,11 @@ class CameraPreviewCard extends StatelessWidget {
                   Container(
                     decoration: const BoxDecoration(
                       gradient: LinearGradient(
-                        colors: [Color(0xFF4D5E86), Color(0xFF24315A), Color(0xFF111C3D)],
+                        colors: [
+                          Color(0xFF4D5E86),
+                          Color(0xFF24315A),
+                          Color(0xFF111C3D)
+                        ],
                         begin: Alignment.topCenter,
                         end: Alignment.bottomCenter,
                       ),
@@ -613,13 +661,20 @@ class CameraPreviewCard extends StatelessWidget {
                       margin: const EdgeInsets.symmetric(horizontal: 24),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
-                          colors: [Color(0xFF1E52A2), Color(0xFF0F2B68), Color(0xFF0A1A3C)],
+                          colors: [
+                            Color(0xFF1E52A2),
+                            Color(0xFF0F2B68),
+                            Color(0xFF0A1A3C)
+                          ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
                         borderRadius: BorderRadius.circular(42),
                         boxShadow: const [
-                          BoxShadow(color: Color(0x3A000000), blurRadius: 20, offset: Offset(0, 10)),
+                          BoxShadow(
+                              color: Color(0x3A000000),
+                              blurRadius: 20,
+                              offset: Offset(0, 10)),
                         ],
                       ),
                       child: Stack(
@@ -633,7 +688,10 @@ class CameraPreviewCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                 borderRadius: BorderRadius.circular(30),
                                 gradient: const LinearGradient(
-                                  colors: [Color(0xFF214F9F), Color(0xFF132E65)],
+                                  colors: [
+                                    Color(0xFF214F9F),
+                                    Color(0xFF132E65)
+                                  ],
                                   begin: Alignment.topCenter,
                                   end: Alignment.bottomCenter,
                                 ),
@@ -649,7 +707,8 @@ class CameraPreviewCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF0E1B39),
                                 borderRadius: BorderRadius.circular(20),
-                                border: Border.all(color: Colors.white.withOpacity(0.1)),
+                                border: Border.all(
+                                    color: Colors.white.withOpacity(0.1)),
                               ),
                               child: Row(
                                 children: [
@@ -687,7 +746,8 @@ class CameraPreviewCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: const Color(0xFF21335A),
                                 borderRadius: BorderRadius.circular(30),
-                                border: Border.all(color: Colors.white.withOpacity(0.12)),
+                                border: Border.all(
+                                    color: Colors.white.withOpacity(0.12)),
                               ),
                             ),
                           ),
@@ -700,9 +760,13 @@ class CameraPreviewCard extends StatelessWidget {
                               decoration: BoxDecoration(
                                 color: const Color(0xFFF6F3E7),
                                 borderRadius: BorderRadius.circular(10),
-                                border: Border.all(color: const Color(0xFF9E9A8C), width: 3),
+                                border: Border.all(
+                                    color: const Color(0xFF9E9A8C), width: 3),
                                 boxShadow: const [
-                                  BoxShadow(color: Color(0x26000000), blurRadius: 12, offset: Offset(0, 6)),
+                                  BoxShadow(
+                                      color: Color(0x26000000),
+                                      blurRadius: 12,
+                                      offset: Offset(0, 6)),
                                 ],
                               ),
                               child: const Center(
@@ -777,11 +841,15 @@ class CameraPreviewCard extends StatelessWidget {
                   gradient: ParkingColors.primaryGradient,
                   border: Border.all(color: Colors.white, width: 6),
                   boxShadow: const [
-                    BoxShadow(color: Color(0x384A35E8), blurRadius: 18, offset: Offset(0, 10)),
+                    BoxShadow(
+                        color: Color(0x384A35E8),
+                        blurRadius: 18,
+                        offset: Offset(0, 10)),
                   ],
                 ),
                 child: const Center(
-                  child: Icon(Icons.photo_camera_rounded, color: Colors.white, size: 38),
+                  child: Icon(Icons.photo_camera_rounded,
+                      color: Colors.white, size: 38),
                 ),
               ),
               const Spacer(),
@@ -813,9 +881,11 @@ class _CameraCorner extends StatelessWidget {
       height: 28,
       decoration: BoxDecoration(
         border: Border(
-          left: BorderSide(color: Colors.white.withOpacity(0.95), width: isLeft ? 5 : 0),
+          left: BorderSide(
+              color: Colors.white.withOpacity(0.95), width: isLeft ? 5 : 0),
           top: BorderSide(color: Colors.white.withOpacity(0.95), width: 5),
-          right: BorderSide(color: Colors.white.withOpacity(0.95), width: isLeft ? 0 : 5),
+          right: BorderSide(
+              color: Colors.white.withOpacity(0.95), width: isLeft ? 0 : 5),
           bottom: BorderSide(color: Colors.white.withOpacity(0.95), width: 5),
         ),
         borderRadius: BorderRadius.only(
@@ -852,7 +922,9 @@ class _CameraControlButton extends StatelessWidget {
           height: 52,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color: filled ? Colors.white.withOpacity(0.18) : Colors.white.withOpacity(0.14),
+            color: filled
+                ? Colors.white.withOpacity(0.18)
+                : Colors.white.withOpacity(0.14),
           ),
           child: Icon(icon, color: Colors.white, size: 28),
         ),
@@ -905,10 +977,14 @@ class _VehicleRowCardState extends State<VehicleRowCard> {
             : Colors.white;
     final shadow = elevated
         ? [
-            const BoxShadow(color: Color(0x1A4A35E8), blurRadius: 22, offset: Offset(0, 12)),
+            const BoxShadow(
+                color: Color(0x1A4A35E8),
+                blurRadius: 22,
+                offset: Offset(0, 12)),
           ]
         : [
-            const BoxShadow(color: Color(0x0D0B1630), blurRadius: 16, offset: Offset(0, 8)),
+            const BoxShadow(
+                color: Color(0x0D0B1630), blurRadius: 16, offset: Offset(0, 8)),
           ];
 
     return MouseRegion(
@@ -943,11 +1019,14 @@ class _VehicleRowCardState extends State<VehicleRowCard> {
                           widget.vehicleType,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w800),
+                          style: const TextStyle(
+                              fontSize: 17, fontWeight: FontWeight.w800),
                         ),
                         const SizedBox(height: 8),
                         if (widget.statusLabel != null)
-                          StatusBadge(label: widget.statusLabel!, color: widget.statusColor),
+                          StatusBadge(
+                              label: widget.statusLabel!,
+                              color: widget.statusColor),
                       ],
                     ),
                   ),
@@ -962,14 +1041,16 @@ class _VehicleRowCardState extends State<VehicleRowCard> {
                           widget.ownerName,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 14.5, fontWeight: FontWeight.w700),
+                          style: const TextStyle(
+                              fontSize: 14.5, fontWeight: FontWeight.w700),
                         ),
                         const SizedBox(height: 4),
                         Text(
                           widget.phoneNumber,
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(fontSize: 12.5, color: Color(0xFF667085)),
+                          style: const TextStyle(
+                              fontSize: 12.5, color: Color(0xFF667085)),
                         ),
                       ],
                     ),
@@ -996,7 +1077,9 @@ class _VehicleRowCardState extends State<VehicleRowCard> {
                           'Plate number',
                           style: TextStyle(
                             fontSize: 11.5,
-                            color: widget.selected ? const Color(0xFF4A35E8) : const Color(0xFF667085),
+                            color: widget.selected
+                                ? const Color(0xFF4A35E8)
+                                : const Color(0xFF667085),
                             fontWeight: FontWeight.w700,
                           ),
                         ),
@@ -1054,7 +1137,8 @@ class ReceiptCard extends StatelessWidget {
                   color: const Color(0xFFF0F4FF),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.receipt_long_rounded, color: Color(0xFF4A35E8), size: 22),
+                child: const Icon(Icons.receipt_long_rounded,
+                    color: Color(0xFF4A35E8), size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1063,12 +1147,18 @@ class ReceiptCard extends StatelessWidget {
                   children: [
                     Text(
                       'Receipt preview',
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w800),
+                      style: Theme.of(context)
+                          .textTheme
+                          .titleMedium
+                          ?.copyWith(fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
                       'Calculated automatically from the selected parking session.',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: const Color(0xFF667085)),
+                      style: Theme.of(context)
+                          .textTheme
+                          .bodySmall
+                          ?.copyWith(color: const Color(0xFF667085)),
                     ),
                   ],
                 ),
@@ -1171,7 +1261,8 @@ class PaymentStatusCard extends StatelessWidget {
       color: const Color(0xFF101C38),
       borderColor: const Color(0xFF1E2B4D),
       shadow: const [
-        BoxShadow(color: Color(0x40050A15), blurRadius: 22, offset: Offset(0, 12)),
+        BoxShadow(
+            color: Color(0x40050A15), blurRadius: 22, offset: Offset(0, 12)),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1185,7 +1276,10 @@ class PaymentStatusCard extends StatelessWidget {
                   color: color.withOpacity(0.14),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: Icon(paid ? Icons.verified_rounded : Icons.pending_rounded, color: color, size: 22),
+                child: Icon(
+                    paid ? Icons.verified_rounded : Icons.pending_rounded,
+                    color: color,
+                    size: 22),
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -1194,12 +1288,20 @@ class PaymentStatusCard extends StatelessWidget {
                   children: [
                     Text(
                       'Payment status',
-                      style: const TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                      style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800),
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      receiptNumber == null ? 'Waiting for confirmation' : 'Receipt $receiptNumber',
-                      style: const TextStyle(color: Color(0xFF9EABC9), fontSize: 12.5, height: 1.35),
+                      receiptNumber == null
+                          ? 'Waiting for confirmation'
+                          : 'Receipt $receiptNumber',
+                      style: const TextStyle(
+                          color: Color(0xFF9EABC9),
+                          fontSize: 12.5,
+                          height: 1.35),
                     ),
                   ],
                 ),
@@ -1272,12 +1374,14 @@ class MiniBarChart extends StatelessWidget {
       return Center(
         child: Text(
           emptyLabel,
-          style: const TextStyle(color: Color(0xFF9EABC9), fontWeight: FontWeight.w600),
+          style: const TextStyle(
+              color: Color(0xFF9EABC9), fontWeight: FontWeight.w600),
         ),
       );
     }
 
-    final maxValue = points.fold<double>(0, (max, point) => math.max(max, point.value));
+    final maxValue =
+        points.fold<double>(0, (max, point) => math.max(max, point.value));
     final max = _niceChartMax(maxValue);
     final axisValues = <double>[
       max,
@@ -1346,36 +1450,49 @@ class MiniBarChart extends StatelessWidget {
                           for (final point in points)
                             Expanded(
                               child: Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 5),
+                                padding:
+                                    const EdgeInsets.symmetric(horizontal: 5),
                                 child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                                  crossAxisAlignment:
+                                      CrossAxisAlignment.stretch,
                                   children: [
                                     Expanded(
                                       child: LayoutBuilder(
                                         builder: (context, tileConstraints) {
-                                          final availableHeight = tileConstraints.maxHeight.isFinite
-                                              ? tileConstraints.maxHeight
-                                              : 150.0;
-                                          final barHeight = ((availableHeight - 34) * (point.value / max))
+                                          final availableHeight =
+                                              tileConstraints.maxHeight.isFinite
+                                                  ? tileConstraints.maxHeight
+                                                  : 150.0;
+                                          final barHeight = ((availableHeight -
+                                                      34) *
+                                                  (point.value / max))
                                               .clamp(12.0, availableHeight - 34)
                                               .toDouble();
 
                                           return Padding(
-                                            padding: const EdgeInsets.only(bottom: 28),
+                                            padding: const EdgeInsets.only(
+                                                bottom: 28),
                                             child: Align(
                                               alignment: Alignment.bottomCenter,
                                               child: AnimatedContainer(
-                                                duration: const Duration(milliseconds: 260),
+                                                duration: const Duration(
+                                                    milliseconds: 260),
                                                 curve: Curves.easeOutCubic,
                                                 width: double.infinity,
                                                 height: barHeight,
                                                 decoration: BoxDecoration(
                                                   gradient: LinearGradient(
-                                                    colors: [barColor, accentColor],
-                                                    begin: Alignment.bottomCenter,
+                                                    colors: [
+                                                      barColor,
+                                                      accentColor
+                                                    ],
+                                                    begin:
+                                                        Alignment.bottomCenter,
                                                     end: Alignment.topCenter,
                                                   ),
-                                                  borderRadius: const BorderRadius.vertical(
+                                                  borderRadius:
+                                                      const BorderRadius
+                                                          .vertical(
                                                     top: Radius.circular(14),
                                                   ),
                                                   boxShadow: const [
@@ -1570,7 +1687,8 @@ class ParkingStatusBar extends StatelessWidget {
         Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.signal_cellular_alt_rounded, color: foreground, size: 24),
+            Icon(Icons.signal_cellular_alt_rounded,
+                color: foreground, size: 24),
             const SizedBox(width: 6),
             Icon(Icons.wifi_rounded, color: foreground, size: 24),
             const SizedBox(width: 6),
@@ -1678,7 +1796,8 @@ class ParkingUserChip extends StatelessWidget {
     final textColor = dark ? Colors.white : ParkingColors.ink;
     final roleColor = dark ? const Color(0xFFB1BED9) : const Color(0xFF6D3EF7);
     final background = dark ? const Color(0xFF0F1B3A) : Colors.white;
-    final borderColor = dark ? const Color(0xFF1E2B4D) : const Color(0xFFE8EDF7);
+    final borderColor =
+        dark ? const Color(0xFF1E2B4D) : const Color(0xFFE8EDF7);
     final avatarSize = compact ? 42.0 : 54.0;
     final nameSize = compact ? 15.0 : 18.0;
     final roleSize = compact ? 12.0 : 13.0;
@@ -1703,9 +1822,13 @@ class ParkingUserChip extends StatelessWidget {
                 height: avatarSize,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: dark ? Colors.white.withOpacity(0.12) : const Color(0xFFEAF0FF),
+                  color: dark
+                      ? Colors.white.withOpacity(0.12)
+                      : const Color(0xFFEAF0FF),
                 ),
-                child: Icon(Icons.person_rounded, color: dark ? Colors.white : ParkingColors.primary, size: compact ? 24 : 30),
+                child: Icon(Icons.person_rounded,
+                    color: dark ? Colors.white : ParkingColors.primary,
+                    size: compact ? 24 : 30),
               ),
               const SizedBox(width: 12),
               Flexible(
@@ -1738,7 +1861,8 @@ class ParkingUserChip extends StatelessWidget {
                 ),
               ),
               const SizedBox(width: 12),
-              Icon(Icons.keyboard_arrow_down_rounded, color: textColor, size: compact ? 24 : 30),
+              Icon(Icons.keyboard_arrow_down_rounded,
+                  color: textColor, size: compact ? 24 : 30),
             ],
           ),
         ),
@@ -1800,17 +1924,23 @@ class ParkingScreenHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final titleFg = titleColor ?? (dark ? Colors.white : ParkingColors.ink);
-    final subtitleFg = subtitleColor ?? (dark ? Colors.white.withOpacity(0.80) : const Color(0xFF667085));
-    final leadBg = leadingBackground ?? (dark ? const Color(0xFF142348) : const Color(0xFFEAF0FF));
-    final leadFg = leadingIconColor ?? (dark ? Colors.white : ParkingColors.primary);
-    final trailBg = trailingBackground ?? (dark ? const Color(0xFF142348) : const Color(0xFFEAF0FF));
-    final trailFg = trailingIconColor ?? (dark ? Colors.white : ParkingColors.primary);
+    final subtitleFg = subtitleColor ??
+        (dark ? Colors.white.withOpacity(0.80) : const Color(0xFF667085));
+    final leadBg = leadingBackground ??
+        (dark ? const Color(0xFF142348) : const Color(0xFFEAF0FF));
+    final leadFg =
+        leadingIconColor ?? (dark ? Colors.white : ParkingColors.primary);
+    final trailBg = trailingBackground ??
+        (dark ? const Color(0xFF142348) : const Color(0xFFEAF0FF));
+    final trailFg =
+        trailingIconColor ?? (dark ? Colors.white : ParkingColors.primary);
 
     return Container(
       decoration: BoxDecoration(
         color: backgroundColor,
         gradient: backgroundGradient,
-        borderRadius: BorderRadius.vertical(bottom: Radius.circular(bottomRadius)),
+        borderRadius:
+            BorderRadius.vertical(bottom: Radius.circular(bottomRadius)),
       ),
       child: SafeArea(
         bottom: false,
@@ -1821,14 +1951,16 @@ class ParkingScreenHeader extends StatelessWidget {
             final effectivePadding = narrow
                 ? _compactInsets(
                     context,
-                    EdgeInsets.fromLTRB(resolved.left, resolved.top, resolved.right, resolved.bottom),
+                    EdgeInsets.fromLTRB(resolved.left, resolved.top,
+                        resolved.right, resolved.bottom),
                     scale: 0.76,
                     minValue: 8,
                   )
                 : resolved;
             final compact = narrow;
             final effectiveTitleSize = compact ? titleSize * 0.9 : titleSize;
-            final effectiveSubtitleSize = compact ? subtitleSize * 0.9 : subtitleSize;
+            final effectiveSubtitleSize =
+                compact ? subtitleSize * 0.9 : subtitleSize;
             final topRow = Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1894,7 +2026,8 @@ class ParkingScreenHeader extends StatelessWidget {
                     Align(
                       alignment: Alignment.centerRight,
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: narrow ? constraints.maxWidth : 336),
+                        constraints: BoxConstraints(
+                            maxWidth: narrow ? constraints.maxWidth : 336),
                         child: ParkingUserChip(
                           name: user!.displayName,
                           role: user!.displayRole,
@@ -1941,18 +2074,20 @@ class ParkingBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final compact = MediaQuery.sizeOf(context).width < _compactWidthBreakpoint;
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: EdgeInsets.fromLTRB(compact ? 12 : 18, 0, compact ? 12 : 18, compact ? 12 : 16),
-        child: SurfaceCard(
-          radius: compact ? 26 : 30,
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
-          color: Colors.white,
-          borderColor: const Color(0xFFE5EBF5),
-          shadow: const [
-            BoxShadow(color: Color(0x180B1630), blurRadius: 24, offset: Offset(0, 12)),
-          ],
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(top: BorderSide(color: Color(0xFFE5EBF5))),
+        boxShadow: [
+          BoxShadow(
+              color: Color(0x120B1630), blurRadius: 14, offset: Offset(0, -2)),
+        ],
+      ),
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(
+              compact ? 8 : 14, 4, compact ? 8 : 14, compact ? 6 : 8),
           child: Row(
             children: [
               for (var index = 0; index < items.length; index++)
@@ -1984,7 +2119,8 @@ class _ParkingBottomNavItemTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = selected ? const Color(0xFF2563EB) : const Color(0xFF8B96AD);
+    final foreground =
+        selected ? const Color(0xFF2563EB) : const Color(0xFF8B96AD);
     final compact = MediaQuery.sizeOf(context).width < _compactWidthBreakpoint;
     return Material(
       color: Colors.transparent,
@@ -1994,12 +2130,17 @@ class _ParkingBottomNavItemTile extends StatelessWidget {
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 180),
           curve: Curves.easeOutCubic,
-          margin: EdgeInsets.symmetric(horizontal: compact ? 2 : 4, vertical: 2),
+          margin:
+              EdgeInsets.symmetric(horizontal: compact ? 2 : 4, vertical: 2),
           padding: EdgeInsets.symmetric(vertical: compact ? 8 : 10),
+          decoration: BoxDecoration(
+            color: selected ? const Color(0xFFE9F1FF) : Colors.transparent,
+            borderRadius: BorderRadius.circular(compact ? 16 : 18),
+          ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(item.icon, color: foreground, size: compact ? 24 : 26),
+              Icon(item.icon, color: foreground, size: compact ? 23 : 25),
               SizedBox(height: compact ? 5 : 6),
               Text(
                 item.label,
@@ -2013,10 +2154,12 @@ class _ParkingBottomNavItemTile extends StatelessWidget {
               AnimatedContainer(
                 duration: const Duration(milliseconds: 180),
                 curve: Curves.easeOutCubic,
-                width: selected ? (compact ? 28 : 34) : (compact ? 10 : 12),
-                height: 4,
+                width: selected ? (compact ? 34 : 42) : 12,
+                height: selected ? 5 : 4,
                 decoration: BoxDecoration(
-                  color: selected ? const Color(0xFF2563EB) : Colors.transparent,
+                  color: selected
+                      ? const Color(0xFF2563EB)
+                      : const Color(0x00000000),
                   borderRadius: BorderRadius.circular(999),
                 ),
               ),
@@ -2027,4 +2170,3 @@ class _ParkingBottomNavItemTile extends StatelessWidget {
     );
   }
 }
-
