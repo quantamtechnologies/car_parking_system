@@ -4,13 +4,17 @@ from django.test import Client, TestCase
 
 class CorsConfigurationTests(TestCase):
     def test_netlify_origin_is_whitelisted(self):
-        origin = "https://smart-car-packing-systems.netlify.app"
+        origins = {
+            "https://smart-car-packing-systems.netlify.app",
+            "https://imaginative-sherbet-d3e249.netlify.app",
+        }
 
-        self.assertIn(origin, settings.CORS_ALLOWED_ORIGINS)
-        self.assertIn(origin, settings.CSRF_TRUSTED_ORIGINS)
+        for origin in origins:
+            self.assertIn(origin, settings.CORS_ALLOWED_ORIGINS)
+            self.assertIn(origin, settings.CSRF_TRUSTED_ORIGINS)
 
     def test_login_preflight_includes_cors_headers(self):
-        origin = "https://smart-car-packing-systems.netlify.app"
+        origin = "https://imaginative-sherbet-d3e249.netlify.app"
         client = Client(HTTP_ORIGIN=origin)
 
         response = client.options(

@@ -79,6 +79,7 @@ If `API_BASE_URL` is missing in a release build, the app shows a deployment warn
 - Use HTTPS everywhere
 - Keep `SECRET_KEY` and `DATABASE_URL` out of source control
 - Railway's public domain is included automatically when present; add any custom frontend origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS`
+- You can also set `NETLIFY_FRONTEND_ORIGINS` to a comma-separated list when the frontend is served from multiple Netlify domains
 - `collectstatic` runs at container startup so Railway serves the admin and API static assets from the live runtime container
 - Railway uses the root Dockerfile automatically, which avoids the Railpack secret-resolution issue seen in the build logs
 - Netlify uses the root `netlify.toml` plus `frontend/scripts/netlify-build.sh` to install Flutter stable during the build

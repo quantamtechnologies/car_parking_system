@@ -39,6 +39,7 @@ Required:
 - `DJANGO_TIME_ZONE`
 - `CORS_ALLOWED_ORIGINS`
 - `CSRF_TRUSTED_ORIGINS`
+- `NETLIFY_FRONTEND_ORIGINS`
 - `AUTO_CREATE_DEFAULT_SUPERUSER=True`
 - `DEFAULT_SUPERUSER_USERNAME=admin`
 - `DEFAULT_SUPERUSER_PASSWORD=admin12345`
@@ -67,6 +68,7 @@ If the username already exists, pass `--force` to reset that account.
 Railway-specific note:
 
 - Railway injects `RAILWAY_PUBLIC_DOMAIN` for each service, and the backend automatically adds that host and origin when it is present.
+- `NETLIFY_FRONTEND_ORIGINS` accepts a comma-separated list of frontend origins, which is useful for Netlify preview URLs, renamed sites, or custom domains.
 - Railway healthchecks originate from `healthcheck.railway.app`, and the backend allows that host automatically so deploys can pass the readiness check.
 - The Railway pre-deploy hook uses a retrying `deploy_migrate` command so transient PostgreSQL DNS startup delays do not fail the release on the first connection attempt.
 - The `/health/` and `/api/health/` endpoints are exempt from SSL redirects so Railway can still get a `200` even if `SECURE_SSL_REDIRECT=True`.
@@ -75,6 +77,7 @@ Railway-specific note:
 - Railway will prefer the root Dockerfile automatically, which bypasses the Railpack build path that was failing with the secret-resolution error.
 - The app attempts to create the default admin during WSGI/ASGI startup, but it only does so once and skips cleanly if the account already exists.
 - If your frontend stays on Netlify or another host, add that production origin to `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` too.
+- For the current Netlify deploy in this repo, add `https://imaginative-sherbet-d3e249.netlify.app` to Railway if that is the site serving the app.
 
 Optional object storage:
 
@@ -111,6 +114,7 @@ If you deploy through Netlify, set `API_BASE_URL` as a site environment variable
 - Environment variable: `API_BASE_URL=https://smart-parking-backend-production-18b7.up.railway.app/api`
 
 If you use a custom Netlify domain, add that domain to the backend `CORS_ALLOWED_ORIGINS` and `CSRF_TRUSTED_ORIGINS` Railway variables before you deploy.
+If you want the backend to trust several Netlify domains at once, set `NETLIFY_FRONTEND_ORIGINS` to a comma-separated list and redeploy the Railway service.
 
 SPA fallback:
 
