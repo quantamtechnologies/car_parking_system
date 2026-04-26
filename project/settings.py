@@ -19,7 +19,13 @@ env = environ.Env(
     CORS_ALLOWED_ORIGINS=(list, []),
     CSRF_TRUSTED_ORIGINS=(list, []),
     NETLIFY_FRONTEND_ORIGIN=(str, "https://smart-car-packing-systems.netlify.app"),
-    NETLIFY_FRONTEND_ORIGINS=(list, []),
+    NETLIFY_FRONTEND_ORIGINS=(
+        list,
+        [
+            "https://smart-car-packing-systems.netlify.app",
+            "https://imaginative-sherbet-d3e249.netlify.app",
+        ],
+    ),
     RAILWAY_PUBLIC_DOMAIN=(str, ""),
     RAILWAY_PRIVATE_DOMAIN=(str, ""),
     AUTO_CREATE_DEFAULT_SUPERUSER=(bool, True),
@@ -73,7 +79,13 @@ def _merge_unique(*groups: list[str]) -> list[str]:
 
 
 NETLIFY_FRONTEND_ORIGINS = _merge_unique(
-    env.list("NETLIFY_FRONTEND_ORIGINS", default=[]),
+    env.list(
+        "NETLIFY_FRONTEND_ORIGINS",
+        default=[
+            "https://smart-car-packing-systems.netlify.app",
+            "https://imaginative-sherbet-d3e249.netlify.app",
+        ],
+    ),
     [NETLIFY_FRONTEND_ORIGIN] if NETLIFY_FRONTEND_ORIGIN else [],
 )
 
