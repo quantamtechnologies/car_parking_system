@@ -1,7 +1,8 @@
 import 'dart:html' as html;
 
 Future<bool> printHtmlDocument(String htmlDocument) async {
-  final printWindow = html.window.open('', '_blank', 'noopener,noreferrer');
+  final printWindow =
+      html.window.open('', '_blank', 'noopener,noreferrer') as html.Window?;
   if (printWindow == null) {
     return false;
   }
