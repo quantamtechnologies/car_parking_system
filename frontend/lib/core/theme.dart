@@ -83,6 +83,42 @@ ThemeData parkingTheme() {
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
       shadowColor: const Color(0x14000000),
     ),
+    elevatedButtonTheme: ElevatedButtonThemeData(
+      style: ElevatedButton.styleFrom(
+        foregroundColor: Colors.white,
+        disabledForegroundColor: Colors.white.withOpacity(0.72),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        foregroundColor: Colors.white,
+        disabledForegroundColor: Colors.white.withOpacity(0.72),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        foregroundColor: primary,
+        disabledForegroundColor: const Color(0xFF94A3B8),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
+    textButtonTheme: TextButtonThemeData(
+      style: TextButton.styleFrom(
+        foregroundColor: primary,
+        disabledForegroundColor: const Color(0xFF94A3B8),
+        textStyle: const TextStyle(
+          fontWeight: FontWeight.w700,
+        ),
+      ),
+    ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
       fillColor: Colors.white,

@@ -124,6 +124,8 @@ class GradientActionButton extends StatelessWidget {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.transparent,
             shadowColor: Colors.transparent,
+            foregroundColor: Colors.white,
+            disabledForegroundColor: Colors.white.withOpacity(0.72),
             minimumSize: Size.fromHeight(minHeight),
             shape:
                 RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),

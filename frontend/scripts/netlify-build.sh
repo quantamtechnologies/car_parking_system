@@ -25,6 +25,6 @@ flutter --version
 flutter config --enable-web
 flutter clean
 flutter pub get
-build_args=(build web --release --pwa-strategy=none)
+build_args=(build web --release --pwa-strategy=none --no-tree-shake-icons)
 build_args+=("--dart-define=API_BASE_URL=$API_BASE_URL")
 flutter "${build_args[@]}"
