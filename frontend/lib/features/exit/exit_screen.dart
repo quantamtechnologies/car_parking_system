@@ -97,11 +97,12 @@ class _ExitScreenState extends State<ExitScreen> {
         title: 'Exit Scanner',
         initialPlate: _plateController.text,
       );
-      if (plate.trim().isEmpty) return;
+      final normalizedPlate = plate?.trim() ?? '';
+      if (normalizedPlate.isEmpty) return;
 
       setState(() {
         _syncingPlateText = true;
-        _plateController.text = plate.trim().toUpperCase();
+        _plateController.text = normalizedPlate.toUpperCase();
         _plateController.selection =
             TextSelection.collapsed(offset: _plateController.text.length);
         _scanId = null;

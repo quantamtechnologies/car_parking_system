@@ -108,10 +108,11 @@ class _EntryScreenState extends State<EntryScreen> {
       title: 'Entry Scanner',
       initialPlate: _plateController.text,
     );
-    if (plate.trim().isEmpty) return;
+    final normalizedPlate = plate?.trim() ?? '';
+    if (normalizedPlate.isEmpty) return;
 
     setState(() {
-      _plateController.text = plate.trim().toUpperCase();
+      _plateController.text = normalizedPlate.toUpperCase();
       _plateController.selection =
           TextSelection.collapsed(offset: _plateController.text.length);
     });
