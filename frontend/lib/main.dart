@@ -19,13 +19,15 @@ Future<void> main() async {
 
   final storage = AuthStorage();
   final apiClient = SmartParkingApi(storage: storage);
-  final offlineQueue = OfflineQueueService(storage: await OfflineQueueStorage.create());
+  final offlineQueue =
+      OfflineQueueService(storage: await OfflineQueueStorage.create());
   final authController = AuthController(
     apiClient: apiClient,
     storage: storage,
     offlineQueue: offlineQueue,
   );
-  apiClient.setSessionExpiredHandler(() => authController.logout(localOnly: true));
+  apiClient
+      .setSessionExpiredHandler(() => authController.logout(localOnly: true));
   await authController.bootstrap();
 
   runApp(
@@ -50,7 +52,7 @@ class _MissingApiBaseUrlApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Smart Parking POS',
       home: Scaffold(
-        backgroundColor: const Color(0xFFF4F8FF),
+        backgroundColor: Colors.white,
         body: Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -59,7 +61,8 @@ class _MissingApiBaseUrlApp extends StatelessWidget {
               child: const Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(Icons.link_off_rounded, size: 56, color: Color(0xFF0F4CFF)),
+                  Icon(Icons.link_off_rounded,
+                      size: 56, color: Color(0xFF0F4CFF)),
                   SizedBox(height: 16),
                   Text(
                     'API_BASE_URL is missing',

@@ -31,7 +31,7 @@ class _EntryScreenState extends State<EntryScreen> {
   late final TextEditingController _ownerController;
   late final TextEditingController _phoneController;
   String? _vehicleType;
-  late Future<List<VehicleRecord>> _recentFuture;
+  late Future<List<ParkingSessionSummary>> _recentFuture;
   VehicleRecord? _matchedVehicle;
   int _lookupToken = 0;
   String _lastLookupPlate = '';
@@ -88,15 +88,12 @@ class _EntryScreenState extends State<EntryScreen> {
     unawaited(_lookupVehicle(silent: true));
   }
 
-  Future<List<VehicleRecord>> _loadRecentEntries() async {
+  Future<List<ParkingSessionSummary>> _loadRecentEntries() async {
     final api = context.read<SmartParkingApi>();
-    final vehicles = await api.vehicles();
-    final sorted = vehicles.toList()
-      ..sort(
-        (a, b) => (b.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0))
-            .compareTo(a.createdAt ?? DateTime.fromMillisecondsSinceEpoch(0)),
-      );
-    return sorted;
+    final sessions = await api.sessions(pageSize: 24, ordering: '-entry_time');
+    return sessions
+        .where((session) => session.status.toUpperCase() == 'ACTIVE')
+        .toList();
   }
 
   Future<void> _refreshRecent() async {
@@ -317,22 +314,22 @@ class _EntryScreenState extends State<EntryScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthController>().user;
     final now = DateTime.now();
     final dateLabel = DateFormat('d MMM y').format(now);
     final timeLabel = DateFormat('hh:mm a').format(now);
     final existingVehicle = _matchedVehicle != null;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FF),
+      backgroundColor: Colors.white,
       body: RefreshIndicator(
         color: ParkingColors.primary,
         onRefresh: _refreshRecent,
-        child: FutureBuilder<List<VehicleRecord>>(
+        child: FutureBuilder<List<ParkingSessionSummary>>(
           future: _recentFuture,
           builder: (context, snapshot) {
-            final recent =
-                (snapshot.data ?? const <VehicleRecord>[]).take(4).toList();
+            final recent = (snapshot.data ?? const <ParkingSessionSummary>[])
+                .take(4)
+                .toList();
 
             return SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
@@ -345,7 +342,7 @@ class _EntryScreenState extends State<EntryScreen> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                        child: _EntryHeader(user: user),
+                        child: const _EntryHeader(),
                       ),
                       const SizedBox(height: 18),
                       Padding(
@@ -485,7 +482,15 @@ class _EntryScreenState extends State<EntryScreen> {
                                 for (var index = 0;
                                     index < recent.length;
                                     index++) ...[
-                                  _RecentEntryRow(record: recent[index]),
+                                  _RecentEntryRow(
+                                    record: recent[index],
+                                    onTap: () => context.push(
+                                      '/transactions/details',
+                                      extra: TransactionRecord(
+                                        session: recent[index],
+                                      ),
+                                    ),
+                                  ),
                                   if (index != recent.length - 1)
                                     const Divider(
                                         height: 1,
@@ -550,42 +555,28 @@ class _EntryScreenState extends State<EntryScreen> {
 }
 
 class _EntryHeader extends StatelessWidget {
-  const _EntryHeader({required this.user});
-
-  final UserProfile? user;
+  const _EntryHeader();
 
   @override
   Widget build(BuildContext context) {
-    final name = (user?.displayName.trim().isNotEmpty ?? false)
-        ? user!.displayName
-        : 'Current User';
-    final role = (user?.displayRole.trim().isNotEmpty ?? false)
-        ? user!.displayRole
-        : 'Staff';
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
         final backSize = compact ? 52.0 : 60.0;
         final titleSize = compact ? 20.0 : 24.0;
-        final avatarSize = compact ? 50.0 : 60.0;
-        final nameSize = compact ? 16.0 : 19.0;
-        final roleSize = compact ? 12.0 : 13.0;
 
         return Container(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+            color: Colors.white,
             borderRadius:
                 const BorderRadius.vertical(bottom: Radius.circular(24)),
+            border: Border.all(color: const Color(0xFFE5EBF5)),
           ),
           child: Row(
             children: [
               Material(
-                color: Colors.white,
+                color: const Color(0xFFEAF1FF),
                 borderRadius: BorderRadius.circular(18),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(18),
@@ -607,59 +598,11 @@ class _EntryHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: const Color(0xFF16233F),
                     fontSize: titleSize,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.3,
                   ),
-                ),
-              ),
-              SizedBox(width: compact ? 10 : 18),
-              Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: avatarSize,
-                      height: avatarSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.2),
-                      ),
-                      child: const Icon(Icons.person,
-                          color: Colors.white, size: 40),
-                    ),
-                    SizedBox(width: compact ? 10 : 12),
-                    ConstrainedBox(
-                      constraints:
-                          BoxConstraints(maxWidth: compact ? 130 : 220),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: nameSize,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            role,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: roleSize,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],
@@ -763,9 +706,7 @@ class _SelectField extends StatelessWidget {
         width: 52,
         height: 52,
         decoration: BoxDecoration(
-          color: enabled
-              ? const Color(0xFFEAF1FF)
-              : const Color(0xFFF3F4F6),
+          color: enabled ? const Color(0xFFEAF1FF) : const Color(0xFFF3F4F6),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Icon(
@@ -920,7 +861,7 @@ class _InfoCell extends StatelessWidget {
             width: 52,
             height: 52,
             decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.88),
+              color: Colors.white.withValues(alpha: 0.88),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Icon(icon, color: const Color(0xFF2563EB), size: 28),
@@ -1033,103 +974,104 @@ class _PrimaryButton extends StatelessWidget {
 }
 
 class _RecentEntryRow extends StatelessWidget {
-  const _RecentEntryRow({required this.record});
+  const _RecentEntryRow({
+    required this.record,
+    required this.onTap,
+  });
 
-  final VehicleRecord record;
+  final ParkingSessionSummary record;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final created = record.createdAt;
+    final entry = record.entryTime;
     final timeLabel =
-        created == null ? '--:--' : DateFormat('hh:mm a').format(created);
-    final typeLabel = vehicleTypeLabel(record.vehicleType);
+        entry == null ? '--:--' : DateFormat('hh:mm a').format(entry);
+    final typeLabel = record.displayVehicleType;
     final accent = _vehicleAccent(record.vehicleType);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Container(
-            width: 52,
-            height: 52,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: accent.withOpacity(0.12),
+    return InkWell(
+      onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: accent.withValues(alpha: 0.12),
+              ),
+              child: Icon(_vehicleIcon(record.vehicleType),
+                  color: accent, size: 28),
             ),
-            child:
-                Icon(_vehicleIcon(record.vehicleType), color: accent, size: 28),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    record.plateNumber,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF16233F),
+                      fontSize: 20,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    record.ownerDisplay,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF667085),
+                      fontSize: 15,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 14),
+            Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  record.plateNumber,
+                  typeLabel,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF16233F),
-                    fontSize: 20,
-                    fontWeight: FontWeight.w800,
+                  style: TextStyle(
+                    color: accent,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w700,
                   ),
                 ),
                 const SizedBox(height: 3),
-                Text(
-                  record.ownerDisplay,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Color(0xFF667085),
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                  ),
+                const StatusBadge(
+                  label: 'ACTIVE',
+                  color: Color(0xFF2563EB),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 14),
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                typeLabel,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: accent,
-                  fontSize: 17,
-                  fontWeight: FontWeight.w700,
-                ),
+            const SizedBox(width: 14),
+            Text(
+              timeLabel,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                color: Color(0xFF1F2B5C),
+                fontSize: 15,
+                fontWeight: FontWeight.w700,
               ),
-              const SizedBox(height: 3),
-              Text(
-                record.phoneDisplay,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Color(0xFF667085),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(width: 14),
-          Text(
-            timeLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF1F2B5C),
-              fontSize: 15,
-              fontWeight: FontWeight.w700,
             ),
-          ),
-          const SizedBox(width: 12),
-          const Icon(Icons.chevron_right_rounded,
-              color: Color(0xFF97A2B8), size: 30),
-        ],
+            const SizedBox(width: 12),
+            const Icon(Icons.chevron_right_rounded,
+                color: Color(0xFF97A2B8), size: 30),
+          ],
+        ),
       ),
     );
   }

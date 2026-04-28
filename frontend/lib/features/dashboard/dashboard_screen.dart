@@ -49,7 +49,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
     final user = context.watch<AuthController>().user;
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FF),
+      backgroundColor: Colors.white,
       body: SafeArea(
         top: true,
         bottom: false,
@@ -316,7 +316,6 @@ class _DashboardHeader extends StatelessWidget {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
         final brandSize = compact ? 64.0 : 82.0;
-        final avatarSize = compact ? 52.0 : 72.0;
         final nameSize = compact ? 15.5 : 22.0;
         final roleSize = compact ? 12.5 : 16.0;
         final brandFontSize = compact ? 40.0 : 52.0;
@@ -361,58 +360,37 @@ class _DashboardHeader extends StatelessWidget {
                 ),
               ),
               const Spacer(),
-              SizedBox(
-                width: compact ? 210 : 320,
-                child: Row(
+              ConstrainedBox(
+                constraints: BoxConstraints(maxWidth: compact ? 210 : 320),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    Container(
-                      width: avatarSize,
-                      height: avatarSize,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF3D73F6).withOpacity(0.95),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.person,
-                        color: Colors.white,
-                        size: compact ? 34 : 46,
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerRight,
+                      child: Text(
+                        name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        textAlign: TextAlign.right,
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: nameSize,
+                          fontWeight: FontWeight.w800,
+                        ),
                       ),
                     ),
-                    SizedBox(width: compact ? 10 : 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          FittedBox(
-                            fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerRight,
-                            child: Text(
-                              name,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.right,
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontSize: nameSize,
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            role,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            textAlign: TextAlign.right,
-                            style: TextStyle(
-                              color: Colors.white.withOpacity(0.72),
-                              fontSize: roleSize,
-                              fontWeight: FontWeight.w700,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 4),
+                    Text(
+                      role,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.right,
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.72),
+                        fontSize: roleSize,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],

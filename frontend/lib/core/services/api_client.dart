@@ -11,8 +11,10 @@ class SmartParkingApi {
         _dio = Dio(
           BaseOptions(
             baseUrl: AppEnv.apiBaseUrl,
-            connectTimeout: const Duration(seconds: AppEnv.requestTimeoutSeconds),
-            receiveTimeout: const Duration(seconds: AppEnv.requestTimeoutSeconds),
+            connectTimeout:
+                const Duration(seconds: AppEnv.requestTimeoutSeconds),
+            receiveTimeout:
+                const Duration(seconds: AppEnv.requestTimeoutSeconds),
             contentType: Headers.jsonContentType,
           ),
         ) {
@@ -44,7 +46,8 @@ class SmartParkingApi {
 
   Options _skipAuthOptions() => Options(extra: const {'skipAuth': true});
 
-  Map<String, dynamic> _asMap(dynamic data) => Map<String, dynamic>.from(data as Map);
+  Map<String, dynamic> _asMap(dynamic data) =>
+      Map<String, dynamic>.from(data as Map);
 
   String _normalizePlate(String plate) =>
       plate.toUpperCase().replaceAll(RegExp(r'[^A-Z0-9]'), '');
@@ -93,7 +96,8 @@ class SmartParkingApi {
       }
 
       final nextRefreshToken = data['refresh']?.toString() ?? refreshToken;
-      await _storage.saveTokens(accessToken: accessToken, refreshToken: nextRefreshToken);
+      await _storage.saveTokens(
+          accessToken: accessToken, refreshToken: nextRefreshToken);
       return true;
     } on DioException catch (error) {
       final statusCode = error.response?.statusCode;
@@ -132,9 +136,9 @@ class SmartParkingApi {
 
   Future<void> logout({String? refresh, int? sessionId}) async {
     await _send(() => _dio.post('/auth/logout/', data: {
-      if (refresh != null) 'refresh': refresh,
-      if (sessionId != null) 'session_id': sessionId,
-    }));
+          if (refresh != null) 'refresh': refresh,
+          if (sessionId != null) 'session_id': sessionId,
+        }));
   }
 
   Future<UserProfile> me() async {
@@ -142,7 +146,8 @@ class SmartParkingApi {
     return UserProfile.fromJson(_asMap(response.data));
   }
 
-  Future<OcrResult> recognizePlate(XFile image, {String source = 'ENTRY'}) async {
+  Future<OcrResult> recognizePlate(XFile image,
+      {String source = 'ENTRY'}) async {
     final response = await _send(() async {
       final bytes = await image.readAsBytes();
       final formData = FormData.fromMap({
@@ -155,23 +160,28 @@ class SmartParkingApi {
   }
 
   Future<Map<String, dynamic>> createEntry(Map<String, dynamic> payload) async {
-    final response = await _send(() => _dio.post('/parking/sessions/entry/', data: payload));
+    final response =
+        await _send(() => _dio.post('/parking/sessions/entry/', data: payload));
     return _asMap(response.data);
   }
 
   Future<Map<String, dynamic>> prepareExit(Map<String, dynamic> payload) async {
-    final response = await _send(() => _dio.post('/parking/sessions/exit/', data: payload));
+    final response =
+        await _send(() => _dio.post('/parking/sessions/exit/', data: payload));
     return _asMap(response.data);
   }
 
-  Future<Map<String, dynamic>> quickRegister(Map<String, dynamic> payload) async {
-    final response = await _send(() => _dio.post('/parking/vehicles/quick-register/', data: payload));
+  Future<Map<String, dynamic>> quickRegister(
+      Map<String, dynamic> payload) async {
+    final response = await _send(
+        () => _dio.post('/parking/vehicles/quick-register/', data: payload));
     return _asMap(response.data);
   }
 
-  Future<PaymentReceipt> confirmCashPayment(Map<String, dynamic> payload) async {
-    final response = await _send(() => _dio.post('/billing/payments/cash/', data: payload));
-    return PaymentReceipt.fromJson(_asMap(response.data));
+  Future<PaymentRecord> confirmCashPayment(Map<String, dynamic> payload) async {
+    final response =
+        await _send(() => _dio.post('/billing/payments/cash/', data: payload));
+    return PaymentRecord.fromJson(_asMap(response.data));
   }
 
   Future<List<PaymentRecord>> payments({
@@ -188,17 +198,21 @@ class SmartParkingApi {
       ),
     );
     final data = response.data;
-    final results = data is Map<String, dynamic> && data['results'] is List ? data['results'] as List : data as List;
+    final results = data is Map<String, dynamic> && data['results'] is List
+        ? data['results'] as List
+        : data as List;
     return results
-        .map((item) => PaymentRecord.fromJson(Map<String, dynamic>.from(item as Map)))
+        .map((item) =>
+            PaymentRecord.fromJson(Map<String, dynamic>.from(item as Map)))
         .toList();
   }
 
   Future<DashboardMetrics> dashboard({String? start, String? end}) async {
-    final response = await _send(() => _dio.get('/analytics/dashboard/', queryParameters: {
-          if (start != null) 'start': start,
-          if (end != null) 'end': end,
-        }));
+    final response =
+        await _send(() => _dio.get('/analytics/dashboard/', queryParameters: {
+              if (start != null) 'start': start,
+              if (end != null) 'end': end,
+            }));
     return DashboardMetrics.fromJson(_asMap(response.data));
   }
 
@@ -206,11 +220,15 @@ class SmartParkingApi {
     final response = await _send(() => _dio.get('/analytics/alerts/'));
     final data = _asMap(response.data);
     final results = (data['results'] as List? ?? const []);
-    return results.map((item) => AlertItem.fromJson(Map<String, dynamic>.from(item as Map))).toList();
+    return results
+        .map((item) =>
+            AlertItem.fromJson(Map<String, dynamic>.from(item as Map)))
+        .toList();
   }
 
   Future<Map<String, dynamic>> chatbot(String query) async {
-    final response = await _send(() => _dio.post('/analytics/chat/', data: {'query': query}));
+    final response = await _send(
+        () => _dio.post('/analytics/chat/', data: {'query': query}));
     return _asMap(response.data);
   }
 
@@ -228,14 +246,18 @@ class SmartParkingApi {
         '/parking/vehicles/',
         queryParameters: {
           'ordering': ordering,
-          if (search != null && search.trim().isNotEmpty) 'search': search.trim(),
+          if (search != null && search.trim().isNotEmpty)
+            'search': search.trim(),
         },
       ),
     );
     final data = response.data;
-    final results = data is Map<String, dynamic> && data['results'] is List ? data['results'] as List : data as List;
+    final results = data is Map<String, dynamic> && data['results'] is List
+        ? data['results'] as List
+        : data as List;
     return results
-        .map((item) => VehicleRecord.fromJson(Map<String, dynamic>.from(item as Map)))
+        .map((item) =>
+            VehicleRecord.fromJson(Map<String, dynamic>.from(item as Map)))
         .toList();
   }
 
@@ -255,7 +277,10 @@ class SmartParkingApi {
   Future<List<ParkingSessionSummary>> activeSessions() async {
     final response = await _send(() => _dio.get('/parking/sessions/active/'));
     final data = response.data as List;
-    return data.map((item) => ParkingSessionSummary.fromJson(Map<String, dynamic>.from(item as Map))).toList();
+    return data
+        .map((item) => ParkingSessionSummary.fromJson(
+            Map<String, dynamic>.from(item as Map)))
+        .toList();
   }
 
   Future<List<ParkingSessionSummary>> sessions({
@@ -272,9 +297,12 @@ class SmartParkingApi {
       ),
     );
     final data = response.data;
-    final results = data is Map<String, dynamic> && data['results'] is List ? data['results'] as List : data as List;
+    final results = data is Map<String, dynamic> && data['results'] is List
+        ? data['results'] as List
+        : data as List;
     return results
-        .map((item) => ParkingSessionSummary.fromJson(Map<String, dynamic>.from(item as Map)))
+        .map((item) => ParkingSessionSummary.fromJson(
+            Map<String, dynamic>.from(item as Map)))
         .toList();
   }
 
@@ -283,8 +311,10 @@ class SmartParkingApi {
     return PricingPolicyDto.fromJson(_asMap(response.data));
   }
 
-  Future<Map<String, dynamic>> updatePricing(Map<String, dynamic> payload) async {
-    final response = await _send(() => _dio.post('/billing/pricing/', data: payload));
+  Future<Map<String, dynamic>> updatePricing(
+      Map<String, dynamic> payload) async {
+    final response =
+        await _send(() => _dio.post('/billing/pricing/', data: payload));
     return _asMap(response.data);
   }
 
@@ -294,11 +324,13 @@ class SmartParkingApi {
   }
 
   Future<Map<String, dynamic>> saveSetting(Map<String, dynamic> payload) async {
-    final response = await _send(() => _dio.post('/config/settings/', data: payload));
+    final response =
+        await _send(() => _dio.post('/config/settings/', data: payload));
     return _asMap(response.data);
   }
 
-  Future<Map<String, dynamic>> queueJson(String kind, Map<String, dynamic> payload) async {
+  Future<Map<String, dynamic>> queueJson(
+      String kind, Map<String, dynamic> payload) async {
     return {
       'kind': kind,
       'payload': payload,

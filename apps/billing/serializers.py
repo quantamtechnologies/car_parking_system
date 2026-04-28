@@ -3,6 +3,7 @@ from __future__ import annotations
 from rest_framework import serializers
 
 from apps.billing.models import CashShift, Payment, PricingPolicy
+from apps.parking.serializers import ParkingSessionSerializer
 
 
 class PricingPolicySerializer(serializers.ModelSerializer):
@@ -68,6 +69,8 @@ class CashPaymentSerializer(serializers.Serializer):
 
 
 class PaymentSerializer(serializers.ModelSerializer):
+    session = ParkingSessionSerializer(read_only=True)
+
     class Meta:
         model = Payment
         fields = [
@@ -85,4 +88,3 @@ class PaymentSerializer(serializers.ModelSerializer):
             "confirmed_at",
             "created_at",
         ]
-

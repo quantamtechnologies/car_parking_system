@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/controllers/auth_controller.dart';
@@ -10,9 +11,9 @@ import '../../core/theme.dart';
 import '../../core/widgets.dart';
 
 class PaymentScreen extends StatefulWidget {
-  const PaymentScreen({super.key, this.initialSession});
+  const PaymentScreen({super.key, this.initialPayload});
 
-  final Map<String, dynamic>? initialSession;
+  final Map<String, dynamic>? initialPayload;
 
   @override
   State<PaymentScreen> createState() => _PaymentScreenState();
@@ -25,14 +26,15 @@ class _PaymentScreenState extends State<PaymentScreen> {
   final _notes = TextEditingController();
   bool _override = false;
   bool _busy = false;
-  PaymentReceipt? _receipt;
+  PaymentRecord? _payment;
 
   @override
   void initState() {
     super.initState();
-    if (widget.initialSession != null) {
-      _sessionId.text = widget.initialSession!['id'].toString();
-      _amountTendered.text = widget.initialSession!['total_fee']?.toString() ?? '0';
+    final session = _initialSession;
+    if (session != null) {
+      _sessionId.text = session['id'].toString();
+      _amountTendered.text = session['total_fee']?.toString() ?? '0';
     }
   }
 
@@ -45,24 +47,46 @@ class _PaymentScreenState extends State<PaymentScreen> {
     super.dispose();
   }
 
+  Map<String, dynamic>? get _initialSession {
+    final payload = widget.initialPayload;
+    if (payload == null) return null;
+    final session = payload['session'];
+    if (session is Map) {
+      return Map<String, dynamic>.from(session);
+    }
+    return payload;
+  }
+
+  Map<String, dynamic>? get _initialBreakdown {
+    final payload = widget.initialPayload;
+    final breakdown = payload?['fee_breakdown'];
+    if (breakdown is Map) {
+      return Map<String, dynamic>.from(breakdown);
+    }
+    return null;
+  }
+
   Future<void> _confirm() async {
     if (_sessionId.text.trim().isEmpty) return;
     final sessionId = int.tryParse(_sessionId.text.trim());
     if (sessionId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid session ID.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enter a valid session ID.')));
       return;
     }
 
     final cashShiftText = _cashShiftId.text.trim();
-    final cashShiftId = cashShiftText.isEmpty ? null : int.tryParse(cashShiftText);
+    final cashShiftId =
+        cashShiftText.isEmpty ? null : int.tryParse(cashShiftText);
     if (cashShiftText.isNotEmpty && cashShiftId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Enter a valid cash shift ID.')));
+      ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Enter a valid cash shift ID.')));
       return;
     }
 
     setState(() => _busy = true);
     try {
-      final receipt = await context.read<SmartParkingApi>().confirmCashPayment({
+      final payment = await context.read<SmartParkingApi>().confirmCashPayment({
         'session_id': sessionId,
         'amount_tendered': double.tryParse(_amountTendered.text.trim()) ?? 0,
         if (cashShiftId != null) 'cash_shift_id': cashShiftId,
@@ -70,14 +94,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'override': _override,
         'override_reason': _override ? _notes.text.trim() : '',
       });
-      setState(() => _receipt = receipt);
+      setState(() => _payment = payment);
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Payment confirmed. Exit can proceed.')));
+        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(
+            content: Text(
+                'Payment confirmed, session closed, and receipt generated.')));
       }
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Payment failed: ${apiErrorMessage(e, fallback: 'Unable to confirm payment right now.')}')),
+        SnackBar(
+            content: Text(
+                'Payment failed: ${apiErrorMessage(e, fallback: 'Unable to confirm payment right now.')}')),
       );
       if (isOfflineDioError(e)) {
         await context.read<AuthController>().queueIfOffline('payment', {
@@ -93,32 +121,31 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 
-  Widget _buildDarkCard({required Widget child}) {
+  Widget _buildCard({required Widget child}) {
     return SurfaceCard(
       radius: 24,
       padding: const EdgeInsets.all(14),
-      color: const Color(0xFF0F1B3A),
-      borderColor: const Color(0xFF1E2B4D),
+      color: Colors.white,
+      borderColor: const Color(0xFFE5EBF5),
       shadow: const [
-        BoxShadow(color: Color(0x40050A15), blurRadius: 18, offset: Offset(0, 10)),
+        BoxShadow(
+            color: Color(0x14050A15), blurRadius: 18, offset: Offset(0, 10)),
       ],
       child: child,
     );
   }
 
-  Widget _buildHeader(UserProfile? user) {
+  Widget _buildHeader() {
     return ParkingScreenHeader(
       title: 'Payment',
-      subtitle: 'Cash-only exit payments',
-      user: user,
+      subtitle: '',
+      user: null,
       onLeadingTap: () => context.go('/'),
       leadingIcon: Icons.arrow_back_rounded,
-      dark: true,
-      backgroundGradient: ParkingColors.entryHeaderGradient,
-      titleColor: Colors.white,
-      subtitleColor: Colors.white.withOpacity(0.80),
-      leadingBackground: const Color(0xFF1B2D5F),
-      leadingIconColor: Colors.white,
+      backgroundColor: Colors.white,
+      titleColor: const Color(0xFF16233F),
+      leadingBackground: const Color(0xFFEAF1FF),
+      leadingIconColor: ParkingColors.primary,
       padding: const EdgeInsets.fromLTRB(12, 10, 12, 12),
       titleSize: 26,
       subtitleSize: 13.5,
@@ -126,24 +153,40 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
+  TransactionRecord? _transactionRecord() {
+    final sessionFromPayment = _payment?.session;
+    if (sessionFromPayment != null) {
+      return TransactionRecord(session: sessionFromPayment, payment: _payment);
+    }
+    final initialSession = _initialSession;
+    if (initialSession == null) return null;
+    return TransactionRecord(
+      session: ParkingSessionSummary.fromJson(initialSession),
+      payment: _payment,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthController>().user;
-    final session = widget.initialSession;
-    final fee = session == null ? null : double.tryParse(session['total_fee'].toString()) ?? 0;
+    final session = _initialSession;
+    final breakdown = _initialBreakdown;
+    final fee = session == null
+        ? null
+        : double.tryParse(session['total_fee'].toString()) ?? 0;
     final vehicle = session?['vehicle'] as Map?;
-    final paidAmount = _receipt?.amountTendered ?? 0;
+    final paidAmount = _payment?.amountDue ?? 0;
     final admin = context.watch<AuthController>().isAdmin;
+    final transaction = _transactionRecord();
 
     final summaryCard = PaymentStatusCard(
-      statusLabel: _receipt == null ? 'Pending' : 'Paid',
+      statusLabel: _payment == null ? 'Pending' : 'Paid',
       amountPaid: paidAmount,
       amountDue: fee ?? 0,
-      receiptNumber: _receipt?.receiptNumber,
-      method: _receipt?.method,
+      receiptNumber: _payment?.receiptNumber,
+      method: _payment?.methodLabel,
     );
 
-    final sessionSnapshotCard = _buildDarkCard(
+    final sessionSnapshotCard = _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -153,10 +196,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF142348),
+                  color: const Color(0xFFEAF1FF),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.payments_rounded, color: Colors.white, size: 22),
+                child: const Icon(Icons.payments_rounded,
+                    color: Color(0xFF2563EB), size: 22),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -165,12 +209,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   children: [
                     Text(
                       'Session snapshot',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                          color: Color(0xFF16233F),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800),
                     ),
                     SizedBox(height: 3),
                     Text(
-                      'The exit screen should hand this session over automatically.',
-                      style: TextStyle(color: Color(0xFF9EABC9), fontSize: 12.5, height: 1.35),
+                      'The exit screen hands over the prepared session before final confirmation.',
+                      style: TextStyle(
+                          color: Color(0xFF667085),
+                          fontSize: 12.5,
+                          height: 1.35),
                     ),
                   ],
                 ),
@@ -181,19 +231,32 @@ class _PaymentScreenState extends State<PaymentScreen> {
           if (session != null) ...[
             _InfoRow(label: 'Session ID', value: session['id'].toString()),
             const SizedBox(height: 8),
-            _InfoRow(label: 'Plate', value: vehicle?['plate_number']?.toString() ?? ''),
+            _InfoRow(
+                label: 'Plate',
+                value: vehicle?['plate_number']?.toString() ?? ''),
+            const SizedBox(height: 8),
+            _InfoRow(
+                label: 'Entry time',
+                value: session['entry_time'] == null
+                    ? 'N/A'
+                    : _formatDateTime(session['entry_time'].toString())),
+            const SizedBox(height: 8),
+            _InfoRow(
+                label: 'Calculated duration',
+                value:
+                    _durationLabel(_intValue(breakdown?['duration_minutes']))),
             const SizedBox(height: 8),
             _InfoRow(label: 'Amount due', value: money(fee ?? 0)),
           ] else
             const Text(
               'If the session did not arrive from exit, type the session ID below to continue.',
-              style: TextStyle(color: Color(0xFF9EABC9), height: 1.35),
+              style: TextStyle(color: Color(0xFF667085), height: 1.35),
             ),
         ],
       ),
     );
 
-    final formCard = _buildDarkCard(
+    final formCard = _buildCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -203,10 +266,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF142348),
+                  color: const Color(0xFFEAF1FF),
                   borderRadius: BorderRadius.circular(14),
                 ),
-                child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 22),
+                child: const Icon(Icons.receipt_long_rounded,
+                    color: Color(0xFF2563EB), size: 22),
               ),
               const SizedBox(width: 12),
               const Expanded(
@@ -215,12 +279,18 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   children: [
                     Text(
                       'Cash payment',
-                      style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                      style: TextStyle(
+                          color: Color(0xFF16233F),
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800),
                     ),
                     SizedBox(height: 3),
                     Text(
                       'Cash only. Confirm the amount, then close the session.',
-                      style: TextStyle(color: Color(0xFF9EABC9), fontSize: 12.5, height: 1.35),
+                      style: TextStyle(
+                          color: Color(0xFF667085),
+                          fontSize: 12.5,
+                          height: 1.35),
                     ),
                   ],
                 ),
@@ -236,7 +306,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
             ),
             const SizedBox(height: 10),
           ] else ...[
-            StatusBadge(label: 'Session locked', color: const Color(0xFF10B981)),
+            StatusBadge(
+                label: 'Session locked', color: const Color(0xFF10B981)),
             const SizedBox(height: 10),
           ],
           TextField(
@@ -248,7 +319,8 @@ class _PaymentScreenState extends State<PaymentScreen> {
           const SizedBox(height: 10),
           TextField(
             controller: _cashShiftId,
-            decoration: const InputDecoration(labelText: 'Cash shift ID (optional)'),
+            decoration:
+                const InputDecoration(labelText: 'Cash shift ID (optional)'),
             keyboardType: TextInputType.number,
           ),
           const SizedBox(height: 10),
@@ -275,18 +347,20 @@ class _PaymentScreenState extends State<PaymentScreen> {
               icon: Icons.check_circle_rounded,
               minHeight: 48,
               isBusy: _busy,
-              onPressed: _busy ? null : () {
-                _confirm();
-              },
+              onPressed: _busy
+                  ? null
+                  : () {
+                      _confirm();
+                    },
             ),
           ),
         ],
       ),
     );
 
-    final receiptCard = _receipt == null
+    final receiptCard = _payment == null
         ? const SizedBox.shrink()
-        : _buildDarkCard(
+        : _buildCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -296,10 +370,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
                       width: 40,
                       height: 40,
                       decoration: BoxDecoration(
-                        color: const Color(0xFF142348),
+                        color: const Color(0xFFEAF1FF),
                         borderRadius: BorderRadius.circular(14),
                       ),
-                      child: const Icon(Icons.receipt_long_rounded, color: Colors.white, size: 22),
+                      child: const Icon(Icons.receipt_long_rounded,
+                          color: Color(0xFF2563EB), size: 22),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -308,12 +383,16 @@ class _PaymentScreenState extends State<PaymentScreen> {
                         children: [
                           const Text(
                             'Receipt',
-                            style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.w800),
+                            style: TextStyle(
+                                color: Color(0xFF16233F),
+                                fontSize: 16,
+                                fontWeight: FontWeight.w800),
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'Receipt ${_receipt!.receiptNumber}',
-                            style: const TextStyle(color: Color(0xFF9EABC9), height: 1.35),
+                            'Receipt ${_payment!.receiptNumber}',
+                            style: const TextStyle(
+                                color: Color(0xFF667085), height: 1.35),
                           ),
                         ],
                       ),
@@ -321,19 +400,53 @@ class _PaymentScreenState extends State<PaymentScreen> {
                   ],
                 ),
                 const SizedBox(height: 12),
-                _InfoRow(label: 'Amount due', value: money(_receipt!.amountDue)),
-                const SizedBox(height: 8),
-                _InfoRow(label: 'Cash received', value: money(_receipt!.amountTendered)),
-                const SizedBox(height: 8),
-                _InfoRow(label: 'Change due', value: money(_receipt!.changeDue)),
-                const SizedBox(height: 8),
-                _InfoRow(label: 'Method', value: _receipt!.method),
+                _InfoRow(
+                    label: 'Plate',
+                    value: transaction?.plateNumber ??
+                        vehicle?['plate_number']?.toString() ??
+                        ''),
                 const SizedBox(height: 8),
                 _InfoRow(
-                  label: 'Status',
-                  value: (_receipt!.status == 'CONFIRMED' || _receipt!.status == 'OVERRIDDEN') ? 'Paid' : 'Pending',
-                ),
+                    label: 'Entry time',
+                    value: _formatDateTime(
+                        transaction?.entryTime?.toIso8601String())),
+                const SizedBox(height: 8),
+                _InfoRow(
+                    label: 'Exit time',
+                    value: _formatDateTime(
+                        transaction?.exitTime?.toIso8601String())),
+                const SizedBox(height: 8),
+                _InfoRow(
+                    label: 'Duration',
+                    value: _durationLabel(transaction?.durationMinutes ?? 0)),
+                const SizedBox(height: 8),
+                _InfoRow(
+                    label: 'Amount due', value: money(_payment!.amountDue)),
+                const SizedBox(height: 8),
+                _InfoRow(
+                    label: 'Cash received',
+                    value: money(_payment!.amountTendered)),
+                const SizedBox(height: 8),
+                _InfoRow(
+                    label: 'Change due', value: money(_payment!.changeDue)),
+                const SizedBox(height: 8),
+                _InfoRow(label: 'Method', value: _payment!.methodLabel),
+                const SizedBox(height: 8),
+                _InfoRow(label: 'Status', value: _payment!.paymentStatusLabel),
                 const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  child: GradientActionButton(
+                    label: 'View full receipt',
+                    icon: Icons.open_in_new_rounded,
+                    minHeight: 48,
+                    onPressed: transaction == null
+                        ? null
+                        : () =>
+                            context.push('/receipts/view', extra: transaction),
+                  ),
+                ),
+                const SizedBox(height: 10),
                 SizedBox(
                   width: double.infinity,
                   child: GradientActionButton(
@@ -348,11 +461,11 @@ class _PaymentScreenState extends State<PaymentScreen> {
           );
 
     return Scaffold(
-      backgroundColor: ParkingColors.scaffold,
+      backgroundColor: Colors.white,
       body: ListView(
         padding: const EdgeInsets.only(bottom: 112),
         children: [
-          _buildHeader(user),
+          _buildHeader(),
           Padding(
             padding: const EdgeInsets.fromLTRB(8, 8, 8, 0),
             child: Center(
@@ -371,7 +484,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               ),
             ),
           ),
-          if (_receipt != null) ...[
+          if (_payment != null) ...[
             const SizedBox(height: 10),
             Padding(
               padding: const EdgeInsets.fromLTRB(8, 0, 8, 0),
@@ -386,6 +499,45 @@ class _PaymentScreenState extends State<PaymentScreen> {
         ],
       ),
     );
+  }
+
+  String _formatDateTime(String? value) {
+    final date = value == null ? null : DateTime.tryParse(value);
+    if (date == null) return 'N/A';
+    return '${date.day.toString().padLeft(2, '0')} '
+        '${_month(date.month)} ${date.year}, '
+        '${DateFormat('hh:mm a').format(date)}';
+  }
+
+  int _intValue(dynamic value) {
+    return value is int ? value : int.tryParse(value?.toString() ?? '') ?? 0;
+  }
+
+  String _durationLabel(int minutes) {
+    if (minutes <= 0) return '0m';
+    final hours = minutes ~/ 60;
+    final remaining = minutes % 60;
+    if (hours == 0) return '${remaining}m';
+    if (remaining == 0) return '${hours}h';
+    return '${hours}h ${remaining}m';
+  }
+
+  String _month(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    return months[month - 1];
   }
 }
 
@@ -405,7 +557,8 @@ class _InfoRow extends StatelessWidget {
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(color: Color(0xFF9EABC9), fontWeight: FontWeight.w700),
+            style: const TextStyle(
+                color: Color(0xFF667085), fontWeight: FontWeight.w700),
           ),
         ),
         const SizedBox(width: 16),
@@ -413,7 +566,8 @@ class _InfoRow extends StatelessWidget {
           child: Text(
             value,
             textAlign: TextAlign.right,
-            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w800),
+            style: const TextStyle(
+                color: Color(0xFF16233F), fontWeight: FontWeight.w800),
           ),
         ),
       ],

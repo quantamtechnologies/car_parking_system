@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class ParkingColors {
-  static const scaffold = Color(0xFF081429);
-  static const surface = Color(0xFF0D1832);
-  static const surfaceMuted = Color(0xFF111E3C);
-  static const ink = Color(0xFFF7FAFF);
-  static const inkSoft = Color(0xFF90A0C0);
+  static const scaffold = Colors.white;
+  static const surface = Colors.white;
+  static const surfaceMuted = Color(0xFFF8FAFC);
+  static const ink = Color(0xFF0F172A);
+  static const inkSoft = Color(0xFF64748B);
   static const primary = Color(0xFF2563EB);
   static const primaryDeep = Color(0xFF7C3AED);
   static const accent = Color(0xFF4F7DFB);
@@ -61,10 +61,10 @@ ThemeData parkingTheme() {
       seedColor: primary,
       primary: primary,
       secondary: accent,
-      surface: ParkingColors.surface,
+      surface: Colors.white,
       surfaceContainerHighest: surface,
       onSurface: deepInk,
-      brightness: Brightness.dark,
+      brightness: Brightness.light,
     ),
     scaffoldBackgroundColor: bg,
     textTheme: baseTextTheme.apply(
@@ -85,31 +85,31 @@ ThemeData parkingTheme() {
     ),
     inputDecorationTheme: InputDecorationTheme(
       filled: true,
-      fillColor: const Color(0xFF0F1B35),
+      fillColor: Colors.white,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: const Color(0xFF243559)),
+        borderSide: const BorderSide(color: Color(0xFFD8E1F2)),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
-        borderSide: BorderSide(color: const Color(0xFF243559)),
+        borderSide: const BorderSide(color: Color(0xFFD8E1F2)),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(18),
         borderSide: const BorderSide(color: primary, width: 1.4),
       ),
       hintStyle: const TextStyle(
-        color: Color(0xFF7E8CAD),
+        color: Color(0xFF8A93A8),
         fontWeight: FontWeight.w500,
       ),
       labelStyle: const TextStyle(
-          color: Color(0xFF93A1C4), fontWeight: FontWeight.w600),
+          color: Color(0xFF64748B), fontWeight: FontWeight.w600),
       floatingLabelStyle:
           const TextStyle(color: primary, fontWeight: FontWeight.w700),
       contentPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
     ),
     navigationBarTheme: NavigationBarThemeData(
-      backgroundColor: const Color(0xFF0C1731).withOpacity(0.96),
+      backgroundColor: Colors.white,
       indicatorColor: primary.withOpacity(0.18),
       labelTextStyle: MaterialStateProperty.resolveWith(
         (states) => TextStyle(

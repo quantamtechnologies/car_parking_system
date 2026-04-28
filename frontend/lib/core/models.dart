@@ -100,23 +100,47 @@ class ParkingSessionSummary {
     required this.id,
     required this.status,
     required this.plateNumber,
+    required this.vehicleType,
+    required this.ownerName,
+    required this.phoneNumber,
     required this.slotCode,
     required this.zoneName,
     required this.totalFee,
     required this.amountPaid,
     required this.entryTime,
     required this.exitTime,
+    required this.durationMinutes,
+    required this.baseFee,
+    required this.ratePerHour,
+    required this.gracePeriodMinutes,
+    required this.extraCharges,
+    required this.penaltyAmount,
+    required this.dailyMaxCap,
+    required this.createdAt,
+    required this.updatedAt,
   });
 
   final int id;
   final String status;
   final String plateNumber;
+  final String vehicleType;
+  final String ownerName;
+  final String phoneNumber;
   final String slotCode;
   final String zoneName;
   final double totalFee;
   final double amountPaid;
   final DateTime? entryTime;
   final DateTime? exitTime;
+  final int durationMinutes;
+  final double baseFee;
+  final double ratePerHour;
+  final int gracePeriodMinutes;
+  final double extraCharges;
+  final double penaltyAmount;
+  final double? dailyMaxCap;
+  final DateTime? createdAt;
+  final DateTime? updatedAt;
 
   factory ParkingSessionSummary.fromJson(Map<String, dynamic> json) {
     final vehicle = (json['vehicle'] as Map<String, dynamic>? ?? const {});
@@ -126,14 +150,40 @@ class ParkingSessionSummary {
       id: _asInt(json['id']),
       status: _asString(json['status']),
       plateNumber: _asString(vehicle['plate_number']),
+      vehicleType: _asString(vehicle['vehicle_type'], 'CAR'),
+      ownerName: _asString(vehicle['owner_name']),
+      phoneNumber: _asString(vehicle['phone_number']),
       slotCode: _asString(slot['code']),
       zoneName: _asString(zone['name']),
       totalFee: _asDouble(json['total_fee']),
       amountPaid: _asDouble(json['amount_paid']),
       entryTime: DateTime.tryParse(_asString(json['entry_time'])),
       exitTime: DateTime.tryParse(_asString(json['exit_time'])),
+      durationMinutes: _asInt(json['duration_minutes']),
+      baseFee: _asDouble(json['base_fee']),
+      ratePerHour: _asDouble(json['rate_per_hour']),
+      gracePeriodMinutes: _asInt(json['grace_period_minutes']),
+      extraCharges: _asDouble(json['extra_charges']),
+      penaltyAmount: _asDouble(json['penalty_amount']),
+      dailyMaxCap: json['daily_max_cap'] == null
+          ? null
+          : _asDouble(json['daily_max_cap']),
+      createdAt: DateTime.tryParse(_asString(json['created_at'])),
+      updatedAt: DateTime.tryParse(_asString(json['updated_at'])),
     );
   }
+
+  String get displayVehicleType => vehicleTypeLabel(vehicleType);
+
+  String get ownerDisplay =>
+      ownerName.trim().isEmpty ? 'No owner name added' : ownerName;
+
+  String get phoneDisplay =>
+      phoneNumber.trim().isEmpty ? 'No phone number added' : phoneNumber;
+
+  bool get isActiveLike =>
+      status.toUpperCase() == 'ACTIVE' ||
+      status.toUpperCase() == 'PENDING_PAYMENT';
 }
 
 String vehicleTypeLabel(String value) {
@@ -317,40 +367,11 @@ class PricingPolicyDto {
       );
 }
 
-class PaymentReceipt {
-  const PaymentReceipt({
-    required this.id,
-    required this.receiptNumber,
-    required this.amountDue,
-    required this.amountTendered,
-    required this.changeDue,
-    required this.method,
-    required this.status,
-  });
-
-  final int id;
-  final String receiptNumber;
-  final double amountDue;
-  final double amountTendered;
-  final double changeDue;
-  final String method;
-  final String status;
-
-  factory PaymentReceipt.fromJson(Map<String, dynamic> json) => PaymentReceipt(
-        id: _asInt(json['id']),
-        receiptNumber: _asString(json['receipt_number']),
-        amountDue: _asDouble(json['amount_due']),
-        amountTendered: _asDouble(json['amount_tendered']),
-        changeDue: _asDouble(json['change_due']),
-        method: _asString(json['method']),
-        status: _asString(json['status']),
-      );
-}
-
 class PaymentRecord {
   const PaymentRecord({
     required this.id,
     required this.sessionId,
+    required this.session,
     required this.cashierId,
     required this.cashShiftId,
     required this.method,
@@ -365,6 +386,7 @@ class PaymentRecord {
 
   final int id;
   final int sessionId;
+  final ParkingSessionSummary? session;
   final int cashierId;
   final int? cashShiftId;
   final String method;
@@ -376,20 +398,105 @@ class PaymentRecord {
   final String notes;
   final DateTime? confirmedAt;
 
-  factory PaymentRecord.fromJson(Map<String, dynamic> json) => PaymentRecord(
-        id: _asInt(json['id']),
-        sessionId: _asInt(json['session']),
-        cashierId: _asInt(json['cashier']),
-        cashShiftId: json['cash_shift'] == null ? null : _asInt(json['cash_shift']),
-        method: _asString(json['method']),
-        status: _asString(json['status']),
-        amountDue: _asDouble(json['amount_due']),
-        amountTendered: _asDouble(json['amount_tendered']),
-        changeDue: _asDouble(json['change_due']),
-        receiptNumber: _asString(json['receipt_number']),
-        notes: _asString(json['notes']),
-        confirmedAt: DateTime.tryParse(_asString(json['confirmed_at'])),
-      );
+  factory PaymentRecord.fromJson(Map<String, dynamic> json) {
+    final sessionValue = json['session'];
+    final sessionMap = sessionValue is Map<String, dynamic>
+        ? sessionValue
+        : sessionValue is Map
+            ? Map<String, dynamic>.from(sessionValue)
+            : null;
+    return PaymentRecord(
+      id: _asInt(json['id']),
+      sessionId: sessionMap == null
+          ? _asInt(json['session'])
+          : _asInt(sessionMap['id']),
+      session: sessionMap == null
+          ? null
+          : ParkingSessionSummary.fromJson(sessionMap),
+      cashierId: _asInt(json['cashier']),
+      cashShiftId:
+          json['cash_shift'] == null ? null : _asInt(json['cash_shift']),
+      method: _asString(json['method']),
+      status: _asString(json['status']),
+      amountDue: _asDouble(json['amount_due']),
+      amountTendered: _asDouble(json['amount_tendered']),
+      changeDue: _asDouble(json['change_due']),
+      receiptNumber: _asString(json['receipt_number']),
+      notes: _asString(json['notes']),
+      confirmedAt: DateTime.tryParse(_asString(json['confirmed_at'])),
+    );
+  }
+
+  String get methodLabel {
+    switch (method.toUpperCase()) {
+      case 'OVERRIDE':
+        return 'Override';
+      case 'CASH':
+      default:
+        return 'Cash';
+    }
+  }
+
+  String get paymentStatusLabel {
+    switch (status.toUpperCase()) {
+      case 'CONFIRMED':
+        return 'PAID';
+      case 'OVERRIDDEN':
+        return 'OVERRIDDEN';
+      case 'VOIDED':
+        return 'VOIDED';
+      default:
+        return status.toUpperCase();
+    }
+  }
+}
+
+class TransactionRecord {
+  const TransactionRecord({
+    required this.session,
+    this.payment,
+  });
+
+  final ParkingSessionSummary session;
+  final PaymentRecord? payment;
+
+  String get plateNumber => session.plateNumber;
+  String get vehicleType => session.vehicleType;
+  String get vehicleTypeLabelText => session.displayVehicleType;
+  String get ownerName => session.ownerDisplay;
+  String get phoneNumber => session.phoneDisplay;
+  DateTime? get entryTime => session.entryTime;
+  DateTime? get exitTime => payment?.session?.exitTime ?? session.exitTime;
+  int get durationMinutes {
+    final sessionDuration =
+        payment?.session?.durationMinutes ?? session.durationMinutes;
+    if (sessionDuration > 0) return sessionDuration;
+    if (entryTime != null && exitTime != null) {
+      return exitTime!.difference(entryTime!).inMinutes;
+    }
+    return 0;
+  }
+
+  double get amount => payment?.amountDue ?? session.totalFee;
+  double get amountPaid => payment?.amountDue ?? session.amountPaid;
+  String get paymentMethod => payment?.methodLabel ?? 'Cash';
+  String get paymentStatus {
+    if (payment != null) return payment!.paymentStatusLabel;
+    final status = session.status.toUpperCase();
+    if (status == 'CLOSED') return 'PAID';
+    if (status == 'PENDING_PAYMENT') return 'PENDING';
+    return status;
+  }
+
+  String get statusLabel {
+    final status = session.status.toUpperCase();
+    if (status == 'ACTIVE') return 'ACTIVE';
+    if (status == 'PENDING_PAYMENT') return 'PENDING';
+    return paymentStatus;
+  }
+
+  String get receiptNumber => payment?.receiptNumber ?? '';
+  bool get hasReceipt => receiptNumber.trim().isNotEmpty;
 }
 
 String money(double value) => NumberFormat.currency(symbol: 'R').format(value);

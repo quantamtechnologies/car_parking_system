@@ -37,12 +37,12 @@ class SurfaceCard extends StatelessWidget {
     required this.child,
     this.padding = const EdgeInsets.all(18),
     this.radius = 28,
-    this.color = ParkingColors.surface,
+    this.color = Colors.white,
     this.gradient,
-    this.borderColor = const Color(0xFF1F2D4D),
+    this.borderColor = const Color(0xFFE5EBF5),
     this.shadow = const [
       BoxShadow(
-          color: Color(0x40050A15), blurRadius: 28, offset: Offset(0, 16)),
+          color: Color(0x14050A15), blurRadius: 28, offset: Offset(0, 16)),
     ],
     this.onTap,
   });
@@ -111,11 +111,11 @@ class GradientActionButton extends StatelessWidget {
       opacity: enabled ? 1 : 0.72,
       child: DecoratedBox(
         decoration: BoxDecoration(
-          gradient: ParkingColors.primaryGradient,
+          color: ParkingColors.primary,
           borderRadius: BorderRadius.circular(18),
           boxShadow: const [
             BoxShadow(
-                color: Color(0x264A35E8),
+                color: Color(0x262563EB),
                 blurRadius: 20,
                 offset: Offset(0, 10)),
           ],
@@ -181,20 +181,22 @@ class MetricCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = Colors.white;
-    final muted = const Color(0xFF9EABC9);
+    final foreground =
+        gradient == null ? const Color(0xFF16233F) : Colors.white;
+    final muted =
+        gradient == null ? const Color(0xFF667085) : const Color(0xFF9EABC9);
     final compact = _isCompactWidth(context);
 
     return SurfaceCard(
       gradient: gradient,
-      color: gradient == null ? const Color(0xFF101C38) : Colors.transparent,
+      color: gradient == null ? Colors.white : Colors.transparent,
       borderColor: gradient == null
-          ? const Color(0xFF1E2B4D)
+          ? const Color(0xFFE5EBF5)
           : Colors.white.withOpacity(0.08),
       shadow: gradient == null
           ? const [
               BoxShadow(
-                  color: Color(0x40050A15),
+                  color: Color(0x14050A15),
                   blurRadius: 22,
                   offset: Offset(0, 12))
             ]
@@ -218,7 +220,7 @@ class MetricCard extends StatelessWidget {
                     height: 42,
                     decoration: BoxDecoration(
                       color: gradient == null
-                          ? const Color(0xFF1A294C)
+                          ? const Color(0xFFEAF1FF)
                           : Colors.white.withOpacity(0.16),
                       borderRadius: BorderRadius.circular(14),
                     ),
@@ -240,7 +242,7 @@ class MetricCard extends StatelessWidget {
                 else
                   Icon(
                     Icons.more_vert_rounded,
-                    color: const Color(0xFFB7BDD1),
+                    color: const Color(0xFF94A3B8),
                     size: 20,
                   ),
               ],
@@ -404,20 +406,19 @@ class _QuickActionCardState extends State<QuickActionCard> {
   @override
   Widget build(BuildContext context) {
     final compact = _isCompactWidth(context);
-    final background =
-        _hovered ? const Color(0xFF132246) : const Color(0xFF101C38);
+    final background = _hovered ? const Color(0xFFF8FAFF) : Colors.white;
     final borderColor =
-        _hovered ? const Color(0xFF2A3C68) : const Color(0xFF1D2B4C);
+        _hovered ? const Color(0xFFD7E3FF) : const Color(0xFFE5EBF5);
     final shadow = _hovered
         ? [
             const BoxShadow(
-                color: Color(0x300F1D3C),
+                color: Color(0x120F1D3C),
                 blurRadius: 22,
                 offset: Offset(0, 12)),
           ]
         : [
             const BoxShadow(
-                color: Color(0x40050A15),
+                color: Color(0x14050A15),
                 blurRadius: 18,
                 offset: Offset(0, 10)),
           ];
@@ -464,7 +465,7 @@ class _QuickActionCardState extends State<QuickActionCard> {
                     style: TextStyle(
                       fontSize: compact ? 12 : 12.5,
                       fontWeight: FontWeight.w800,
-                      color: Colors.white,
+                      color: const Color(0xFF16233F),
                     ),
                   ),
                   if (widget.subtitle.isNotEmpty) ...[
@@ -474,7 +475,7 @@ class _QuickActionCardState extends State<QuickActionCard> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: compact ? 10 : 10.5,
-                        color: const Color(0xFF8F9CB9),
+                        color: const Color(0xFF667085),
                         height: 1.2,
                       ),
                     ),
@@ -1258,11 +1259,11 @@ class PaymentStatusCard extends StatelessWidget {
     return SurfaceCard(
       radius: 26,
       padding: const EdgeInsets.all(18),
-      color: const Color(0xFF101C38),
-      borderColor: const Color(0xFF1E2B4D),
+      color: Colors.white,
+      borderColor: const Color(0xFFE5EBF5),
       shadow: const [
         BoxShadow(
-            color: Color(0x40050A15), blurRadius: 22, offset: Offset(0, 12)),
+            color: Color(0x14050A15), blurRadius: 22, offset: Offset(0, 12)),
       ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1289,7 +1290,7 @@ class PaymentStatusCard extends StatelessWidget {
                     Text(
                       'Payment status',
                       style: const TextStyle(
-                          color: Colors.white,
+                          color: Color(0xFF16233F),
                           fontSize: 16,
                           fontWeight: FontWeight.w800),
                     ),
@@ -1299,7 +1300,7 @@ class PaymentStatusCard extends StatelessWidget {
                           ? 'Waiting for confirmation'
                           : 'Receipt $receiptNumber',
                       style: const TextStyle(
-                          color: Color(0xFF9EABC9),
+                          color: Color(0xFF667085),
                           fontSize: 12.5,
                           height: 1.35),
                     ),
@@ -1333,7 +1334,7 @@ class PaymentStatusCard extends StatelessWidget {
             const SizedBox(height: 12),
             Text(
               'Method: ${method!}',
-              style: const TextStyle(color: Color(0xFF9EABC9), fontSize: 12.5),
+              style: const TextStyle(color: Color(0xFF667085), fontSize: 12.5),
             ),
           ],
         ],
@@ -1630,7 +1631,7 @@ class _PaymentMetric extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: const Color(0xFF0F1B3A),
+        color: Colors.white,
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: color.withOpacity(0.24)),
       ),
@@ -1640,7 +1641,7 @@ class _PaymentMetric extends StatelessWidget {
           Text(
             label,
             style: const TextStyle(
-              color: Color(0xFF9EABC9),
+              color: Color(0xFF64748B),
               fontSize: 11.5,
               fontWeight: FontWeight.w700,
             ),
@@ -1794,7 +1795,7 @@ class ParkingUserChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textColor = dark ? Colors.white : ParkingColors.ink;
-    final roleColor = dark ? const Color(0xFFB1BED9) : const Color(0xFF6D3EF7);
+    final roleColor = dark ? const Color(0xFFB1BED9) : ParkingColors.primary;
     final background = dark ? const Color(0xFF0F1B3A) : Colors.white;
     final borderColor =
         dark ? const Color(0xFF1E2B4D) : const Color(0xFFE8EDF7);
@@ -1986,15 +1987,17 @@ class ParkingScreenHeader extends StatelessWidget {
                           letterSpacing: -0.5,
                         ),
                       ),
-                      const SizedBox(height: 3),
-                      Text(
-                        subtitle,
-                        style: TextStyle(
-                          color: subtitleFg,
-                          fontSize: effectiveSubtitleSize,
-                          height: 1.25,
+                      if (subtitle.trim().isNotEmpty) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle,
+                          style: TextStyle(
+                            color: subtitleFg,
+                            fontSize: effectiveSubtitleSize,
+                            height: 1.25,
+                          ),
                         ),
-                      ),
+                      ],
                     ],
                   ),
                 ),

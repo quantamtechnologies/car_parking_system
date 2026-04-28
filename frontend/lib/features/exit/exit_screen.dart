@@ -62,29 +62,17 @@ class _ExitScreenState extends State<ExitScreen> {
 
   Future<_ExitPageData> _load() async {
     final api = context.read<SmartParkingApi>();
-    final results = await Future.wait([
-      api.vehicles(),
-      api.sessions(ordering: '-exit_time', pageSize: 10),
-    ]);
+    final payments =
+        await api.payments(pageSize: 10, ordering: '-confirmed_at');
 
-    final vehicles = (results[0] as List<VehicleRecord>).toList();
-    final sessions = (results[1] as List<ParkingSessionSummary>)
-        .where((session) => session.exitTime != null)
-        .toList();
-
-    final typeByPlate = <String, String>{};
-    for (final vehicle in vehicles) {
-      typeByPlate[vehicle.plateNumber.toUpperCase()] = vehicle.vehicleType;
-    }
-
-    final recentExits = sessions
-        .take(2)
+    final recentExits = payments
+        .where((payment) => payment.session != null)
         .map(
-          (session) => _RecentExitRowData(
-            plateNumber: session.plateNumber,
-            vehicleType:
-                typeByPlate[session.plateNumber.toUpperCase()] ?? 'CAR',
-            timeLabel: DateFormat('hh:mm a').format(session.exitTime!),
+          (payment) => _RecentExitRowData(
+            transaction: TransactionRecord(
+              session: payment.session!,
+              payment: payment,
+            ),
           ),
         )
         .toList();
@@ -178,7 +166,10 @@ class _ExitScreenState extends State<ExitScreen> {
       _fetchVehicleInfo();
       return;
     }
-    context.go('/payment', extra: session);
+    context.go('/payment', extra: {
+      'session': session,
+      'fee_breakdown': _breakdown,
+    });
   }
 
   String _money0(dynamic value) {
@@ -205,11 +196,10 @@ class _ExitScreenState extends State<ExitScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<AuthController>().user;
     final now = DateTime.now();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F7FF),
+      backgroundColor: Colors.white,
       body: RefreshIndicator(
         color: ParkingColors.primary,
         onRefresh: _refresh,
@@ -252,7 +242,7 @@ class _ExitScreenState extends State<ExitScreen> {
                     children: [
                       Padding(
                         padding: const EdgeInsets.fromLTRB(12, 0, 12, 0),
-                        child: _ExitHeader(user: user),
+                        child: const _ExitHeader(),
                       ),
                       const SizedBox(height: 18),
                       Padding(
@@ -448,54 +438,34 @@ class _ExitPageData {
 }
 
 class _RecentExitRowData {
-  const _RecentExitRowData({
-    required this.plateNumber,
-    required this.vehicleType,
-    required this.timeLabel,
-  });
+  const _RecentExitRowData({required this.transaction});
 
-  final String plateNumber;
-  final String vehicleType;
-  final String timeLabel;
+  final TransactionRecord transaction;
 }
 
 class _ExitHeader extends StatelessWidget {
-  const _ExitHeader({required this.user});
-
-  final UserProfile? user;
+  const _ExitHeader();
 
   @override
   Widget build(BuildContext context) {
-    final name = (user?.displayName.trim().isNotEmpty ?? false)
-        ? user!.displayName
-        : 'Current User';
-    final role = (user?.displayRole.trim().isNotEmpty ?? false)
-        ? user!.displayRole
-        : 'Staff';
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
         final backSize = compact ? 52.0 : 60.0;
         final titleSize = compact ? 20.0 : 24.0;
-        final avatarSize = compact ? 50.0 : 60.0;
-        final nameSize = compact ? 16.0 : 19.0;
-        final roleSize = compact ? 12.0 : 13.0;
 
         return Container(
           padding: const EdgeInsets.fromLTRB(14, 12, 14, 14),
           decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0A45E1), Color(0xFF1653EE), Color(0xFF0B60E8)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-            ),
+            color: Colors.white,
             borderRadius:
                 const BorderRadius.vertical(bottom: Radius.circular(24)),
+            border: Border.all(color: const Color(0xFFE5EBF5)),
           ),
           child: Row(
             children: [
               Material(
-                color: Colors.white,
+                color: const Color(0xFFEAF1FF),
                 borderRadius: BorderRadius.circular(18),
                 child: InkWell(
                   borderRadius: BorderRadius.circular(18),
@@ -517,59 +487,11 @@ class _ExitHeader extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: TextStyle(
-                    color: Colors.white,
+                    color: const Color(0xFF16233F),
                     fontSize: titleSize,
                     fontWeight: FontWeight.w800,
                     letterSpacing: -0.3,
                   ),
-                ),
-              ),
-              SizedBox(width: compact ? 10 : 18),
-              Flexible(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Container(
-                      width: avatarSize,
-                      height: avatarSize,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        color: Colors.white.withOpacity(0.2),
-                      ),
-                      child: const Icon(Icons.person,
-                          color: Colors.white, size: 40),
-                    ),
-                    SizedBox(width: compact ? 10 : 12),
-                    ConstrainedBox(
-                      constraints:
-                          BoxConstraints(maxWidth: compact ? 130 : 220),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            name,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: nameSize,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          const SizedBox(height: 2),
-                          Text(
-                            role,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: roleSize,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ),
             ],
@@ -886,51 +808,100 @@ class _RecentExitRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final accent = _vehicleAccent(data.vehicleType);
+    final transaction = data.transaction;
+    final accent = _vehicleAccent(transaction.vehicleType);
+    final entryLabel = transaction.entryTime == null
+        ? 'N/A'
+        : DateFormat('hh:mm a').format(transaction.entryTime!);
+    final exitLabel = transaction.exitTime == null
+        ? 'N/A'
+        : DateFormat('hh:mm a').format(transaction.exitTime!);
 
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-      child: Row(
-        children: [
-          Expanded(
-            flex: 3,
-            child: Text(
-              data.plateNumber,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xFF16233F),
-                fontSize: 16.5,
-                fontWeight: FontWeight.w800,
+    return InkWell(
+      onTap: () => context.push('/transactions/details', extra: transaction),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              flex: 3,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transaction.plateNumber,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF16233F),
+                      fontSize: 16.5,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    transaction.ownerName,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF667085),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            flex: 2,
-            child: Text(
-              vehicleTypeLabel(data.vehicleType),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: accent,
-                fontSize: 15.5,
-                fontWeight: FontWeight.w700,
+            const SizedBox(width: 12),
+            Expanded(
+              flex: 2,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    transaction.vehicleTypeLabelText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: accent,
+                      fontSize: 15.5,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 3),
+                  Text(
+                    '$entryLabel - $exitLabel',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      color: Color(0xFF667085),
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ],
               ),
             ),
-          ),
-          const SizedBox(width: 12),
-          Text(
-            data.timeLabel,
-            maxLines: 1,
-            overflow: TextOverflow.ellipsis,
-            style: const TextStyle(
-              color: Color(0xFF16233F),
-              fontSize: 15.5,
-              fontWeight: FontWeight.w700,
+            const SizedBox(width: 12),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                Text(
+                  money(transaction.amountPaid),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: Color(0xFF16233F),
+                    fontSize: 15.5,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                const StatusBadge(label: 'PAID', color: Color(0xFF16A34A)),
+              ],
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
