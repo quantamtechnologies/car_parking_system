@@ -30,10 +30,10 @@ class _EntryScreenState extends State<EntryScreen> {
   late final TextEditingController _plateController;
   late final TextEditingController _ownerController;
   late final TextEditingController _phoneController;
-  late String _vehicleType;
-  late bool _vehicleTypeExplicit;
+  String? _vehicleType;
   late Future<List<VehicleRecord>> _recentFuture;
-  Timer? _plateLookupDebounce;
+  VehicleRecord? _matchedVehicle;
+  int _lookupToken = 0;
   String _lastLookupPlate = '';
   bool _syncingPlateText = false;
 
@@ -52,9 +52,7 @@ class _EntryScreenState extends State<EntryScreen> {
     _phoneController = TextEditingController();
     _vehicleType = widget.initialVehicleType.trim().isNotEmpty
         ? widget.initialVehicleType
-        : 'CAR';
-    _vehicleTypeExplicit = widget.initialVehicleType.trim().isNotEmpty &&
-        widget.initialVehicleType.trim().toUpperCase() != 'CAR';
+        : null;
     _recentFuture = _loadRecentEntries();
     _plateController.addListener(_handlePlateChanged);
 
@@ -68,7 +66,6 @@ class _EntryScreenState extends State<EntryScreen> {
 
   @override
   void dispose() {
-    _plateLookupDebounce?.cancel();
     _plateController.dispose();
     _ownerController.dispose();
     _phoneController.dispose();
@@ -79,15 +76,16 @@ class _EntryScreenState extends State<EntryScreen> {
     if (_syncingPlateText) return;
 
     final plate = _plateController.text.trim().toUpperCase();
-    if (plate.length < 4 || plate == _lastLookupPlate) return;
-
-    _plateLookupDebounce?.cancel();
-    _plateLookupDebounce = Timer(const Duration(milliseconds: 420), () {
-      if (!mounted) return;
-      final latest = _plateController.text.trim().toUpperCase();
-      if (latest.length < 4 || latest == _lastLookupPlate) return;
-      _lookupVehicle(silent: true);
-    });
+    if (plate.isEmpty) {
+      _clearVehicleForm(resetPlateMemory: true, preservePlate: true);
+      return;
+    }
+    if (plate.length < 4) {
+      _clearVehicleForm(resetPlateMemory: false, preservePlate: true);
+      return;
+    }
+    if (plate == _lastLookupPlate && _matchedVehicle != null) return;
+    unawaited(_lookupVehicle(silent: true));
   }
 
   Future<List<VehicleRecord>> _loadRecentEntries() async {
@@ -120,20 +118,35 @@ class _EntryScreenState extends State<EntryScreen> {
 
     setState(() {
       _plateController.text = plate.trim().toUpperCase();
+      _plateController.selection =
+          TextSelection.collapsed(offset: _plateController.text.length);
     });
     await _lookupVehicle(silent: true);
   }
 
   Future<void> _lookupVehicle({required bool silent}) async {
-    final plate = _plateController.text.trim();
-    if (plate.isEmpty) return;
+    final plate = _plateController.text.trim().toUpperCase();
+    if (plate.isEmpty || plate.length < 4) return;
+    final lookupToken = ++_lookupToken;
 
     setState(() => _lookupBusy = true);
     try {
       final vehicle =
           await context.read<SmartParkingApi>().vehicleByPlate(plate);
-      if (!mounted) return;
+      if (!mounted || lookupToken != _lookupToken) return;
       if (vehicle == null) {
+        setState(() {
+          _matchedVehicle = null;
+          _lastLookupPlate = plate;
+          _syncingPlateText = true;
+          _plateController.text = plate;
+          _plateController.selection =
+              TextSelection.collapsed(offset: _plateController.text.length);
+          _syncingPlateText = false;
+          _ownerController.clear();
+          _phoneController.clear();
+          _vehicleType = null;
+        });
         if (!silent) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -146,12 +159,12 @@ class _EntryScreenState extends State<EntryScreen> {
       }
 
       setState(() {
+        _matchedVehicle = vehicle;
         _syncingPlateText = true;
         _plateController.text = vehicle.plateNumber;
         _plateController.selection =
             TextSelection.collapsed(offset: _plateController.text.length);
         _vehicleType = vehicle.vehicleType;
-        _vehicleTypeExplicit = true;
         _ownerController.text = vehicle.ownerName;
         _phoneController.text = vehicle.phoneNumber;
         _lastLookupPlate = vehicle.plateNumber.toUpperCase();
@@ -159,25 +172,80 @@ class _EntryScreenState extends State<EntryScreen> {
       });
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Vehicle lookup failed: ${apiErrorMessage(e, fallback: 'Please try again in a moment.')}',
+      if (!silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Vehicle lookup failed: ${apiErrorMessage(e, fallback: 'Please try again in a moment.')}',
+            ),
           ),
-        ),
-      );
+        );
+      }
     } finally {
-      if (mounted) setState(() => _lookupBusy = false);
+      if (mounted && lookupToken == _lookupToken) {
+        setState(() => _lookupBusy = false);
+      }
     }
   }
+
+  Future<void> _handlePlateSubmitted() async {
+    final plate = _plateController.text.trim().toUpperCase();
+    if (plate.isEmpty) return;
+    await _lookupVehicle(silent: true);
+    if (!mounted) return;
+    if (_matchedVehicle != null) {
+      await _submitEntry();
+    }
+  }
+
+  void _clearVehicleForm({
+    required bool resetPlateMemory,
+    required bool preservePlate,
+  }) {
+    if (!mounted) return;
+    setState(() {
+      _matchedVehicle = null;
+      _ownerController.clear();
+      _phoneController.clear();
+      _vehicleType = null;
+      if (resetPlateMemory) {
+        _lastLookupPlate = '';
+      } else if (!preservePlate) {
+        _lastLookupPlate = _plateController.text.trim().toUpperCase();
+      }
+    });
+  }
+
+  bool get _requiresRegistration => _matchedVehicle == null;
 
   Future<void> _submitEntry() async {
     final plate = _plateController.text.trim().toUpperCase();
     if (plate.isEmpty) return;
+    if (_lookupBusy) return;
+
+    if (_requiresRegistration) {
+      if ((_vehicleType ?? '').trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Select the vehicle type to continue.')),
+        );
+        return;
+      }
+      if (_ownerController.text.trim().isEmpty ||
+          _phoneController.text.trim().isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text(
+              'Enter the owner name and phone number before pressing ENTER.',
+            ),
+          ),
+        );
+        return;
+      }
+    }
 
     final payload = <String, dynamic>{
       'plate_number': plate,
-      'vehicle_type': _vehicleType,
+      'vehicle_type': _vehicleType ?? 'CAR',
       'owner_name': _ownerController.text.trim(),
       'phone_number': _phoneController.text.trim(),
     };
@@ -206,12 +274,23 @@ class _EntryScreenState extends State<EntryScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
-            registeredNow
+            _requiresRegistration || registeredNow
                 ? 'Vehicle registered and parking session started.'
                 : 'Parking session started successfully.',
           ),
         ),
       );
+      setState(() {
+        _matchedVehicle = null;
+        _lastLookupPlate = '';
+        _vehicleType = null;
+        _syncingPlateText = true;
+        _plateController.clear();
+        _plateController.selection = const TextSelection.collapsed(offset: 0);
+        _syncingPlateText = false;
+        _ownerController.clear();
+        _phoneController.clear();
+      });
       await _refreshRecent();
     } catch (e) {
       if (!mounted) return;
@@ -242,6 +321,7 @@ class _EntryScreenState extends State<EntryScreen> {
     final now = DateTime.now();
     final dateLabel = DateFormat('d MMM y').format(now);
     final timeLabel = DateFormat('hh:mm a').format(now);
+    final existingVehicle = _matchedVehicle != null;
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F7FF),
@@ -288,14 +368,16 @@ class _EntryScreenState extends State<EntryScreen> {
                                 isBusy: _lookupBusy,
                                 onScan: _openCamera,
                                 onSearch: () => _lookupVehicle(silent: false),
+                                onSubmitted: _handlePlateSubmitted,
                               ),
                               const SizedBox(height: 12),
                               _SelectField(
                                 icon: Icons.directions_car_rounded,
-                                label: _vehicleTypeExplicit
-                                    ? vehicleTypeLabel(_vehicleType)
-                                    : '',
+                                label: _vehicleType == null
+                                    ? ''
+                                    : vehicleTypeLabel(_vehicleType!),
                                 hint: 'Select vehicle type',
+                                enabled: !existingVehicle,
                                 onTap: _pickVehicleType,
                               ),
                               const SizedBox(height: 12),
@@ -304,6 +386,7 @@ class _EntryScreenState extends State<EntryScreen> {
                                 hintText: 'Owner name',
                                 icon: Icons.person_outline_rounded,
                                 textInputAction: TextInputAction.next,
+                                readOnly: existingVehicle,
                               ),
                               const SizedBox(height: 12),
                               _TextFieldShell(
@@ -312,6 +395,8 @@ class _EntryScreenState extends State<EntryScreen> {
                                 icon: Icons.phone_outlined,
                                 keyboardType: TextInputType.phone,
                                 textInputAction: TextInputAction.done,
+                                readOnly: existingVehicle,
+                                onSubmitted: (_) => _submitEntry(),
                               ),
                             ],
                           ),
@@ -452,14 +537,13 @@ class _EntryScreenState extends State<EntryScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (context) {
-        return _VehicleTypePicker(currentValue: _vehicleType);
+        return _VehicleTypePicker(currentValue: _vehicleType ?? 'CAR');
       },
     );
 
     if (result != null && mounted) {
       setState(() {
         _vehicleType = result;
-        _vehicleTypeExplicit = true;
       });
     }
   }
@@ -472,8 +556,12 @@ class _EntryHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = user?.displayName ?? 'Joel Cashier';
-    final role = user?.displayRole ?? 'Cashier';
+    final name = (user?.displayName.trim().isNotEmpty ?? false)
+        ? user!.displayName
+        : 'Current User';
+    final role = (user?.displayRole.trim().isNotEmpty ?? false)
+        ? user!.displayRole
+        : 'Staff';
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
@@ -587,12 +675,14 @@ class _PlateField extends StatelessWidget {
     required this.controller,
     required this.onScan,
     required this.onSearch,
+    required this.onSubmitted,
     required this.isBusy,
   });
 
   final TextEditingController controller;
   final VoidCallback onScan;
   final VoidCallback onSearch;
+  final Future<void> Function() onSubmitted;
   final bool isBusy;
 
   @override
@@ -625,7 +715,7 @@ class _PlateField extends StatelessWidget {
               borderRadius: BorderRadius.circular(14),
             ),
             child: const Icon(Icons.qr_code_scanner_rounded,
-                color: Color(0xFF2563EB), size: 26),
+                color: Color(0xFF2563EB), size: 20),
           ),
         ),
       ),
@@ -644,7 +734,7 @@ class _PlateField extends StatelessWidget {
               TextStyle(color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
           contentPadding: EdgeInsets.zero,
         ),
-        onSubmitted: (_) => onSearch(),
+        onSubmitted: (_) => onSubmitted(),
       ),
     );
   }
@@ -655,29 +745,40 @@ class _SelectField extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.hint,
+    required this.enabled,
     required this.onTap,
   });
 
   final IconData icon;
   final String label;
   final String hint;
+  final bool enabled;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return _FieldShell(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       prefix: Container(
         width: 52,
         height: 52,
         decoration: BoxDecoration(
-          color: const Color(0xFFEAF1FF),
+          color: enabled
+              ? const Color(0xFFEAF1FF)
+              : const Color(0xFFF3F4F6),
           borderRadius: BorderRadius.circular(14),
         ),
-        child: Icon(icon, color: const Color(0xFF2563EB), size: 28),
+        child: Icon(
+          icon,
+          color: enabled ? const Color(0xFF2563EB) : const Color(0xFF94A3B8),
+          size: 28,
+        ),
       ),
-      suffix: const Icon(Icons.keyboard_arrow_down_rounded,
-          color: Color(0xFF8A93A8), size: 30),
+      suffix: Icon(
+        enabled ? Icons.keyboard_arrow_down_rounded : Icons.lock_rounded,
+        color: const Color(0xFF8A93A8),
+        size: enabled ? 30 : 20,
+      ),
       child: Text(
         label.isEmpty ? hint : label,
         style: TextStyle(
@@ -696,15 +797,19 @@ class _TextFieldShell extends StatelessWidget {
     required this.controller,
     required this.hintText,
     required this.icon,
+    this.readOnly = false,
     this.keyboardType,
     this.textInputAction,
+    this.onSubmitted,
   });
 
   final TextEditingController controller;
   final String hintText;
   final IconData icon;
+  final bool readOnly;
   final TextInputType? keyboardType;
   final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
 
   @override
   Widget build(BuildContext context) {
@@ -720,6 +825,7 @@ class _TextFieldShell extends StatelessWidget {
       ),
       child: TextField(
         controller: controller,
+        readOnly: readOnly,
         keyboardType: keyboardType,
         textInputAction: textInputAction,
         style: const TextStyle(
@@ -734,6 +840,7 @@ class _TextFieldShell extends StatelessWidget {
               color: Color(0xFF8A93A8), fontWeight: FontWeight.w500),
           contentPadding: EdgeInsets.zero,
         ),
+        onSubmitted: onSubmitted,
       ),
     );
   }

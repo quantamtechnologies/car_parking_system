@@ -771,7 +771,7 @@ class CameraPreviewCard extends StatelessWidget {
                               ),
                               child: const Center(
                                 child: Text(
-                                  'KCD 123A',
+                                  'PLATE NUMBER',
                                   style: TextStyle(
                                     color: Color(0xFF1A1A1A),
                                     fontWeight: FontWeight.w900,

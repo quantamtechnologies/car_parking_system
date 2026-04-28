@@ -466,8 +466,12 @@ class _ExitHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = user?.displayName ?? 'Joel Cashier';
-    final role = user?.displayRole ?? 'Cashier';
+    final name = (user?.displayName.trim().isNotEmpty ?? false)
+        ? user!.displayName
+        : 'Current User';
+    final role = (user?.displayRole.trim().isNotEmpty ?? false)
+        ? user!.displayRole
+        : 'Staff';
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;

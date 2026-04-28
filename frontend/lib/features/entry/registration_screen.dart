@@ -203,7 +203,7 @@ class _VehicleRegistrationScreenState extends State<VehicleRegistrationScreen> {
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Text(
-                                  widget.plateNumber.trim().isEmpty ? 'KCD 123A' : widget.plateNumber.trim(),
+                                  widget.plateNumber.trim().isEmpty ? 'Plate Number' : widget.plateNumber.trim(),
                                   style: const TextStyle(
                                     color: darkInk,
                                     fontSize: 22,

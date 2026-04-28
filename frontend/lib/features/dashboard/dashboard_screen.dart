@@ -306,8 +306,12 @@ class _DashboardHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final name = user?.displayName ?? 'Joel Ndege';
-    final role = (user?.displayRole ?? 'CASHIER').toUpperCase();
+    final name = (user?.displayName.trim().isNotEmpty ?? false)
+        ? user!.displayName
+        : 'Current User';
+    final role = (user?.displayRole.trim().isNotEmpty ?? false)
+        ? user!.displayRole.toUpperCase()
+        : 'STAFF';
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
@@ -356,10 +360,11 @@ class _DashboardHeader extends StatelessWidget {
                   ),
                 ),
               ),
-              SizedBox(width: compact ? 12 : 16),
-              Expanded(
+              const Spacer(),
+              SizedBox(
+                width: compact ? 210 : 320,
                 child: Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Container(
                       width: avatarSize,
@@ -368,22 +373,26 @@ class _DashboardHeader extends StatelessWidget {
                         color: const Color(0xFF3D73F6).withOpacity(0.95),
                         shape: BoxShape.circle,
                       ),
-                      child: const Icon(Icons.person,
-                          color: Colors.white, size: 46),
+                      child: Icon(
+                        Icons.person,
+                        color: Colors.white,
+                        size: compact ? 34 : 46,
+                      ),
                     ),
                     SizedBox(width: compact ? 10 : 14),
                     Expanded(
                       child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.end,
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           FittedBox(
                             fit: BoxFit.scaleDown,
-                            alignment: Alignment.centerLeft,
+                            alignment: Alignment.centerRight,
                             child: Text(
                               name,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
                               style: TextStyle(
                                 color: Colors.white,
                                 fontSize: nameSize,
@@ -396,6 +405,7 @@ class _DashboardHeader extends StatelessWidget {
                             role,
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
+                            textAlign: TextAlign.right,
                             style: TextStyle(
                               color: Colors.white.withOpacity(0.72),
                               fontSize: roleSize,
