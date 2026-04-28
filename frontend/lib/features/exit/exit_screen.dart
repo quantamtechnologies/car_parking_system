@@ -11,6 +11,7 @@ import '../../core/services/api_client.dart';
 import '../../core/services/api_errors.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import '../camera/plate_scanner_overlay.dart';
 
 class ExitScreen extends StatefulWidget {
   const ExitScreen({super.key});
@@ -91,13 +92,11 @@ class _ExitScreenState extends State<ExitScreen> {
     if (_scanBusy) return;
     setState(() => _scanBusy = true);
     try {
-      final result = await context.push<Map<String, dynamic>?>(
-        '/camera-exit',
-        extra: {'source': 'EXIT', 'plate': _plateController.text},
+      final plate = await showPlateScannerOverlay(
+        context,
+        title: 'Exit Scanner',
+        initialPlate: _plateController.text,
       );
-      if (result == null) return;
-
-      final plate = result['plate']?.toString() ?? '';
       if (plate.trim().isEmpty) return;
 
       setState(() {
@@ -105,7 +104,7 @@ class _ExitScreenState extends State<ExitScreen> {
         _plateController.text = plate.trim().toUpperCase();
         _plateController.selection =
             TextSelection.collapsed(offset: _plateController.text.length);
-        _scanId = result['scan_id'] as int?;
+        _scanId = null;
         _syncingPlateText = false;
       });
       await _fetchVehicleInfo(autoTriggered: true);

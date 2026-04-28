@@ -1,5 +1,4 @@
 import 'package:dio/dio.dart';
-import 'package:image_picker/image_picker.dart';
 
 import '../config/app_env.dart';
 import '../models.dart';
@@ -144,19 +143,6 @@ class SmartParkingApi {
   Future<UserProfile> me() async {
     final response = await _send(() => _dio.get('/auth/me/'));
     return UserProfile.fromJson(_asMap(response.data));
-  }
-
-  Future<OcrResult> recognizePlate(XFile image,
-      {String source = 'ENTRY'}) async {
-    final response = await _send(() async {
-      final bytes = await image.readAsBytes();
-      final formData = FormData.fromMap({
-        'source': source,
-        'image': MultipartFile.fromBytes(bytes, filename: image.name),
-      });
-      return _dio.post('/camera/anpr/recognize/', data: formData);
-    });
-    return OcrResult.fromJson(_asMap(response.data));
   }
 
   Future<Map<String, dynamic>> createEntry(Map<String, dynamic> payload) async {

@@ -11,6 +11,7 @@ import '../../core/services/api_client.dart';
 import '../../core/services/api_errors.dart';
 import '../../core/theme.dart';
 import '../../core/widgets.dart';
+import '../camera/plate_scanner_overlay.dart';
 
 class EntryScreen extends StatefulWidget {
   const EntryScreen({
@@ -102,15 +103,11 @@ class _EntryScreenState extends State<EntryScreen> {
   }
 
   Future<void> _openCamera() async {
-    final result = await context.push<Map<String, dynamic>?>(
-      '/camera-entry',
-      extra: {'source': 'ENTRY', 'plate': _plateController.text},
+    final plate = await showPlateScannerOverlay(
+      context,
+      title: 'Entry Scanner',
+      initialPlate: _plateController.text,
     );
-    if (result == null) return;
-
-    final plate = result['plate']?.toString() ??
-        result['confirmed_plate']?.toString() ??
-        '';
     if (plate.trim().isEmpty) return;
 
     setState(() {

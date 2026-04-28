@@ -4,7 +4,6 @@ import 'package:go_router/go_router.dart';
 import 'core/controllers/auth_controller.dart';
 import 'core/models.dart';
 import 'core/theme.dart';
-import 'features/camera/camera_screen.dart';
 import 'features/auth/login_screen.dart';
 import 'features/admin/admin_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
@@ -42,28 +41,6 @@ GoRouter buildRouter(AuthController authController) {
       GoRoute(
         path: '/login',
         builder: (context, state) => const LoginScreen(),
-      ),
-      GoRoute(
-        path: '/camera-entry',
-        builder: (context, state) {
-          final extra =
-              Map<String, dynamic>.from(state.extra as Map? ?? const {});
-          return CameraScreen(
-            source: extra['source']?.toString() ?? 'ENTRY',
-            initialPlate: extra['plate']?.toString() ?? '',
-          );
-        },
-      ),
-      GoRoute(
-        path: '/camera-exit',
-        builder: (context, state) {
-          final extra =
-              Map<String, dynamic>.from(state.extra as Map? ?? const {});
-          return CameraScreen(
-            source: extra['source']?.toString() ?? 'EXIT',
-            initialPlate: extra['plate']?.toString() ?? '',
-          );
-        },
       ),
       GoRoute(
         path: '/receipts',
